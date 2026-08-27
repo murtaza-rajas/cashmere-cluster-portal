@@ -25,7 +25,7 @@ app/
 - `api/src/members/`: `MembersService.findOrCreateFromIdentity()` — new members default to the free NEWSLETTER tier; nothing in the auth flow ever grants paid/Founding status (that only happens via the Shopify order webhook in Milestone 4, per the client's "no manual approval, activation on payment" rule).
 - `api/src/staff/`: RBAC. `RolesGuard` + `@Roles('Club Manager', ...)` decorator, checked against `StaffRoleAssignment`; Super Administrator bypasses any role list. **`StaffJwtStrategy`/`StaffAuthGuard` are explicitly provisional** — a JWT-in-httpOnly-cookie placeholder (separate secret from member sessions) standing in until the Milestone 1 auth evaluation picks the real staff login method (magic link, Auth0/Cognito, Passkeys). Nothing above that layer changes when it's swapped. **Verified live**: no session → 401, allowed role → 200, disallowed role → 403, Super Administrator → 200 regardless of the route's role list. `scripts/create-test-staff.ts` mints a staff session token for manual testing until real staff login exists.
 - `api/src/health/`: `GET /health`, using `@nestjs/terminus`, checks real database connectivity (not just "the process is alive") — returns 503 with a structured body if the DB is unreachable. Built for AWS ALB/ECS target group health checks later, but works with any orchestrator. **Verified live**: 200 while the DB is reachable, proper 503 the moment it isn't (tested by stopping the DB out from under a running app instance).
-- `web`: Next.js 16 (App Router, TypeScript, Tailwind) project generated, builds clean. `output: "standalone"` in `next.config.ts` — verified the standalone build actually boots and serves traffic, not just that `next build` succeeds. No pages built yet beyond the default scaffold — member portal UI is next.
+- `web`: Next.js 16 (App Router, TypeScript, Tailwind). `output: "standalone"` in `next.config.ts` — verified the standalone build actually boots and serves traffic, not just that `next build` succeeds. First real page built: `app/page.tsx` + `app/session-status.tsx` — checks `GET /members/me` on load (with the session cookie) and shows either "Sign in with Shopify" (linking to `${API_URL}/auth/shopify/login`) or "Welcome back, {name}" with membership tier. **Verified in an actual headless browser, both states**, zero console errors: signed-out renders the button with the correct href; with a manually-minted session cookie (`scripts/create-test-member.ts`), it correctly shows "Welcome back, Isabella / Membership: FOUNDING". The real Shopify OAuth round-trip itself still can't be completed without real credentials + a public HTTPS URL, but the frontend↔backend session-check wiring is proven, not assumed.
 - `.github/workflows/`: CI for both projects — `api-ci.yml` runs lint, Prisma migrate + seed against a Postgres service container, unit + e2e tests, and build; `web-ci.yml` runs lint + build. Both verified locally before being committed.
 - `api/Dockerfile`, `web/Dockerfile`: multi-stage, portable (node:22-slim / node:22-alpine, no Vercel/Railway/Render base images or build steps). **Not build-tested in this environment — Docker isn't installed in the sandbox this was built in.** Written against the standard, well-documented patterns for NestJS+Prisma and Next.js standalone output, and everything they depend on (the standalone build, the NestJS build, the health endpoint) has been verified working — but run `docker compose --profile full up --build` yourself before trusting these in CI/deployment.
 
@@ -33,7 +33,7 @@ app/
 
 - The real staff login flow — RBAC *authorization* is built (see above), but staff *authentication* is a placeholder.
 - No Shopify OAuth end-to-end test with a real store (needs real client ID + staging HTTPS URL — see PROJECT_TRACKER.md Section 11).
-- No member portal pages beyond the default Next.js scaffold.
+- No member portal pages beyond the login/session-check page — no dashboard, profile, order history, etc. yet (that's the mockup-matching UI work, still to come).
 - Offers, Events, Collections, Care & Repair and other Milestone 5 admin entities are intentionally not modelled yet — straightforward additions once Milestone 5 starts, don't block the core foundation.
 - No CD/deployment and no hosting decided yet — deliberately kept deployment-agnostic per current direction (Docker images ready, but where they actually run — AWS ECS/Fargate — comes later). CI runs on every push; nothing deploys anywhere yet.
 - Dockerfiles are unverified by an actual `docker build` (see Status above) — treat as "should work, needs a real Docker run to confirm" until someone does that.
@@ -99,6 +99,20 @@ npx ts-node scripts/create-test-staff.ts "Club Manager"
 # prints a token — use it as the clc_staff_session cookie
 curl --cookie "clc_staff_session=<token>" http://localhost:3000/staff/me
 ```
+
+### Testing the member session / frontend login page
+
+Same idea, for the member side — no real Shopify login needed to see the "signed in" state:
+
+```bash
+cd api
+npx ts-node scripts/create-test-member.ts
+# prints a token — set it as clc_session in your browser's devtools (Application > Cookies)
+# for http://localhost:3000, or via curl:
+curl --cookie "clc_session=<token>" http://localhost:3000/members/me
+```
+
+Then reload `http://localhost:3001/` (with `api` and `web` both running) — the page should show "Welcome back, {name}" instead of the sign-in button.
 
 ### A note on the dev Postgres and `tsconfig.build.tsbuildinfo`
 
