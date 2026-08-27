@@ -9,7 +9,8 @@ import { MembersService } from '../../members/members.service';
 const SESSION_COOKIE = 'clc_session';
 
 function extractFromCookie(req: Request): string | null {
-  return req?.cookies?.[SESSION_COOKIE] ?? null;
+  const cookies = req?.cookies as Record<string, string> | undefined;
+  return cookies?.[SESSION_COOKIE] ?? null;
 }
 
 @Injectable()

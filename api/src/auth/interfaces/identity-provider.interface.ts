@@ -22,7 +22,10 @@ export interface IdentityProvider {
   readonly providerId: string;
 
   /** Build the URL to redirect the browser to, plus the PKCE material to persist (e.g. in a signed cookie) until the callback. */
-  buildAuthorizationRequest(): Promise<{ redirectUrl: string; pkce: PkceState }>;
+  buildAuthorizationRequest(): Promise<{
+    redirectUrl: string;
+    pkce: PkceState;
+  }>;
 
   /** Exchange the callback's authorization code for a verified external identity. */
   handleCallback(code: string, pkce: PkceState): Promise<ExternalIdentity>;

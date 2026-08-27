@@ -1,4 +1,11 @@
-import { Controller, Get, Query, Req, Res, BadRequestException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Query,
+  Req,
+  Res,
+  BadRequestException,
+} from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { ShopifyIdentityProvider } from './providers/shopify-identity.provider';
@@ -26,7 +33,8 @@ export class AuthController {
 
   @Get('login')
   async login(@Res() res: Response) {
-    const { redirectUrl, pkce } = await this.shopify.buildAuthorizationRequest();
+    const { redirectUrl, pkce } =
+      await this.shopify.buildAuthorizationRequest();
 
     res.cookie(PKCE_COOKIE, JSON.stringify(pkce satisfies PkceState), {
       httpOnly: true,
@@ -40,23 +48,36 @@ export class AuthController {
   }
 
   @Get('callback')
-  async callback(@Query('code') code: string, @Query('state') state: string, @Req() req: Request, @Res() res: Response) {
+  async callback(
+    @Query('code') code: string,
+    @Query('state') state: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
     if (!code || !state) {
-      throw new BadRequestException('Missing code or state from Shopify callback');
+      throw new BadRequestException(
+        'Missing code or state from Shopify callback',
+      );
     }
 
-    const raw = req.cookies?.[PKCE_COOKIE];
+    const cookies = req.cookies as Record<string, string> | undefined;
+    const raw = cookies?.[PKCE_COOKIE];
     if (!raw) {
-      throw new BadRequestException('Missing or expired PKCE cookie — please try logging in again');
+      throw new BadRequestException(
+        'Missing or expired PKCE cookie — please try logging in again',
+      );
     }
-    const pkce: PkceState = JSON.parse(raw);
+    const pkce = JSON.parse(raw) as PkceState;
 
     if (pkce.state !== state) {
-      throw new BadRequestException('State mismatch — possible CSRF, aborting login');
+      throw new BadRequestException(
+        'State mismatch — possible CSRF, aborting login',
+      );
     }
 
     const identity = await this.shopify.handleCallback(code, pkce);
-    const { accessToken } = await this.authService.issueSessionForIdentity(identity);
+    const { accessToken } =
+      await this.authService.issueSessionForIdentity(identity);
 
     res.clearCookie(PKCE_COOKIE, { path: '/auth/shopify/callback' });
 

@@ -16,7 +16,9 @@ export class AuthService {
   ) {}
 
   /** Turns a verified external identity (from any IdentityProvider) into our own session token. */
-  async issueSessionForIdentity(identity: ExternalIdentity): Promise<{ accessToken: string; memberId: string }> {
+  async issueSessionForIdentity(
+    identity: ExternalIdentity,
+  ): Promise<{ accessToken: string; memberId: string }> {
     const member = await this.members.findOrCreateFromIdentity(identity);
     const payload: SessionJwtPayload = { sub: member.id };
     return {

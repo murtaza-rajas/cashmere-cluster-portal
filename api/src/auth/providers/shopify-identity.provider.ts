@@ -1,12 +1,35 @@
 import { Injectable, Logger, BadGatewayException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
-import { ExternalIdentity, IdentityProvider, PkceState } from '../interfaces/identity-provider.interface';
-import { deriveCodeChallenge, generateCodeVerifier, generateState } from '../pkce.util';
+import {
+  ExternalIdentity,
+  IdentityProvider,
+  PkceState,
+} from '../interfaces/identity-provider.interface';
+import {
+  deriveCodeChallenge,
+  generateCodeVerifier,
+  generateState,
+} from '../pkce.util';
 
 interface OidcDiscoveryDocument {
   authorization_endpoint: string;
   token_endpoint: string;
+}
+
+interface ShopifyTokenResponse {
+  access_token: string;
+}
+
+interface CustomerAccountGraphQLResponse {
+  data?: {
+    customer?: {
+      id: string;
+      firstName: string | null;
+      lastName: string | null;
+      emailAddress: { emailAddress: string };
+    };
+  };
 }
 
 // Implements login via Shopify's Customer Account API (OAuth 2.0 Authorization Code + PKCE).
@@ -53,12 +76,20 @@ export class ShopifyIdentityProvider implements IdentityProvider {
       this.discoveryCache = data;
       return data;
     } catch (err) {
-      this.logger.error(`Shopify OIDC discovery failed for ${url}`, err as Error);
-      throw new BadGatewayException('Could not reach Shopify identity discovery endpoint');
+      this.logger.error(
+        `Shopify OIDC discovery failed for ${url}`,
+        err as Error,
+      );
+      throw new BadGatewayException(
+        'Could not reach Shopify identity discovery endpoint',
+      );
     }
   }
 
-  async buildAuthorizationRequest(): Promise<{ redirectUrl: string; pkce: PkceState }> {
+  async buildAuthorizationRequest(): Promise<{
+    redirectUrl: string;
+    pkce: PkceState;
+  }> {
     const { authorization_endpoint } = await this.discover();
 
     const codeVerifier = generateCodeVerifier();
@@ -81,11 +112,14 @@ export class ShopifyIdentityProvider implements IdentityProvider {
     };
   }
 
-  async handleCallback(code: string, pkce: PkceState): Promise<ExternalIdentity> {
+  async handleCallback(
+    code: string,
+    pkce: PkceState,
+  ): Promise<ExternalIdentity> {
     const { token_endpoint } = await this.discover();
 
     const tokenResponse = await axios
-      .post(
+      .post<ShopifyTokenResponse>(
         token_endpoint,
         new URLSearchParams({
           grant_type: 'authorization_code',
@@ -122,19 +156,31 @@ export class ShopifyIdentityProvider implements IdentityProvider {
     `;
 
     const { data: gqlResponse } = await axios
-      .post(
+      .post<CustomerAccountGraphQLResponse>(
         apiDiscovery.graphql_api,
         { query },
-        { headers: { Authorization: accessToken, 'Content-Type': 'application/json' } },
+        {
+          headers: {
+            Authorization: accessToken,
+            'Content-Type': 'application/json',
+          },
+        },
       )
       .catch((err) => {
-        this.logger.error('Shopify customer identity query failed', err as Error);
-        throw new BadGatewayException('Could not fetch customer identity from Shopify');
+        this.logger.error(
+          'Shopify customer identity query failed',
+          err as Error,
+        );
+        throw new BadGatewayException(
+          'Could not fetch customer identity from Shopify',
+        );
       });
 
     const customer = gqlResponse?.data?.customer;
     if (!customer) {
-      throw new BadGatewayException('Shopify did not return a customer identity');
+      throw new BadGatewayException(
+        'Shopify did not return a customer identity',
+      );
     }
 
     return {
