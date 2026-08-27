@@ -1,0 +1,229 @@
+// Cashmere Lovers Club — Phase 1 data model
+//
+// Design principles this schema follows (see PROJECT_TRACKER.md for full context):
+// - Shopify is the source of truth for member identity, contact details and orders.
+//   This database only stores membership-specific data that doesn't already live in Shopify
+//   (data minimisation — see PROJECT_TRACKER.md Section 4, GDPR/Security).
+// - No payment/card data is ever stored here. Orders are a read-only summary cache.
+// - Founding Member status is a PERMANENT flag, decoupled from the paid term itself —
+//   confirmed by the client: the badge survives even if the 5-year term lapses without renewal.
+// - Staff roles are 8 fixed presets (not a fully dynamic permission engine) but modelled as
+//   real rows (Role/StaffRoleAssignment), not a hardcoded enum, so the model can extend later
+//   without a schema rewrite if DCC needs more advanced access management (client requirement).
+// - Every sensitive administrative action is expected to write an AuditLog row.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Membership
+// ---------------------------------------------------------------------------
+
+enum MembershipTier {
+  FOUNDING   // First 1,500 paying members. Cap enforced via Shopify inventory, not here.
+  ANNUAL     // Paid, 1-year or 5-year term (see termLengthYears).
+  NEWSLETTER // Free tier. Existing Shopify customers/newsletter subscribers land here by default.
+}
+
+enum MembershipStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+model Member {
+  id     String @id @default(uuid())
+
+  // Shopify is the identity source of truth. We never store a password here —
+  // login happens via Shopify Customer Accounts (OAuth), see PROJECT_TRACKER.md Section 3.
+  shopifyCustomerId String @unique
+
+  // Cached for admin search/display convenience only. Shopify remains authoritative;
+  // this field is refreshed via webhook and purged on a Shopify customers/redact event.
+  email     String
+  firstName String?
+  lastName  String?
+
+  membershipTier   MembershipTier
+  membershipStatus MembershipStatus @default(ACTIVE)
+
+  // Permanent once true — do NOT derive this from membershipStatus/expiry.
+  // Client requirement: Founding Member badge stays for life even if the term isn't renewed.
+  isFoundingMember Boolean @default(false)
+
+  // Term tracking. Null for the free NEWSLETTER tier.
+  termLengthYears     Int?      // 1 or 5
+  membershipStartDate DateTime?
+  membershipEndDate   DateTime?
+
+  // The Shopify order that granted the current paid term, for support/audit reference.
+  originatingShopifyOrderId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders               MemberOrderCache[]
+  dataSubjectRequests  DataSubjectRequest[]
+  auditLogEntries      AuditLog[]           @relation("AuditLogTargetMember")
+
+  @@index([membershipTier])
+  @@index([email])
+}
+
+// Read-only summary cache of Shopify orders, kept in sync via webhook.
+// Shopify remains the system of record — we never store payment/card details here.
+model MemberOrderCache {
+  id             String   @id @default(uuid())
+  memberId       String
+  member         Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  shopifyOrderId String   @unique
+  orderNumber    String
+  totalAmount    Decimal  @db.Decimal(10, 2)
+  currency       String
+  status         String   // Shopify's order/financial status string, cached as-is
+  orderDate      DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([memberId])
+}
+
+// ---------------------------------------------------------------------------
+// Staff, roles & permissions
+// ---------------------------------------------------------------------------
+// 8 fixed role presets (per client confirmation, PROJECT_TRACKER.md Section 3):
+// Club Manager, Content Manager, Newsletter Manager, Member Support, Commerce Manager,
+// Event Manager, Analytics Viewer, Technical Administrator, Investor Relations Manager
+// — plus Super Administrator. Seeded via prisma/seed.ts, not user-creatable in Phase 1
+// (that would be the "fully dynamic permission builder" we deliberately deferred).
+
+model StaffUser {
+  id    String @id @default(uuid())
+  email String @unique
+  name  String
+
+  // Kept provider-agnostic on purpose: staff aren't Shopify customers, so this points at
+  // whatever identity provider ends up used for internal accounts (see auth evaluation,
+  // Milestone 1 deliverable) without forcing a schema change later.
+  authProviderId String? @unique
+
+  isActive    Boolean   @default(true)
+  startDate   DateTime  @default(now())
+  expiryDate  DateTime? // optional, per the client's spec (PDF Section 6)
+  mfaEnabled  Boolean   @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  roleAssignments      StaffRoleAssignment[] @relation("AssignmentsForStaff")
+  grantedAssignments    StaffRoleAssignment[] @relation("AssignmentsGrantedBy")
+  auditLogEntries       AuditLog[]            @relation("AuditLogActor")
+
+  @@index([email])
+}
+
+model Role {
+  id          String  @id @default(uuid())
+  name        String  @unique // e.g. "Club Manager", "Super Administrator"
+  description String?
+
+  assignments StaffRoleAssignment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// A staff member's grant of one role, optionally scoped to a subset of data
+// (e.g. "assigned designers only") rather than the full module.
+model StaffRoleAssignment {
+  id String @id @default(uuid())
+
+  staffUserId String
+  staffUser   StaffUser @relation("AssignmentsForStaff", fields: [staffUserId], references: [id], onDelete: Cascade)
+
+  roleId String
+  role   Role   @relation(fields: [roleId], references: [id])
+
+  // Free-form scope description/filter, e.g. { "scope": "all" } or a list of record IDs.
+  // Kept as JSON rather than new tables per module — Phase 1 doesn't need a data-scope
+  // engine beyond "all vs. specific IDs", but this avoids a migration if that changes.
+  dataScope Json @default("{\"scope\": \"all\"}")
+
+  grantedById String?
+  grantedBy   StaffUser? @relation("AssignmentsGrantedBy", fields: [grantedById], references: [id])
+  grantedAt   DateTime   @default(now())
+
+  @@unique([staffUserId, roleId])
+}
+
+// ---------------------------------------------------------------------------
+// Audit log — every sensitive administrative action must write a row here.
+// ---------------------------------------------------------------------------
+
+model AuditLog {
+  id String @id @default(uuid())
+
+  actorStaffUserId String?
+  actorStaffUser   StaffUser? @relation("AuditLogActor", fields: [actorStaffUserId], references: [id])
+
+  action     String // e.g. "member.status_changed", "staff.role_granted", "member.data_exported"
+  targetType String // e.g. "Member", "StaffUser"
+  targetId   String
+
+  // Convenience relation for the common case of a Member being the target — makes
+  // "show this member's full history" a simple query. targetType/targetId above stay
+  // the source of truth for anything else (StaffUser, Role, etc.).
+  targetMemberId String?
+  targetMember   Member? @relation("AuditLogTargetMember", fields: [targetMemberId], references: [id])
+
+  reason   String? // required by the client's spec for exceptions/deletions
+  metadata Json?   // before/after snapshot, free-form
+
+  createdAt DateTime @default(now())
+
+  @@index([targetType, targetId])
+  @@index([createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// GDPR data-subject requests
+// ---------------------------------------------------------------------------
+
+enum DataSubjectRequestType {
+  ACCESS
+  EXPORT
+  DELETION
+}
+
+enum DataSubjectRequestStatus {
+  PENDING
+  COMPLETED
+}
+
+model DataSubjectRequest {
+  id String @id @default(uuid())
+
+  memberId String
+  member   Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  type   DataSubjectRequestType
+  status DataSubjectRequestStatus @default(PENDING)
+
+  // Set when triggered by Shopify's mandatory compliance webhooks
+  // (customers/data_request, customers/redact) rather than a member-initiated request.
+  sourceShopifyWebhookId String?
+
+  requestedAt DateTime  @default(now())
+  completedAt DateTime?
+
+  @@index([memberId])
+  @@index([status])
+}
