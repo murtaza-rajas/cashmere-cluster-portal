@@ -11,7 +11,10 @@ app/
   api/                  NestJS backend — Prisma data model, Shopify OAuth login, RBAC, audit log
   web/                  Next.js frontend — the Cashmere Lovers Club member portal UI
   .github/workflows/    CI — api-ci.yml, web-ci.yml
+  docker-compose.yml    Local Postgres (+ optional full-stack profile)
 ```
+
+**Deployment posture:** deliberately platform-agnostic for now — no Vercel/Railway/Render-specific code or config anywhere in this repo. Both `api` and `web` have plain multi-stage Dockerfiles producing portable, generic containers, chosen so this can move to AWS (ECS/Fargate + RDS Postgres) later without a rewrite. Nothing AWS-specific has been added yet either — the containers just don't preclude it.
 
 ## Status
 
@@ -21,8 +24,10 @@ app/
 - `api/src/auth/`: Shopify Customer Account API login, OAuth 2.0 + PKCE, built behind a method-agnostic `IdentityProvider` interface. Routes: `GET /auth/shopify/login`, `GET /auth/shopify/callback`. Session is an httpOnly cookie holding our own JWT — the frontend never sees the raw Shopify token or needs to store anything itself. **Verified against real Shopify discovery infrastructure** (correct PKCE + authorization URL construction confirmed), but not yet tested with a real login — that needs the client's actual Shopify client ID and an HTTPS redirect URI (Shopify does not accept `localhost`).
 - `api/src/members/`: `MembersService.findOrCreateFromIdentity()` — new members default to the free NEWSLETTER tier; nothing in the auth flow ever grants paid/Founding status (that only happens via the Shopify order webhook in Milestone 4, per the client's "no manual approval, activation on payment" rule).
 - `api/src/staff/`: RBAC. `RolesGuard` + `@Roles('Club Manager', ...)` decorator, checked against `StaffRoleAssignment`; Super Administrator bypasses any role list. **`StaffJwtStrategy`/`StaffAuthGuard` are explicitly provisional** — a JWT-in-httpOnly-cookie placeholder (separate secret from member sessions) standing in until the Milestone 1 auth evaluation picks the real staff login method (magic link, Auth0/Cognito, Passkeys). Nothing above that layer changes when it's swapped. **Verified live**: no session → 401, allowed role → 200, disallowed role → 403, Super Administrator → 200 regardless of the route's role list. `scripts/create-test-staff.ts` mints a staff session token for manual testing until real staff login exists.
-- `web`: Next.js 16 (App Router, TypeScript, Tailwind) project generated, builds clean. No pages built yet beyond the default scaffold — member portal UI is next.
+- `api/src/health/`: `GET /health`, using `@nestjs/terminus`, checks real database connectivity (not just "the process is alive") — returns 503 with a structured body if the DB is unreachable. Built for AWS ALB/ECS target group health checks later, but works with any orchestrator. **Verified live**: 200 while the DB is reachable, proper 503 the moment it isn't (tested by stopping the DB out from under a running app instance).
+- `web`: Next.js 16 (App Router, TypeScript, Tailwind) project generated, builds clean. `output: "standalone"` in `next.config.ts` — verified the standalone build actually boots and serves traffic, not just that `next build` succeeds. No pages built yet beyond the default scaffold — member portal UI is next.
 - `.github/workflows/`: CI for both projects — `api-ci.yml` runs lint, Prisma migrate + seed against a Postgres service container, unit + e2e tests, and build; `web-ci.yml` runs lint + build. Both verified locally before being committed.
+- `api/Dockerfile`, `web/Dockerfile`: multi-stage, portable (node:22-slim / node:22-alpine, no Vercel/Railway/Render base images or build steps). **Not build-tested in this environment — Docker isn't installed in the sandbox this was built in.** Written against the standard, well-documented patterns for NestJS+Prisma and Next.js standalone output, and everything they depend on (the standalone build, the NestJS build, the health endpoint) has been verified working — but run `docker compose --profile full up --build` yourself before trusting these in CI/deployment.
 
 ## Not done yet
 
@@ -30,31 +35,56 @@ app/
 - No Shopify OAuth end-to-end test with a real store (needs real client ID + staging HTTPS URL — see PROJECT_TRACKER.md Section 11).
 - No member portal pages beyond the default Next.js scaffold.
 - Offers, Events, Collections, Care & Repair and other Milestone 5 admin entities are intentionally not modelled yet — straightforward additions once Milestone 5 starts, don't block the core foundation.
-- No CD/deployment — CI runs on every push, but nothing deploys anywhere yet. Needs a staging hosting decision (client has asked for a staging link to follow progress; see PROJECT_TRACKER.md Section 9).
+- No CD/deployment and no hosting decided yet — deliberately kept deployment-agnostic per current direction (Docker images ready, but where they actually run — AWS ECS/Fargate — comes later). CI runs on every push; nothing deploys anywhere yet.
+- Dockerfiles are unverified by an actual `docker build` (see Status above) — treat as "should work, needs a real Docker run to confirm" until someone does that.
 
 ## Local setup
 
-The `api` needs a local Postgres. No root/Docker required — `embedded-postgres` runs a real Postgres 18 binary under `.dev-postgres-data/` (gitignored).
+Two ways to get Postgres running locally — pick one.
+
+**Option A — Docker (recommended, matches how Postgres will actually run everywhere else):**
+
+```bash
+cd app   # this directory, the one with docker-compose.yml
+docker compose up -d postgres
+```
+
+**Option B — no Docker required**, for environments without it (this is how it was developed/tested in this sandbox): `embedded-postgres` runs a real Postgres 18 binary under `api/.dev-postgres-data/` (gitignored).
+
+```bash
+cd api
+npm run dev:db:start   # leave running in its own terminal (or background it); npm run dev:db:stop when done
+```
+
+Either way, then:
 
 ```bash
 cd api
 cp .env.example .env   # defaults work for local dev as-is; fill in real Shopify values to test login
 npm install
 
-npm run dev:db:start   # leave running in its own terminal (or background it)
 npm run prisma:migrate # first time only — creates the schema
 npm run prisma:seed    # seeds the 9 roles + Super Administrator
 
 npm run start:dev      # NestJS dev server on :3000
 ```
 
-When done: `npm run dev:db:stop` in another terminal (or wherever you backgrounded it).
-
 ```bash
 cd web
 npm install
 npm run dev             # Next.js dev server on :3001
 ```
+
+### Running the built Docker images locally
+
+To validate the actual Dockerfiles (closer to how this runs once deployed, rather than `npm run dev`):
+
+```bash
+cd app
+docker compose --profile full up --build
+```
+
+This builds and runs `api` + `web` + `postgres` together. **Not yet run in this environment** — Docker isn't available in the sandbox this was built in; verify on a machine that has it before relying on this.
 
 ### Testing the Shopify login flow
 

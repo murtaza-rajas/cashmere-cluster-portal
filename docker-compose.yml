@@ -1,0 +1,63 @@
+# Local development only. Nothing platform-specific here (no Vercel/Railway/Render
+# config) — plain Docker/Compose, so this matches how things will actually run in
+# any future environment, including AWS (RDS in production instead of the postgres
+# service below, ECS/Fargate instead of these container definitions, but the same
+# images and the same docker-compose-validated behavior).
+#
+# Day-to-day dev: `docker compose up -d postgres`, then run `api`/`web` directly
+# with `npm run start:dev` / `npm run dev` for fast reload.
+#
+# Full-stack validation (build and run the actual Dockerfiles, closer to how this
+# will run once deployed): `docker compose --profile full up --build`
+
+services:
+  postgres:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: cashmere_lovers_club
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    profiles: ["full"]
+    build:
+      context: ./api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/cashmere_lovers_club?schema=public
+      JWT_SECRET: ${JWT_SECRET:-dev-only-secret-do-not-use-in-production}
+      STAFF_JWT_SECRET: ${STAFF_JWT_SECRET:-dev-only-staff-secret-do-not-use-in-production}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3001}
+      SHOPIFY_SHOP_DOMAIN: ${SHOPIFY_SHOP_DOMAIN:-your-store.myshopify.com}
+      SHOPIFY_CLIENT_ID: ${SHOPIFY_CLIENT_ID:-placeholder}
+      SHOPIFY_REDIRECT_URI: ${SHOPIFY_REDIRECT_URI:-https://placeholder.example.com/auth/shopify/callback}
+    ports:
+      - "3000:3000"
+
+  web:
+    profiles: ["full"]
+    build:
+      context: ./web
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3000}
+    ports:
+      - "3001:3000"
+
+volumes:
+  postgres_data:
