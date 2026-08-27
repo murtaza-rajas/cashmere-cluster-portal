@@ -114,6 +114,10 @@ curl --cookie "clc_session=<token>" http://localhost:3000/members/me
 
 Then reload `http://localhost:3001/` (with `api` and `web` both running) — the page should show "Welcome back, {name}" instead of the sign-in button.
 
-### A note on the dev Postgres and `tsconfig.build.tsbuildinfo`
+### Ports
 
-If `npm run build` ever produces an empty/stale `dist/`, delete `tsconfig.build.tsbuildinfo` and rebuild — TypeScript's incremental build cache can get out of sync with the actual source tree (this happened once already; the file is gitignored so it shouldn't cause problems for a fresh clone, but worth knowing if it resurfaces).
+`api` always runs on **3000**, `web` is pinned to **3001** (`next dev -p 3001` in `package.json`) regardless of which one you start first — earlier this wasn't pinned, so starting `web` before `api` could let it grab port 3000 and cause a confusing `EADDRINUSE` when `api` started. Fixed; if you're on an old checkout, `git pull`.
+
+### `Cannot find module dist/main` (fixed, but here's why in case anything similar resurfaces)
+
+This used to happen intermittently on `npm run start:dev`/`npm run build`: TypeScript's `incremental` compilation writes a `tsconfig.build.tsbuildinfo` cache, but Nest's `nest-cli.json` has `deleteOutDir: true`, which deletes `dist/` *outside* of tsc's knowledge. The incremental cache would then believe nothing changed and skip re-emitting files that had just been deleted — `nest build` would report "0 errors" while `dist/main.js` silently didn't exist. Reproduced it on demand and fixed the root cause: `incremental` is now off in `tsconfig.json`, so no `.tsbuildinfo` is generated at all and this class of bug is structurally impossible. If you still have an old `tsconfig.build.tsbuildinfo` sitting around from before this fix, delete it once — it's gitignored so it won't come back.
