@@ -1,0 +1,81 @@
+name: API CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "api/**"
+      - ".github/workflows/api-ci.yml"
+  pull_request:
+    paths:
+      - "api/**"
+      - ".github/workflows/api-ci.yml"
+
+defaults:
+  run:
+    working-directory: api
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    # Real Postgres for the e2e test (PrismaService connects on module init) —
+    # matches what local dev uses (see api/scripts/dev-db.ts), just via a service
+    # container instead of the embedded binary.
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: cashmere_lovers_club
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/cashmere_lovers_club?schema=public
+      # CI-only dummy values — never real secrets. Real staging/production values
+      # live in deployment secrets, not here (see PROJECT_TRACKER.md Section 4).
+      JWT_SECRET: ci-test-secret-not-for-real-use
+      FRONTEND_URL: http://localhost:3001
+      SHOPIFY_SHOP_DOMAIN: ci-placeholder.myshopify.com
+      SHOPIFY_CLIENT_ID: ci-placeholder
+      SHOPIFY_REDIRECT_URI: https://ci-placeholder.example.com/auth/shopify/callback
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: api/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Prisma generate
+        run: npm run prisma:generate
+
+      - name: Run migrations against CI database
+        run: npx prisma migrate deploy
+
+      - name: Seed roles
+        run: npm run prisma:seed
+
+      - name: Unit tests
+        run: npm test
+
+      - name: E2E tests
+        run: npm run test:e2e
+
+      - name: Build
+        run: npm run build
