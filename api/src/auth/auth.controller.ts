@@ -11,11 +11,10 @@ import { ConfigService } from '@nestjs/config';
 import { ShopifyIdentityProvider } from './providers/shopify-identity.provider';
 import { AuthService } from './auth.service';
 import { PkceState } from './interfaces/identity-provider.interface';
+import { SESSION_COOKIE, sessionCookieSetOptions } from './session-cookie.util';
 
 const PKCE_COOKIE = 'clc_pkce';
-const SESSION_COOKIE = 'clc_session';
 const PKCE_COOKIE_MAX_AGE_MS = 5 * 60 * 1000; // 5 minutes — just long enough for the redirect round-trip
-const SESSION_COOKIE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 // Cookie-based session, deliberately not a token-in-URL handoff: the backend sets an
 // httpOnly, Secure cookie scoped to the shared parent domain (e.g. .cashmerehouse.com),
@@ -81,14 +80,11 @@ export class AuthController {
 
     res.clearCookie(PKCE_COOKIE, { path: '/auth/shopify/callback' });
 
-    res.cookie(SESSION_COOKIE, accessToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'lax',
-      maxAge: SESSION_COOKIE_MAX_AGE_MS,
-      domain: this.config.get<string>('COOKIE_DOMAIN'), // e.g. ".cashmerehouse.com" in production
-      path: '/',
-    });
+    res.cookie(
+      SESSION_COOKIE,
+      accessToken,
+      sessionCookieSetOptions(this.config),
+    );
 
     const frontendUrl = this.config.getOrThrow<string>('FRONTEND_URL');
     return res.redirect(frontendUrl);

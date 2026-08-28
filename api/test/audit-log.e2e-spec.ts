@@ -59,20 +59,34 @@ describe('AuditLog write-paths (e2e)', () => {
   it('logs staff.role_granted and staff.role_revoked with the granting/revoking actor', async () => {
     const suffix = Date.now();
     const [granter, grantee] = await Promise.all([
-      prisma.staffUser.create({ data: { email: `granter-${suffix}@example.com`, name: 'Granter' } }),
-      prisma.staffUser.create({ data: { email: `grantee-${suffix}@example.com`, name: 'Grantee' } }),
+      prisma.staffUser.create({
+        data: { email: `granter-${suffix}@example.com`, name: 'Granter' },
+      }),
+      prisma.staffUser.create({
+        data: { email: `grantee-${suffix}@example.com`, name: 'Grantee' },
+      }),
     ]);
 
-    await staff.grantRole({ staffUserId: grantee.id, roleName: 'Analytics Viewer', grantedById: granter.id });
+    await staff.grantRole({
+      staffUserId: grantee.id,
+      roleName: 'Analytics Viewer',
+      grantedById: granter.id,
+    });
 
     const grantEntries = await prisma.auditLog.findMany({
       where: { action: 'staff.role_granted', targetId: grantee.id },
     });
     expect(grantEntries).toHaveLength(1);
     expect(grantEntries[0].actorStaffUserId).toBe(granter.id);
-    expect((grantEntries[0].metadata as { roleName: string }).roleName).toBe('Analytics Viewer');
+    expect((grantEntries[0].metadata as { roleName: string }).roleName).toBe(
+      'Analytics Viewer',
+    );
 
-    await staff.revokeRole({ staffUserId: grantee.id, roleName: 'Analytics Viewer', revokedById: granter.id });
+    await staff.revokeRole({
+      staffUserId: grantee.id,
+      roleName: 'Analytics Viewer',
+      revokedById: granter.id,
+    });
 
     const revokeEntries = await prisma.auditLog.findMany({
       where: { action: 'staff.role_revoked', targetId: grantee.id },

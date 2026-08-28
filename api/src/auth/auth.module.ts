@@ -3,6 +3,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthController } from './auth.controller';
+import { SessionController } from './session.controller';
 import { AuthService } from './auth.service';
 import { ShopifyIdentityProvider } from './providers/shopify-identity.provider';
 import { JwtStrategy } from './strategies/jwt.strategy';
@@ -21,7 +22,7 @@ import { MembersModule } from '../members/members.module';
       }),
     }),
   ],
-  controllers: [AuthController],
+  controllers: [AuthController, SessionController],
   providers: [AuthService, ShopifyIdentityProvider, JwtStrategy],
   exports: [AuthService],
 })

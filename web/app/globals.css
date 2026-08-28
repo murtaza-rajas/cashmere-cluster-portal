@@ -3,11 +3,29 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* Cashmere House brand palette, approximated from the client's mockups
+     (no source Figma/brand-guide files provided yet — see PROJECT_TRACKER.md
+     Section 7 — treat these as close-enough placeholders, not final values). */
+  --cashmere-bg: #faf7f2;
+  --cashmere-sidebar: #f4efe7;
+  --cashmere-border: #e6ddd0;
+  --cashmere-text: #2b2420;
+  --cashmere-text-muted: #7a7168;
+  --cashmere-accent: #8b6f47;
+  --cashmere-accent-dark: #6f5837;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-cashmere-bg: var(--cashmere-bg);
+  --color-cashmere-sidebar: var(--cashmere-sidebar);
+  --color-cashmere-border: var(--cashmere-border);
+  --color-cashmere-text: var(--cashmere-text);
+  --color-cashmere-text-muted: var(--cashmere-text-muted);
+  --color-cashmere-accent: var(--cashmere-accent);
+  --color-cashmere-accent-dark: var(--cashmere-accent-dark);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
