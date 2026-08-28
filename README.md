@@ -4,6 +4,47 @@ Phase 1 scaffold. See `/var/www/html/shopify/morten/PROJECT_TRACKER.md` and `CLA
 
 Repo: **https://github.com/murtaza-rajas/cashmere-cluster-portal** (branch `main`).
 
+## Quick start
+
+**First-time setup:**
+
+```bash
+cd api && cp .env.example .env && npm install
+cd ../web && cp .env.local.example .env.local && npm install
+```
+
+**Every time — 3 terminals:**
+
+```bash
+# Terminal 1 — database (leave running)
+cd api && npm run dev:db:start
+
+# first time only, in a 4th terminal:
+cd api && npx prisma migrate deploy && npm run prisma:seed
+```
+
+```bash
+# Terminal 2 — API
+cd api && npm run start:dev   # → http://localhost:3000
+```
+
+```bash
+# Terminal 3 — web
+cd web && npm run dev         # → http://localhost:3001
+```
+
+Open **http://localhost:3001**. Stop with Ctrl+C in terminals 2/3, and `npm run dev:db:stop` (in `api/`) for the database.
+
+**To see the actual dashboard** (real Shopify login isn't wired to real credentials yet):
+
+```bash
+cd api && npx ts-node scripts/create-test-member.ts
+```
+
+Copy the printed token, set it as a `clc_session` cookie for `localhost` in your browser's DevTools (Application → Cookies), then visit `http://localhost:3001/dashboard`.
+
+See "Local setup" further below for the Docker alternative and more detail.
+
 ## Structure
 
 ```
