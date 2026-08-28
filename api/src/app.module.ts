@@ -7,11 +7,13 @@ import { AuthModule } from './auth/auth.module';
 import { MembersModule } from './members/members.module';
 import { StaffModule } from './staff/staff.module';
 import { HealthModule } from './health/health.module';
+import { AuditLogModule } from './audit-log/audit-log.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
+    AuditLogModule,
     MembersModule,
     AuthModule,
     StaffModule,

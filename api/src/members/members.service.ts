@@ -2,10 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { MembershipTier } from '@prisma/client';
 import { ExternalIdentity } from '../auth/interfaces/identity-provider.interface';
+import { AuditLogService } from '../audit-log/audit-log.service';
 
 @Injectable()
 export class MembersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditLog: AuditLogService,
+  ) {}
 
   /**
    * Finds the member tied to this Shopify identity, or creates one.
@@ -30,7 +34,7 @@ export class MembersService {
       });
     }
 
-    return this.prisma.member.create({
+    const created = await this.prisma.member.create({
       data: {
         shopifyCustomerId: identity.externalId,
         email: identity.email,
@@ -39,6 +43,21 @@ export class MembersService {
         membershipTier: MembershipTier.NEWSLETTER,
       },
     });
+
+    // System-initiated (no actorStaffUserId) — this happens automatically on first
+    // login, not via a staff action.
+    await this.auditLog.log({
+      action: 'member.created',
+      targetType: 'Member',
+      targetId: created.id,
+      targetMemberId: created.id,
+      metadata: {
+        source: 'shopify_login',
+        membershipTier: created.membershipTier,
+      },
+    });
+
+    return created;
   }
 
   findById(id: string) {
