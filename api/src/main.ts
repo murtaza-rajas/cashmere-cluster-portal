@@ -4,7 +4,12 @@ import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  // rawBody: true exposes req.rawBody (a Buffer) on every request, alongside the
+  // normal parsed req.body — needed for Shopify webhook HMAC verification, which
+  // must be computed over the exact raw bytes Shopify sent, not a re-serialized
+  // JSON.stringify(req.body) (whitespace/key-order differences would break the
+  // signature). Doesn't disable or change normal body parsing for any other route.
+  const app = await NestFactory.create(AppModule, { rawBody: true });
 
   app.use(cookieParser());
 

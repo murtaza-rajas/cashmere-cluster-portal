@@ -8,6 +8,7 @@ import { MembersModule } from './members/members.module';
 import { StaffModule } from './staff/staff.module';
 import { HealthModule } from './health/health.module';
 import { AuditLogModule } from './audit-log/audit-log.module';
+import { WebhooksModule } from './webhooks/webhooks.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { AuditLogModule } from './audit-log/audit-log.module';
     AuthModule,
     StaffModule,
     HealthModule,
+    WebhooksModule,
   ],
   controllers: [AppController],
   providers: [AppService],

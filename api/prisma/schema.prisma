@@ -182,7 +182,11 @@ model AuditLog {
   // "show this member's full history" a simple query. targetType/targetId above stay
   // the source of truth for anything else (StaffUser, Role, etc.).
   targetMemberId String?
-  targetMember   Member? @relation("AuditLogTargetMember", fields: [targetMemberId], references: [id])
+  // Explicit SetNull (confirmed this was already Prisma's implicit default for an
+  // optional relation, but stated outright since it matters for GDPR redaction:
+  // deleting a Member must not be blocked by audit history referencing it — the
+  // audit trail of the redaction event itself is what matters, not keeping the FK alive).
+  targetMember   Member? @relation("AuditLogTargetMember", fields: [targetMemberId], references: [id], onDelete: SetNull)
 
   reason   String? // required by the client's spec for exceptions/deletions
   metadata Json?   // before/after snapshot, free-form
