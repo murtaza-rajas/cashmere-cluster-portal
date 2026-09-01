@@ -63,4 +63,15 @@ export class MembersService {
   findById(id: string) {
     return this.prisma.member.findUniqueOrThrow({ where: { id } });
   }
+
+  // Read-only summary cache (see schema.prisma) — kept in sync via Shopify order
+  // webhooks, which aren't built yet (Milestone 4), so this will legitimately return
+  // an empty list for every member until then. The frontend shows that honestly
+  // rather than inventing data.
+  findOrdersForMember(memberId: string) {
+    return this.prisma.memberOrderCache.findMany({
+      where: { memberId },
+      orderBy: { orderDate: 'desc' },
+    });
+  }
 }
