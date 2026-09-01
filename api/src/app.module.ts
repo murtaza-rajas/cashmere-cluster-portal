@@ -9,6 +9,7 @@ import { StaffModule } from './staff/staff.module';
 import { HealthModule } from './health/health.module';
 import { AuditLogModule } from './audit-log/audit-log.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
+import { DataSubjectRequestsModule } from './data-subject-requests/data-subject-requests.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { WebhooksModule } from './webhooks/webhooks.module';
     StaffModule,
     HealthModule,
     WebhooksModule,
+    DataSubjectRequestsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

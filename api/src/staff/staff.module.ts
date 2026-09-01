@@ -25,6 +25,9 @@ import { RolesGuard } from './guards/roles.guard';
   ],
   controllers: [StaffController],
   providers: [StaffService, StaffAuthService, StaffJwtStrategy, RolesGuard],
-  exports: [StaffService, StaffAuthService],
+  // RolesGuard exported alongside StaffService (its own dependency) so other feature
+  // modules can protect their own admin routes with it — see its comment: "reference
+  // implementation for how future admin routes should be protected."
+  exports: [StaffService, StaffAuthService, RolesGuard],
 })
 export class StaffModule {}
