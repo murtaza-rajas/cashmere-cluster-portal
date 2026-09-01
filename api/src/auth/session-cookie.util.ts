@@ -11,7 +11,12 @@ export function sessionCookieOptions(config: ConfigService) {
   return {
     httpOnly: true,
     secure: true,
-    sameSite: 'lax' as const,
+    // 'lax' is correct (and safer) once frontend/backend share a parent domain in
+    // production (see COOKIE_DOMAIN below) — the frontend's API calls are then
+    // same-site. Only override to 'none' for a dev setup where they're on genuinely
+    // different domains (e.g. two separate ngrok tunnels), where Lax would silently
+    // block the cookie on cross-site fetch/XHR calls.
+    sameSite: (config.get<string>('SESSION_COOKIE_SAMESITE') ?? 'lax') as 'lax' | 'none',
     domain: config.get<string>('COOKIE_DOMAIN'), // e.g. ".cashmerehouse.com" in production
     path: '/',
   };

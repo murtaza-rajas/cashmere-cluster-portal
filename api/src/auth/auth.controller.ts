@@ -14,7 +14,10 @@ import { PkceState } from './interfaces/identity-provider.interface';
 import { SESSION_COOKIE, sessionCookieSetOptions } from './session-cookie.util';
 
 const PKCE_COOKIE = 'clc_pkce';
-const PKCE_COOKIE_MAX_AGE_MS = 5 * 60 * 1000; // 5 minutes — just long enough for the redirect round-trip
+// 15 minutes — Shopify's customer login is email-OTP based (no password), so this
+// needs to comfortably cover "switch to inbox, find the code, come back", not just
+// a bare redirect round-trip.
+const PKCE_COOKIE_MAX_AGE_MS = 15 * 60 * 1000;
 
 // Cookie-based session, deliberately not a token-in-URL handoff: the backend sets an
 // httpOnly, Secure cookie scoped to the shared parent domain (e.g. .cashmerehouse.com),
