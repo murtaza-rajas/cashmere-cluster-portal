@@ -11,6 +11,11 @@
 //   real rows (Role/StaffRoleAssignment), not a hardcoded enum, so the model can extend later
 //   without a schema rewrite if DCC needs more advanced access management (client requirement).
 // - Every sensitive administrative action is expected to write an AuditLog row.
+// - Region (community), membership tier, and language are deliberately separate,
+//   orthogonal fields on Member — not hardcoded together — so a regional community
+//   (e.g. Mongolia) can have its own tier/pricing/language without implying the
+//   commercial benefits of the international paid tiers. Client requirement,
+//   PROJECT_TRACKER.md Section 3a.
 
 generator client {
   provider = "prisma-client-js"
@@ -28,6 +33,10 @@ datasource db {
 enum MembershipTier {
   FOUNDING   // First 1,500 paying members. Cap enforced via Shopify inventory, not here.
   ANNUAL     // Paid, 1-year or 5-year term (see termLengthYears).
+  MONGOLIA   // Mongolia Community membership — separate price (free or ~$5/yr, TBD), scoped to
+             // the `region` field below. Deliberately its own tier rather than reusing NEWSLETTER
+             // or ANNUAL: it must never be inferred as carrying FOUNDING/ANNUAL's international
+             // commercial benefits. See PROJECT_TRACKER.md Section 3a.
   NEWSLETTER // Free tier. Existing Shopify customers/newsletter subscribers land here by default.
 }
 
@@ -35,6 +44,21 @@ enum MembershipStatus {
   ACTIVE
   EXPIRED
   CANCELLED
+}
+
+// Community/region a member belongs to — kept independent of MembershipTier on purpose
+// (client requirement, PROJECT_TRACKER.md Section 3a): region, membership tier, and
+// language must stay separate, orthogonal fields rather than hardcoded together.
+enum Region {
+  INTERNATIONAL
+  MONGOLIA
+}
+
+// Independent of Region — e.g. a Mongolian member abroad may prefer English, or an
+// international member may prefer Mongolian. Never derive this from `region`.
+enum Language {
+  ENGLISH
+  MONGOLIAN
 }
 
 model Member {
@@ -52,6 +76,10 @@ model Member {
 
   membershipTier   MembershipTier
   membershipStatus MembershipStatus @default(ACTIVE)
+
+  // Independent of membershipTier — see the Region/Language enum comments above.
+  region   Region   @default(INTERNATIONAL)
+  language Language @default(ENGLISH)
 
   // Permanent once true — do NOT derive this from membershipStatus/expiry.
   // Client requirement: Founding Member badge stays for life even if the term isn't renewed.
@@ -73,6 +101,7 @@ model Member {
   auditLogEntries      AuditLog[]           @relation("AuditLogTargetMember")
 
   @@index([membershipTier])
+  @@index([region])
   @@index([email])
 }
 
