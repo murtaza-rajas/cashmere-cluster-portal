@@ -5,6 +5,7 @@ import { ShopifyWebhooksService } from './shopify-webhooks.service';
 import {
   ShopifyCustomersDataRequestPayload,
   ShopifyCustomersRedactPayload,
+  ShopifyOrderPayload,
   ShopifyShopRedactPayload,
 } from './types/shopify-webhook-payloads';
 
@@ -39,5 +40,19 @@ export class ShopifyWebhooksController {
   @HttpCode(200)
   async shopRedact(@Req() req: Request) {
     await this.webhooks.handleShopRedact(req.body as ShopifyShopRedactPayload);
+  }
+
+  // Both fire the same upsert (see handleOrderSync) — orders/create for the
+  // initial order, orders/updated for any later status change (e.g. paid, refunded).
+  @Post('orders/create')
+  @HttpCode(200)
+  async ordersCreate(@Req() req: Request) {
+    await this.webhooks.handleOrderSync(req.body as ShopifyOrderPayload);
+  }
+
+  @Post('orders/updated')
+  @HttpCode(200)
+  async ordersUpdated(@Req() req: Request) {
+    await this.webhooks.handleOrderSync(req.body as ShopifyOrderPayload);
   }
 }

@@ -5,6 +5,7 @@ import { DataSubjectRequestType } from '@prisma/client';
 import {
   ShopifyCustomersDataRequestPayload,
   ShopifyCustomersRedactPayload,
+  ShopifyOrderPayload,
   ShopifyShopRedactPayload,
 } from './types/shopify-webhook-payloads';
 
@@ -124,5 +125,52 @@ export class ShopifyWebhooksService {
     this.logger.warn(
       `shop/redact: deleted ${members.length} member(s) for shop ${payload.shop_domain}`,
     );
+  }
+
+  /**
+   * Keeps MemberOrderCache (a read-only summary, never the system of record — see
+   * schema.prisma) in sync with real Shopify orders. Shared by orders/create and
+   * orders/updated, both firing this same upsert keyed on shopifyOrderId, so a
+   * status change (e.g. pending → paid) after the initial order just updates the
+   * existing row rather than duplicating it. Not audit-logged: this is routine
+   * commercial data sync, not a sensitive administrative action (see AuditLog's
+   * intended scope in schema.prisma's top comment).
+   */
+  async handleOrderSync(payload: ShopifyOrderPayload): Promise<void> {
+    if (!payload.customer) {
+      this.logger.log(
+        `Order ${payload.id} has no customer (guest checkout) — nothing to attach it to`,
+      );
+      return;
+    }
+
+    const member = await this.prisma.member.findUnique({
+      where: { shopifyCustomerId: String(payload.customer.id) },
+    });
+
+    if (!member) {
+      this.logger.log(
+        `Order ${payload.id} belongs to unknown customer ${payload.customer.id} — nothing to do`,
+      );
+      return;
+    }
+
+    await this.prisma.memberOrderCache.upsert({
+      where: { shopifyOrderId: String(payload.id) },
+      create: {
+        memberId: member.id,
+        shopifyOrderId: String(payload.id),
+        orderNumber: payload.name,
+        totalAmount: payload.total_price,
+        currency: payload.currency,
+        status: payload.financial_status,
+        orderDate: new Date(payload.created_at),
+      },
+      update: {
+        totalAmount: payload.total_price,
+        currency: payload.currency,
+        status: payload.financial_status,
+      },
+    });
   }
 }

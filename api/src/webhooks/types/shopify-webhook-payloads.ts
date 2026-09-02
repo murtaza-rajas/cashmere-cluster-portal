@@ -29,3 +29,18 @@ export interface ShopifyShopRedactPayload {
   shop_id: number;
   shop_domain: string;
 }
+
+// orders/create and orders/updated share this same shape — used to keep
+// MemberOrderCache in sync (see shopify-webhooks.service.ts). `name` is Shopify's
+// own display order number (e.g. "#1001"), preferred over constructing one from
+// `order_number` ourselves. `customer` is absent/null for guest checkouts not tied
+// to a logged-in Shopify customer — those orders have no Member to attach to.
+export interface ShopifyOrderPayload {
+  id: number;
+  name: string;
+  total_price: string;
+  currency: string;
+  financial_status: string;
+  created_at: string;
+  customer?: { id: number } | null;
+}
