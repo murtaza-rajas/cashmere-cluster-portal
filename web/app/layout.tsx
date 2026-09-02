@@ -22,8 +22,16 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      {/* suppressHydrationWarning here too: browser extensions (grammar/language
+          tools, password managers, etc.) commonly inject attributes into <html>/
+          <body> before React hydrates — a real mismatch, but not one caused by our
+          code, and not one worth a scary console error for every visitor running
+          such an extension. */}
+      <body className="min-h-full flex flex-col" suppressHydrationWarning>
+        {children}
+      </body>
     </html>
   );
 }
