@@ -17,6 +17,7 @@ import {
   Settings,
   HelpCircle,
   LogOut,
+  X,
 } from "lucide-react";
 import { useMember } from "@/contexts/member-context";
 import { membershipTierLabel } from "@/lib/api";
@@ -24,7 +25,11 @@ import { membershipTierLabel } from "@/lib/api";
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/member-offers", label: "Member Offers", icon: Tag, badge: "NEW" },
-  { href: "/exclusive-collections", label: "Exclusive Collections", icon: ShoppingBag },
+  {
+    href: "/exclusive-collections",
+    label: "Exclusive Collections",
+    icon: ShoppingBag,
+  },
   { href: "/orders", label: "My Orders", icon: Package },
   { href: "/collection", label: "My Collection", icon: Shirt },
   { href: "/wishlist", label: "Wishlist", icon: Heart },
@@ -37,61 +42,102 @@ const NAV_ITEMS = [
   { href: "/help", label: "Help & Support", icon: HelpCircle },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}) {
   const pathname = usePathname();
   const member = useMember();
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
   return (
-    <aside className="flex w-64 shrink-0 flex-col justify-between border-r border-cashmere-border bg-cashmere-sidebar px-4 py-6">
-      <div>
-        <div className="px-2 pb-8">
-          <p className="text-lg font-semibold tracking-tight text-cashmere-text">Cashmere House</p>
-          <p className="text-xs uppercase tracking-wide text-cashmere-text-muted">Cashmere Lovers Club</p>
-        </div>
-
-        <nav className="flex flex-col gap-1">
-          {NAV_ITEMS.map(({ href, label, icon: Icon, badge }) => {
-            const active = pathname === href;
-            return (
-              <Link
-                key={href}
-                href={href}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
-                  active
-                    ? "bg-cashmere-accent/15 font-medium text-cashmere-accent-dark"
-                    : "text-cashmere-text hover:bg-cashmere-border/60"
-                }`}
-              >
-                <Icon size={18} strokeWidth={1.75} />
-                <span className="flex-1">{label}</span>
-                {badge && (
-                  <span className="rounded-full bg-cashmere-accent px-1.5 py-0.5 text-[10px] font-semibold text-white">
-                    {badge}
-                  </span>
-                )}
-              </Link>
-            );
-          })}
-
-          <a
-            href={`${apiUrl}/auth/logout`}
-            className="mt-2 flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-cashmere-text-muted hover:bg-cashmere-border/60"
-          >
-            <LogOut size={18} strokeWidth={1.75} />
-            Log out
-          </a>
-        </nav>
-      </div>
-
-      {member.isFoundingMember && (
-        <div className="rounded-lg border border-cashmere-border bg-white/60 p-4 text-sm">
-          <p className="text-xs font-semibold uppercase tracking-wide text-cashmere-accent-dark">
-            {membershipTierLabel(member.membershipTier, member.isFoundingMember)}
-          </p>
-          <p className="mt-1 text-cashmere-text-muted">Thank you for being part of something truly special.</p>
-        </div>
+    <>
+      {/* Mobile backdrop — clicking it closes the sidebar. Sidebar itself is fixed/
+          overlaid below md; md and up it's a normal static column (see aside classes). */}
+      {open && (
+        <div
+          className="fixed inset-0 z-40 bg-black/30 md:hidden"
+          onClick={onClose}
+          aria-hidden="true"
+        />
       )}
-    </aside>
+
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 flex w-64 shrink-0 flex-col justify-between border-r border-cashmere-border bg-cashmere-sidebar px-4 py-6 transition-transform duration-200 ease-in-out md:static md:z-auto md:translate-x-0 ${
+          open ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <div>
+          <div className="flex items-start justify-between px-2 pb-8">
+            <div>
+              <p className="text-lg font-semibold tracking-tight text-cashmere-text">
+                Cashmere House
+              </p>
+              <p className="text-xs uppercase tracking-wide text-cashmere-text-muted">
+                Cashmere Lovers Club
+              </p>
+            </div>
+            <button
+              onClick={onClose}
+              className="text-cashmere-text-muted md:hidden"
+              aria-label="Close menu"
+            >
+              <X size={20} strokeWidth={1.75} />
+            </button>
+          </div>
+
+          <nav className="flex flex-col gap-1">
+            {NAV_ITEMS.map(({ href, label, icon: Icon, badge }) => {
+              const active = pathname === href;
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  onClick={onClose}
+                  className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
+                    active
+                      ? "bg-cashmere-accent/15 font-medium text-cashmere-accent-dark"
+                      : "text-cashmere-text hover:bg-cashmere-border/60"
+                  }`}
+                >
+                  <Icon size={18} strokeWidth={1.75} />
+                  <span className="flex-1">{label}</span>
+                  {badge && (
+                    <span className="rounded-full bg-cashmere-accent px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                      {badge}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+
+            <a
+              href={`${apiUrl}/auth/logout`}
+              className="mt-2 flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-cashmere-text-muted hover:bg-cashmere-border/60"
+            >
+              <LogOut size={18} strokeWidth={1.75} />
+              Log out
+            </a>
+          </nav>
+        </div>
+
+        {member.isFoundingMember && (
+          <div className="rounded-lg border border-cashmere-border bg-white/60 p-4 text-sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-cashmere-accent-dark">
+              {membershipTierLabel(
+                member.membershipTier,
+                member.isFoundingMember,
+              )}
+            </p>
+            <p className="mt-1 text-cashmere-text-muted">
+              Thank you for being part of something truly special.
+            </p>
+          </div>
+        )}
+      </aside>
+    </>
   );
 }
