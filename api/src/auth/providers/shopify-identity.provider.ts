@@ -185,10 +185,23 @@ export class ShopifyIdentityProvider implements IdentityProvider {
 
     return {
       providerId: this.providerId,
-      externalId: customer.id,
+      externalId: extractNumericId(customer.id),
       email: customer.emailAddress.emailAddress,
       firstName: customer.firstName ?? undefined,
       lastName: customer.lastName ?? undefined,
     };
   }
+}
+
+// The Customer Account API (GraphQL) returns customer ids as a GraphQL Global ID,
+// e.g. "gid://shopify/Customer/9715984138404" — but the Admin REST webhooks
+// (orders/create, customers/redact, etc.) send the same customer's id as a plain
+// numeric string. Member.shopifyCustomerId needs to be the SAME format everywhere
+// it's matched against, or every webhook lookup silently fails to find a real,
+// logged-in member. Normalizing to the plain numeric form here, at the point the
+// identity is first stored, since that's what the webhook payloads already use —
+// cheaper than normalizing at every webhook call site.
+function extractNumericId(gid: string): string {
+  const match = /\/(\d+)$/.exec(gid);
+  return match ? match[1] : gid;
 }
