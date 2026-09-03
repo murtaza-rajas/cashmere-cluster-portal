@@ -18,11 +18,26 @@ import {
   HelpCircle,
   LogOut,
   X,
+  Home,
+  Sparkles,
+  Mail,
 } from "lucide-react";
 import { useMember } from "@/contexts/member-context";
 import { membershipTierLabel } from "@/lib/api";
 
-const NAV_ITEMS = [
+interface NavItem {
+  href: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  badge?: string;
+}
+
+// Founding/Annual navigation — per cashmere-lovers-club-access-administration-model
+// PDF, page 6 ("Navigation menus"). Founding and Annual share this same set of
+// links (the PDF differs only on a couple of labels between them, e.g. "Exclusive
+// Collections" vs "Collections" — not functionally different, not worth splitting
+// into two lists for a label nuance).
+const FULL_NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/member-offers", label: "Member Offers", icon: Tag, badge: "NEW" },
   {
@@ -42,6 +57,22 @@ const NAV_ITEMS = [
   { href: "/help", label: "Help & Support", icon: HelpCircle },
 ];
 
+// Newsletter Subscriber navigation — a deliberately different, shorter list, per
+// the same PDF page 6: no Member Offers/Collections/My Collection/Events/Stories/
+// Care & Repair/My Benefits links at all for this tier, not even as disabled
+// items. Also used for MONGOLIA until the client confirms Mongolia-specific
+// access rules (see lib/access.ts).
+const NEWSLETTER_NAV_ITEMS: NavItem[] = [
+  { href: "/dashboard", label: "Home", icon: Home },
+  { href: "/news", label: "News & Stories", icon: Newspaper },
+  { href: "/orders", label: "My Orders", icon: Package },
+  { href: "/wishlist", label: "Wishlist", icon: Heart },
+  { href: "/explore-membership", label: "Explore Membership", icon: Sparkles },
+  { href: "/profile", label: "Profile", icon: User },
+  { href: "/newsletter-settings", label: "Newsletter Settings", icon: Mail },
+  { href: "/help", label: "Help & Support", icon: HelpCircle },
+];
+
 export default function Sidebar({
   open,
   onClose,
@@ -52,6 +83,10 @@ export default function Sidebar({
   const pathname = usePathname();
   const member = useMember();
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+  const navItems =
+    member.membershipTier === "FOUNDING" || member.membershipTier === "ANNUAL"
+      ? FULL_NAV_ITEMS
+      : NEWSLETTER_NAV_ITEMS;
 
   return (
     <>
@@ -90,7 +125,7 @@ export default function Sidebar({
           </div>
 
           <nav className="flex flex-col gap-1">
-            {NAV_ITEMS.map(({ href, label, icon: Icon, badge }) => {
+            {navItems.map(({ href, label, icon: Icon, badge }) => {
               const active = pathname === href;
               return (
                 <Link
