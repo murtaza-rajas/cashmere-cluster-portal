@@ -119,6 +119,13 @@ model MemberOrderCache {
   status         String   // Shopify's order/financial status string, cached as-is
   orderDate      DateTime
 
+  // Line items from the same order webhook payload, cached as JSON rather than a
+  // separate relational table — this is a read-only display cache (feeds "My
+  // Collection"), never queried/filtered relationally, so a table+joins would be
+  // unneeded complexity. Shape: [{ productId, title, variantTitle, quantity, price }].
+  // Null for rows synced before this field existed.
+  lineItems Json?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

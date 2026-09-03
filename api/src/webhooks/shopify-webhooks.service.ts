@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
-import { DataSubjectRequestType } from '@prisma/client';
+import { DataSubjectRequestType, Prisma } from '@prisma/client';
 import {
   ShopifyCustomersDataRequestPayload,
   ShopifyCustomersRedactPayload,
@@ -155,6 +155,14 @@ export class ShopifyWebhooksService {
       return;
     }
 
+    const lineItems: Prisma.InputJsonValue | undefined = payload.line_items?.map((item) => ({
+      productId: item.product_id !== null ? String(item.product_id) : null,
+      title: item.title,
+      variantTitle: item.variant_title,
+      quantity: item.quantity,
+      price: item.price,
+    }));
+
     await this.prisma.memberOrderCache.upsert({
       where: { shopifyOrderId: String(payload.id) },
       create: {
@@ -165,11 +173,13 @@ export class ShopifyWebhooksService {
         currency: payload.currency,
         status: payload.financial_status,
         orderDate: new Date(payload.created_at),
+        lineItems,
       },
       update: {
         totalAmount: payload.total_price,
         currency: payload.currency,
         status: payload.financial_status,
+        lineItems,
       },
     });
   }

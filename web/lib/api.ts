@@ -26,6 +26,16 @@ export interface MemberOrder {
   orderDate: string;
 }
 
+export interface CollectionItem {
+  productId: string | null;
+  title: string;
+  variantTitle: string | null;
+  quantity: number;
+  price: string;
+  orderNumber: string;
+  orderDate: string;
+}
+
 function apiFetch(path: string): Promise<Response> {
   if (!API_URL) {
     throw new Error("NEXT_PUBLIC_API_URL is not set");
@@ -49,6 +59,12 @@ export async function fetchCurrentMember(): Promise<Member | null> {
 export async function fetchMemberOrders(): Promise<MemberOrder[]> {
   const res = await apiFetch("/members/me/orders");
   if (!res.ok) throw new Error(`Unexpected response fetching orders: ${res.status}`);
+  return res.json();
+}
+
+export async function fetchMemberCollection(): Promise<CollectionItem[]> {
+  const res = await apiFetch("/members/me/collection");
+  if (!res.ok) throw new Error(`Unexpected response fetching collection: ${res.status}`);
   return res.json();
 }
 

@@ -112,6 +112,39 @@ describe('Shopify order-sync webhooks (e2e)', () => {
     expect(orders[0].status).toBe('paid');
   });
 
+  it('orders/create captures line items for My Collection', async () => {
+    const externalId = `order-webhook-e2e-lineitems-${Date.now()}`;
+    const member = await members.findOrCreateFromIdentity({
+      providerId: 'shopify',
+      externalId,
+      email: `${externalId}@example.com`,
+    });
+    const shopifyOrderId = Date.now() + 10;
+
+    await post('/webhooks/shopify/orders/create', {
+      id: shopifyOrderId,
+      name: '#5005',
+      total_price: '249.00',
+      currency: 'USD',
+      financial_status: 'paid',
+      created_at: '2026-08-01T00:00:00Z',
+      customer: { id: externalId },
+      line_items: [
+        { id: 1, product_id: 111, title: 'Cashmere Scarf', variant_title: 'Charcoal', quantity: 2, price: '99.50' },
+        { id: 2, product_id: null, title: 'Gift Wrapping', variant_title: null, quantity: 1, price: '10.00' },
+      ],
+    }).expect(200);
+
+    const order = await prisma.memberOrderCache.findUnique({
+      where: { shopifyOrderId: String(shopifyOrderId) },
+    });
+    expect(order!.memberId).toBe(member.id);
+    expect(order!.lineItems).toEqual([
+      { productId: '111', title: 'Cashmere Scarf', variantTitle: 'Charcoal', quantity: 2, price: '99.50' },
+      { productId: null, title: 'Gift Wrapping', variantTitle: null, quantity: 1, price: '10.00' },
+    ]);
+  });
+
   it('an order for an unknown customer is a safe no-op (200, no row written)', async () => {
     const shopifyOrderId = Date.now() + 2;
     await post('/webhooks/shopify/orders/create', {

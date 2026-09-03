@@ -35,6 +35,19 @@ export interface ShopifyShopRedactPayload {
 // own display order number (e.g. "#1001"), preferred over constructing one from
 // `order_number` ourselves. `customer` is absent/null for guest checkouts not tied
 // to a logged-in Shopify customer — those orders have no Member to attach to.
+// Real Shopify order line items don't include an image URL — that lives on the
+// Product resource, which needs a separate Admin/Storefront API call we don't
+// have credentials configured for yet (see PROJECT_TRACKER.md). "My Collection"
+// (fed by this) is text-only for now, not missing data by mistake.
+export interface ShopifyOrderLineItem {
+  id: number;
+  product_id: number | null;
+  title: string;
+  variant_title: string | null;
+  quantity: number;
+  price: string;
+}
+
 export interface ShopifyOrderPayload {
   id: number;
   name: string;
@@ -43,4 +56,5 @@ export interface ShopifyOrderPayload {
   financial_status: string;
   created_at: string;
   customer?: { id: number } | null;
+  line_items?: ShopifyOrderLineItem[];
 }

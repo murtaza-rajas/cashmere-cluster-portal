@@ -1,5 +1,12 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { formatMonthYear, formatMemberId, membershipTierLabel, fetchCurrentMember, fetchMemberOrders } from "./api";
+import {
+  formatMonthYear,
+  formatMemberId,
+  membershipTierLabel,
+  fetchCurrentMember,
+  fetchMemberOrders,
+  fetchMemberCollection,
+} from "./api";
 
 describe("formatMonthYear", () => {
   it("formats an ISO date as 'Month Year'", () => {
@@ -88,5 +95,16 @@ describe("fetchCurrentMember / fetchMemberOrders", () => {
     const orders = [{ id: "1", orderNumber: "#1001" }];
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ status: 200, ok: true, json: async () => orders }));
     await expect(fetchMemberOrders()).resolves.toEqual(orders);
+  });
+
+  it("fetchMemberCollection throws on a non-ok response", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ status: 500, ok: false }));
+    await expect(fetchMemberCollection()).rejects.toThrow(/500/);
+  });
+
+  it("fetchMemberCollection returns the parsed collection items on success", async () => {
+    const items = [{ productId: "1", title: "Cashmere Scarf" }];
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ status: 200, ok: true, json: async () => items }));
+    await expect(fetchMemberCollection()).resolves.toEqual(items);
   });
 });

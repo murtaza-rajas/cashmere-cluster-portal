@@ -22,4 +22,10 @@ export class MembersController {
   orders(@Req() req: Request) {
     return this.members.findOrdersForMember((req.user as Member).id);
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('me/collection')
+  collection(@Req() req: Request) {
+    return this.members.findCollectionForMember((req.user as Member).id);
+  }
 }
