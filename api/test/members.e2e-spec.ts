@@ -133,3 +133,124 @@ describe('GET /members/me/collection (e2e)', () => {
     expect(res.body).toEqual([]);
   });
 });
+
+// GET/POST /members/me/data-requests — the self-service GDPR access-request
+// entry point (see DataSubjectRequestsService.createFromMember). Previously the
+// only way a DataSubjectRequest ever got created was Shopify's
+// customers/data_request webhook; this is the first member-initiated path.
+describe('GET/POST /members/me/data-requests (e2e)', () => {
+  let app: INestApplication<App>;
+  let prisma: PrismaService;
+  let members: MembersService;
+
+  beforeAll(async () => {
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+
+    app = moduleFixture.createNestApplication();
+    app.use(cookieParser());
+    await app.init();
+
+    prisma = moduleFixture.get(PrismaService);
+    members = moduleFixture.get(MembersService);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  function sessionCookieFor(memberId: string): string {
+    const token = jwt.sign({ sub: memberId }, process.env.JWT_SECRET!, { expiresIn: '1h' });
+    return `clc_session=${token}`;
+  }
+
+  it('401s with no session, both routes', async () => {
+    await request(app.getHttpServer()).get('/members/me/data-requests').expect(401);
+    await request(app.getHttpServer()).post('/members/me/data-requests').expect(401);
+  });
+
+  it('POST creates a PENDING ACCESS request, visible via GET, with an audit log entry', async () => {
+    const externalId = `data-request-e2e-${Date.now()}`;
+    const member = await members.findOrCreateFromIdentity({
+      providerId: 'shopify',
+      externalId,
+      email: `${externalId}@example.com`,
+    });
+    const cookie = sessionCookieFor(member.id);
+
+    const created = await request(app.getHttpServer())
+      .post('/members/me/data-requests')
+      .set('Cookie', cookie)
+      .expect(201);
+
+    expect(created.body.type).toBe('ACCESS');
+    expect(created.body.status).toBe('PENDING');
+    expect(created.body.memberId).toBe(member.id);
+
+    const list = await request(app.getHttpServer())
+      .get('/members/me/data-requests')
+      .set('Cookie', cookie)
+      .expect(200);
+    expect(list.body).toHaveLength(1);
+    expect(list.body[0].id).toBe(created.body.id);
+
+    const auditEntries = await prisma.auditLog.findMany({
+      where: { action: 'member.data_request_created', targetId: created.body.id },
+    });
+    expect(auditEntries).toHaveLength(1);
+    expect(auditEntries[0].targetMemberId).toBe(member.id);
+    expect(auditEntries[0].actorStaffUserId).toBeNull();
+  });
+
+  it('POSTing again while one is already pending returns the same request, not a duplicate', async () => {
+    const externalId = `data-request-e2e-dup-${Date.now()}`;
+    const member = await members.findOrCreateFromIdentity({
+      providerId: 'shopify',
+      externalId,
+      email: `${externalId}@example.com`,
+    });
+    const cookie = sessionCookieFor(member.id);
+
+    const first = await request(app.getHttpServer())
+      .post('/members/me/data-requests')
+      .set('Cookie', cookie)
+      .expect(201);
+    const second = await request(app.getHttpServer())
+      .post('/members/me/data-requests')
+      .set('Cookie', cookie)
+      .expect(201);
+
+    expect(second.body.id).toBe(first.body.id);
+
+    const all = await prisma.dataSubjectRequest.findMany({ where: { memberId: member.id } });
+    expect(all).toHaveLength(1);
+  });
+
+  it('GET only returns the requesting member\'s own requests, never another member\'s', async () => {
+    const externalId = `data-request-e2e-priv-${Date.now()}`;
+    const member = await members.findOrCreateFromIdentity({
+      providerId: 'shopify',
+      externalId,
+      email: `${externalId}@example.com`,
+    });
+    const otherExternalId = `data-request-e2e-priv-other-${Date.now()}`;
+    const otherMember = await members.findOrCreateFromIdentity({
+      providerId: 'shopify',
+      externalId: otherExternalId,
+      email: `${otherExternalId}@example.com`,
+    });
+
+    await request(app.getHttpServer())
+      .post('/members/me/data-requests')
+      .set('Cookie', sessionCookieFor(otherMember.id))
+      .expect(201);
+
+    const res = await request(app.getHttpServer())
+      .get('/members/me/data-requests')
+      .set('Cookie', sessionCookieFor(member.id))
+      .expect(200);
+
+    expect(res.body).toEqual([]);
+  });
+});

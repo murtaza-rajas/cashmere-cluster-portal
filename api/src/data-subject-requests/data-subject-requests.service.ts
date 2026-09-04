@@ -1,7 +1,7 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
-import { DataSubjectRequestStatus } from '@prisma/client';
+import { DataSubjectRequestStatus, DataSubjectRequestType } from '@prisma/client';
 
 @Injectable()
 export class DataSubjectRequestsService {
@@ -49,5 +49,45 @@ export class DataSubjectRequestsService {
     });
 
     return updated;
+  }
+
+  // A member's own request history — lets the frontend show "request pending
+  // since ..." instead of just a blind "request my data" button every time.
+  findForMember(memberId: string) {
+    return this.prisma.dataSubjectRequest.findMany({
+      where: { memberId },
+      orderBy: { requestedAt: 'desc' },
+    });
+  }
+
+  // Self-service entry point for a member requesting their own data — until now
+  // the only way a DataSubjectRequest ever got created was Shopify's
+  // customers/data_request webhook (see shopify-webhooks.service.ts). Scoped to
+  // ACCESS only (not DELETION) here: account deletion is already handled by the
+  // separate, more deliberate customers/redact webhook flow, and isn't something
+  // to expose as a single self-service click without more thought. Idempotent
+  // against an existing pending request — a member re-clicking "request my data"
+  // shouldn't queue duplicate work for staff.
+  async createFromMember(memberId: string) {
+    const existing = await this.prisma.dataSubjectRequest.findFirst({
+      where: { memberId, type: DataSubjectRequestType.ACCESS, status: DataSubjectRequestStatus.PENDING },
+    });
+    if (existing) {
+      return existing;
+    }
+
+    const created = await this.prisma.dataSubjectRequest.create({
+      data: { memberId, type: DataSubjectRequestType.ACCESS },
+    });
+
+    await this.auditLog.log({
+      action: 'member.data_request_created',
+      targetType: 'DataSubjectRequest',
+      targetId: created.id,
+      targetMemberId: memberId,
+      metadata: { source: 'member_self_service' },
+    });
+
+    return created;
   }
 }

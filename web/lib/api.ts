@@ -36,16 +36,28 @@ export interface CollectionItem {
   orderDate: string;
 }
 
-function apiFetch(path: string): Promise<Response> {
+export interface DataSubjectRequest {
+  id: string;
+  type: "ACCESS" | "EXPORT" | "DELETION";
+  status: "PENDING" | "COMPLETED";
+  requestedAt: string;
+  completedAt: string | null;
+}
+
+function apiFetch(path: string, init?: RequestInit): Promise<Response> {
   if (!API_URL) {
     throw new Error("NEXT_PUBLIC_API_URL is not set");
   }
   return fetch(`${API_URL}${path}`, {
     credentials: "include",
-    // Harmless outside ngrok (real deployments ignore it): a free ngrok tunnel blocks
-    // fetch/XHR requests with a browser-warning interstitial unless this is present —
-    // only top-level page navigations get past it without the header.
-    headers: { "ngrok-skip-browser-warning": "true" },
+    ...init,
+    headers: {
+      // Harmless outside ngrok (real deployments ignore it): a free ngrok tunnel blocks
+      // fetch/XHR requests with a browser-warning interstitial unless this is present —
+      // only top-level page navigations get past it without the header.
+      "ngrok-skip-browser-warning": "true",
+      ...init?.headers,
+    },
   });
 }
 
@@ -65,6 +77,18 @@ export async function fetchMemberOrders(): Promise<MemberOrder[]> {
 export async function fetchMemberCollection(): Promise<CollectionItem[]> {
   const res = await apiFetch("/members/me/collection");
   if (!res.ok) throw new Error(`Unexpected response fetching collection: ${res.status}`);
+  return res.json();
+}
+
+export async function fetchMemberDataRequests(): Promise<DataSubjectRequest[]> {
+  const res = await apiFetch("/members/me/data-requests");
+  if (!res.ok) throw new Error(`Unexpected response fetching data requests: ${res.status}`);
+  return res.json();
+}
+
+export async function requestMemberData(): Promise<DataSubjectRequest> {
+  const res = await apiFetch("/members/me/data-requests", { method: "POST" });
+  if (!res.ok) throw new Error(`Unexpected response creating data request: ${res.status}`);
   return res.json();
 }
 

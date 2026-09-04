@@ -6,6 +6,8 @@ import {
   fetchCurrentMember,
   fetchMemberOrders,
   fetchMemberCollection,
+  fetchMemberDataRequests,
+  requestMemberData,
 } from "./api";
 
 describe("formatMonthYear", () => {
@@ -106,5 +108,32 @@ describe("fetchCurrentMember / fetchMemberOrders", () => {
     const items = [{ productId: "1", title: "Cashmere Scarf" }];
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ status: 200, ok: true, json: async () => items }));
     await expect(fetchMemberCollection()).resolves.toEqual(items);
+  });
+
+  it("fetchMemberDataRequests throws on a non-ok response", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ status: 500, ok: false }));
+    await expect(fetchMemberDataRequests()).rejects.toThrow(/500/);
+  });
+
+  it("fetchMemberDataRequests returns the parsed request list on success", async () => {
+    const requests = [{ id: "1", type: "ACCESS", status: "PENDING" }];
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ status: 200, ok: true, json: async () => requests }));
+    await expect(fetchMemberDataRequests()).resolves.toEqual(requests);
+  });
+
+  it("requestMemberData POSTs and returns the created request", async () => {
+    const created = { id: "1", type: "ACCESS", status: "PENDING" };
+    const fetchMock = vi.fn().mockResolvedValue({ status: 201, ok: true, json: async () => created });
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(requestMemberData()).resolves.toEqual(created);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:3000/members/me/data-requests",
+      expect.objectContaining({ method: "POST", credentials: "include" }),
+    );
+  });
+
+  it("requestMemberData throws on a non-ok response", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ status: 500, ok: false }));
+    await expect(requestMemberData()).rejects.toThrow(/500/);
   });
 });
