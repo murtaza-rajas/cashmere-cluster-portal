@@ -1,9 +1,8 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
-import { AppModule } from './../src/app.module';
 import { MembersService } from '../src/members/members.service';
 import { StaffService } from '../src/staff/staff.service';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { createTestApp } from './test-app.util';
 
 // Proves the real AuditLog write-paths actually fire — not the dev scripts (which
 // bypass the app via raw Prisma calls), the actual service methods the app calls.
@@ -14,16 +13,10 @@ describe('AuditLog write-paths (e2e)', () => {
   let prisma: PrismaService;
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = moduleFixture.createNestApplication();
-    await app.init();
-
-    members = moduleFixture.get(MembersService);
-    staff = moduleFixture.get(StaffService);
-    prisma = moduleFixture.get(PrismaService);
+    app = await createTestApp();
+    members = app.get(MembersService);
+    staff = app.get(StaffService);
+    prisma = app.get(PrismaService);
   });
 
   afterAll(async () => {

@@ -1,9 +1,8 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ConflictException, NotFoundException } from '@nestjs/common';
-import { AppModule } from './../src/app.module';
 import { DataSubjectRequestsService } from '../src/data-subject-requests/data-subject-requests.service';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { DataSubjectRequestType } from '@prisma/client';
+import { createTestApp } from './test-app.util';
 
 // Proves the staff-facing GDPR request queue (findPending/complete) actually works
 // against a real database, and that completing writes the compliance audit trail —
@@ -14,15 +13,9 @@ describe('DataSubjectRequests write-paths (e2e)', () => {
   let prisma: PrismaService;
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = moduleFixture.createNestApplication();
-    await app.init();
-
-    service = moduleFixture.get(DataSubjectRequestsService);
-    prisma = moduleFixture.get(PrismaService);
+    app = await createTestApp();
+    service = app.get(DataSubjectRequestsService);
+    prisma = app.get(PrismaService);
   });
 
   afterAll(async () => {

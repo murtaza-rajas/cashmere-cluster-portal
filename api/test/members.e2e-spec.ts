@@ -1,12 +1,10 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import * as jwt from 'jsonwebtoken';
-import cookieParser from 'cookie-parser';
-import { AppModule } from './../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { MembersService } from '../src/members/members.service';
+import { createTestApp } from './test-app.util';
 
 // GET /members/me/collection specifically — exercises the real HTTP layer (auth
 // guard + controller + service) together, not just MembersService in isolation.
@@ -16,19 +14,9 @@ describe('GET /members/me/collection (e2e)', () => {
   let members: MembersService;
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = moduleFixture.createNestApplication();
-    // Matches main.ts's real bootstrap — without this, req.cookies is undefined
-    // and JwtStrategy's cookie extraction can never succeed, regardless of
-    // whether the session cookie itself is valid.
-    app.use(cookieParser());
-    await app.init();
-
-    prisma = moduleFixture.get(PrismaService);
-    members = moduleFixture.get(MembersService);
+    app = await createTestApp();
+    prisma = app.get(PrismaService);
+    members = app.get(MembersService);
   });
 
   afterAll(async () => {
@@ -144,16 +132,9 @@ describe('GET/POST /members/me/data-requests (e2e)', () => {
   let members: MembersService;
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = moduleFixture.createNestApplication();
-    app.use(cookieParser());
-    await app.init();
-
-    prisma = moduleFixture.get(PrismaService);
-    members = moduleFixture.get(MembersService);
+    app = await createTestApp();
+    prisma = app.get(PrismaService);
+    members = app.get(MembersService);
   });
 
   afterAll(async () => {

@@ -1,11 +1,10 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { createHmac } from 'crypto';
-import { AppModule } from './../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { MembersService } from '../src/members/members.service';
+import { createTestApp } from './test-app.util';
 
 // Exercises the real HTTP layer (not just the service methods) specifically
 // because the thing most likely to be broken here is the raw-body/HMAC wiring
@@ -19,18 +18,9 @@ describe('Shopify GDPR webhooks (e2e)', () => {
   let secret: string;
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    // Must match main.ts's NestFactory.create(AppModule, { rawBody: true }) —
-    // without this, req.rawBody is undefined here regardless of what main.ts does,
-    // since the test app is bootstrapped independently.
-    app = moduleFixture.createNestApplication({ rawBody: true });
-    await app.init();
-
-    prisma = moduleFixture.get(PrismaService);
-    members = moduleFixture.get(MembersService);
+    app = await createTestApp({ rawBody: true });
+    prisma = app.get(PrismaService);
+    members = app.get(MembersService);
     secret = process.env.SHOPIFY_WEBHOOK_SECRET!;
   });
 

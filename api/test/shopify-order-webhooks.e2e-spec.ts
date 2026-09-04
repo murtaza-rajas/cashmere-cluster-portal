@@ -1,11 +1,10 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { createHmac } from 'crypto';
-import { AppModule } from './../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { MembersService } from '../src/members/members.service';
+import { createTestApp } from './test-app.util';
 
 // Exercises the real HTTP layer (raw-body/HMAC wiring), same reasoning as
 // shopify-webhooks.e2e-spec.ts — this is a separate file because these routes
@@ -18,15 +17,9 @@ describe('Shopify order-sync webhooks (e2e)', () => {
   let secret: string;
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = moduleFixture.createNestApplication({ rawBody: true });
-    await app.init();
-
-    prisma = moduleFixture.get(PrismaService);
-    members = moduleFixture.get(MembersService);
+    app = await createTestApp({ rawBody: true });
+    prisma = app.get(PrismaService);
+    members = app.get(MembersService);
     secret = process.env.SHOPIFY_WEBHOOK_SECRET!;
   });
 
