@@ -14,6 +14,7 @@ import { RolesGuard } from './guards/roles.guard';
 import { Roles } from './decorators/roles.decorator';
 import { StaffService } from './staff.service';
 import { GrantRoleDto } from './dto/grant-role.dto';
+import { CreateStaffUserDto } from './dto/create-staff-user.dto';
 
 @Controller('staff')
 export class StaffController {
@@ -24,6 +25,26 @@ export class StaffController {
   @Get('me')
   me(@Req() req: Request) {
     return req.staffUser;
+  }
+
+  // "Super Administrators create staff accounts" (PDF page 3) — Milestone 5's
+  // first real backend piece. Super Administrator only, same as role grants.
+  @UseGuards(StaffAuthGuard, RolesGuard)
+  @Roles('Super Administrator')
+  @Get()
+  findAll() {
+    return this.staffService.findAll();
+  }
+
+  @UseGuards(StaffAuthGuard, RolesGuard)
+  @Roles('Super Administrator')
+  @Post()
+  create(@Body() dto: CreateStaffUserDto, @Req() req: Request) {
+    return this.staffService.createStaffUser({
+      email: dto.email,
+      name: dto.name,
+      createdById: req.staffUser!.id,
+    });
   }
 
   // Reference implementation for how future admin routes (Members & Users, etc.)

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
 
@@ -11,6 +11,52 @@ export class StaffService {
 
   findById(id: string) {
     return this.prisma.staffUser.findUniqueOrThrow({ where: { id } });
+  }
+
+  // Directory view for Milestone 5's Staff/Roles/Permissions admin area — role
+  // names included so the list is actually useful without N+1 follow-up calls.
+  async findAll() {
+    const staff = await this.prisma.staffUser.findMany({
+      orderBy: { createdAt: 'asc' },
+      include: { roleAssignments: { include: { role: true } } },
+    });
+    return staff.map((s) => ({
+      id: s.id,
+      email: s.email,
+      name: s.name,
+      isActive: s.isActive,
+      createdAt: s.createdAt,
+      roles: s.roleAssignments.map((a) => a.role.name),
+    }));
+  }
+
+  /**
+   * "Super Administrators create staff accounts" — PDF page 3's own wording for
+   * this exact capability, which didn't exist as a real endpoint before (only a
+   * dev script). Deliberately does NOT grant any role here — creation and
+   * role-granting stay separate steps (matches the PDF's own workflow, Section
+   * 11: "Staff access: Requested -> approved by Super Admin -> granted ->
+   * reviewed/revoked" — grantRole already exists for the "granted" step).
+   */
+  async createStaffUser(params: { email: string; name: string; createdById: string }) {
+    const existing = await this.prisma.staffUser.findUnique({ where: { email: params.email } });
+    if (existing) {
+      throw new ConflictException('A staff account with this email already exists');
+    }
+
+    const created = await this.prisma.staffUser.create({
+      data: { email: params.email, name: params.name },
+    });
+
+    await this.auditLog.log({
+      actorStaffUserId: params.createdById,
+      action: 'staff.created',
+      targetType: 'StaffUser',
+      targetId: created.id,
+      metadata: { email: created.email, name: created.name },
+    });
+
+    return created;
   }
 
   /** Role names (e.g. "Club Manager") currently granted to this staff member. */
