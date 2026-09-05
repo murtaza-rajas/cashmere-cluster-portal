@@ -95,4 +95,34 @@ describe('GET/POST /staff (e2e)', () => {
       .send({ email: 'not-an-email', name: 'Bad Email' })
       .expect(400);
   });
+
+  // GET /staff/me — real bug caught building the admin UI: this used to return
+  // a bare StaffUser with no `roles` field at all (StaffService.findById didn't
+  // include role assignments), which crashed the frontend's role-gating logic
+  // the moment it read `staff.roles.includes(...)`. Locking in the fix.
+  it('GET /staff/me includes the caller\'s own role names', async () => {
+    const staff = await createStaffWithRole('Event Manager', `staff-e2e-me-${Date.now()}@example.com`);
+    const res = await request(app.getHttpServer())
+      .get('/staff/me')
+      .set('Cookie', staffCookieFor(staff.id))
+      .expect(200);
+
+    expect(res.body.id).toBe(staff.id);
+    expect(res.body.roles).toEqual(['Event Manager']);
+  });
+
+  // GET /staff/roles — feeds the admin UI's role-grant dropdown with the real
+  // seeded roles rather than a hardcoded, driftable copy of the same list.
+  it('GET /staff/roles: 401 with no session, 403 for non-Super-Administrator, 200 with all 10 seeded roles for Super Administrator', async () => {
+    await request(app.getHttpServer()).get('/staff/roles').expect(401);
+
+    const nonAdmin = await createStaffWithRole('Analytics Viewer', `staff-e2e-roles-nonadmin-${Date.now()}@example.com`);
+    await request(app.getHttpServer()).get('/staff/roles').set('Cookie', staffCookieFor(nonAdmin.id)).expect(403);
+
+    const admin = await createStaffWithRole('Super Administrator', `staff-e2e-roles-admin-${Date.now()}@example.com`);
+    const res = await request(app.getHttpServer()).get('/staff/roles').set('Cookie', staffCookieFor(admin.id)).expect(200);
+    expect(res.body).toHaveLength(10);
+    expect(res.body.some((r: { name: string }) => r.name === 'Super Administrator')).toBe(true);
+    expect(res.body.some((r: { name: string }) => r.name === 'Member Support')).toBe(true);
+  });
 });

@@ -47,6 +47,15 @@ export class StaffController {
     });
   }
 
+  // Super Administrator only, same reasoning as role grants themselves — feeds
+  // the admin UI's role-grant dropdown with the real seeded roles.
+  @UseGuards(StaffAuthGuard, RolesGuard)
+  @Roles('Super Administrator')
+  @Get('roles')
+  findAllRoles() {
+    return this.staffService.findAllRoles();
+  }
+
   // Reference implementation for how future admin routes (Members & Users, etc.)
   // should be protected: StaffAuthGuard first (who are you), RolesGuard second
   // (are you allowed here). Super Administrator always passes regardless of the

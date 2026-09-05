@@ -4,8 +4,7 @@ import { Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import type { Request } from 'express';
 import { StaffService } from '../staff.service';
-
-const STAFF_SESSION_COOKIE = 'clc_staff_session';
+import { STAFF_SESSION_COOKIE } from '../../auth/session-cookie.util';
 
 function extractFromCookie(req: Request): string | null {
   const cookies = req?.cookies as Record<string, string> | undefined;

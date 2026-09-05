@@ -9,8 +9,17 @@ export class StaffService {
     private readonly auditLog: AuditLogService,
   ) {}
 
-  findById(id: string) {
-    return this.prisma.staffUser.findUniqueOrThrow({ where: { id } });
+  // Includes role names so every consumer of this (the JWT strategy — which
+  // feeds both req.staffUser and GET /staff/me — plus anything else that looks
+  // a staff user up by id) gets the same shape as findAll()'s directory rows,
+  // rather than a bare StaffUser with no roles a caller might assume are there.
+  async findById(id: string) {
+    const staffUser = await this.prisma.staffUser.findUniqueOrThrow({
+      where: { id },
+      include: { roleAssignments: { include: { role: true } } },
+    });
+    const { roleAssignments, ...rest } = staffUser;
+    return { ...rest, roles: roleAssignments.map((a) => a.role.name) };
   }
 
   // Directory view for Milestone 5's Staff/Roles/Permissions admin area — role
@@ -57,6 +66,15 @@ export class StaffService {
     });
 
     return created;
+  }
+
+  /**
+   * All 10 fixed role presets (Super Administrator + the 9 named roles) — lets the
+   * admin UI's role-grant control show real seeded roles instead of a hardcoded,
+   * driftable copy of the same list.
+   */
+  findAllRoles() {
+    return this.prisma.role.findMany({ orderBy: { name: 'asc' } });
   }
 
   /** Role names (e.g. "Club Manager") currently granted to this staff member. */

@@ -53,7 +53,7 @@ export interface DataSubjectRequest {
   completedAt: string | null;
 }
 
-function apiFetch(path: string, init?: RequestInit): Promise<Response> {
+export function apiFetch(path: string, init?: RequestInit): Promise<Response> {
   if (!API_URL) {
     throw new Error("NEXT_PUBLIC_API_URL is not set");
   }

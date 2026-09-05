@@ -3,6 +3,10 @@ import { ConfigService } from '@nestjs/config';
 export const SESSION_COOKIE = 'clc_session';
 const SESSION_COOKIE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
+// Kept here (not just in staff-jwt.strategy.ts) so session.controller.ts's staff
+// logout route can clear the exact same cookie name without redeclaring it.
+export const STAFF_SESSION_COOKIE = 'clc_staff_session';
+
 // Shared between auth.controller.ts (sets this cookie) and session.controller.ts
 // (clears it) — clearCookie only actually clears a cookie if path/domain match
 // exactly what it was set with, so this exists to keep both call sites from
