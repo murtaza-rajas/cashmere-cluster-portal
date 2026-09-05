@@ -28,6 +28,7 @@
   --color-cashmere-accent-dark: var(--cashmere-accent-dark);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-serif: var(--font-serif);
 }
 
 @media (prefers-color-scheme: dark) {
