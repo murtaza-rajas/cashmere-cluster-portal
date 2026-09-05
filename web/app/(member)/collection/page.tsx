@@ -31,7 +31,7 @@ export default function CollectionPage() {
   return (
     <RequireAccess area="myCollection">
       <div className="flex max-w-4xl flex-col gap-6">
-        <h1 className="text-2xl font-semibold tracking-tight text-cashmere-text">My Collection</h1>
+        <h1 className="font-serif text-3xl tracking-tight text-cashmere-text">My Collection</h1>
 
         {state.status === "loading" && <p className="text-cashmere-text-muted">Loading your collection…</p>}
 

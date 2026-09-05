@@ -21,7 +21,7 @@ export default function ExploreMembershipPage() {
   return (
     <div className="flex max-w-4xl flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-cashmere-text">Explore Membership</h1>
+        <h1 className="font-serif text-3xl tracking-tight text-cashmere-text">Explore Membership</h1>
         <p className="mt-1 text-cashmere-text-muted">
           {isNewsletter
             ? "See what Founding and Annual membership unlocks."

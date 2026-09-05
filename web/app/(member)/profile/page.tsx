@@ -16,7 +16,7 @@ export default function ProfilePage() {
 
   return (
     <div className="flex max-w-2xl flex-col gap-6">
-      <h1 className="text-2xl font-semibold tracking-tight text-cashmere-text">Profile</h1>
+      <h1 className="font-serif text-3xl tracking-tight text-cashmere-text">Profile</h1>
 
       <section className="rounded-2xl border border-cashmere-border bg-white p-6">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-cashmere-text-muted">Contact details</h2>

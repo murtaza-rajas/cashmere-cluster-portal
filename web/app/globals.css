@@ -14,6 +14,11 @@
   --cashmere-text-muted: #7a7168;
   --cashmere-accent: #8b6f47;
   --cashmere-accent-dark: #6f5837;
+
+  /* Navy, added for the pre-login landing page (matches login-ui.jpeg) — same
+     approximated-from-mockup status as the rest of the palette above. */
+  --cashmere-navy: #1c2a45;
+  --cashmere-navy-dark: #101a2e;
 }
 
 @theme inline {
@@ -26,6 +31,8 @@
   --color-cashmere-text-muted: var(--cashmere-text-muted);
   --color-cashmere-accent: var(--cashmere-accent);
   --color-cashmere-accent-dark: var(--cashmere-accent-dark);
+  --color-cashmere-navy: var(--cashmere-navy);
+  --color-cashmere-navy-dark: var(--cashmere-navy-dark);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-serif: var(--font-serif);

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ChevronRight, ShoppingBag } from "lucide-react";
 import { API_URL, fetchCurrentMember } from "@/lib/api";
 
 type Status = { state: "loading" } | { state: "signed-out" } | { state: "error"; message: string };
@@ -34,12 +35,12 @@ export default function SessionStatus() {
   }, [router]);
 
   if (status.state === "loading") {
-    return <p className="text-zinc-500">Checking session…</p>;
+    return <p className="text-sm text-cashmere-text-muted">Checking session…</p>;
   }
 
   if (status.state === "error") {
     return (
-      <p className="text-red-600">
+      <p className="text-sm text-red-600">
         Could not reach the API ({status.message}). Is it running at {API_URL}?
       </p>
     );
@@ -48,9 +49,11 @@ export default function SessionStatus() {
   return (
     <a
       href={`${API_URL}/auth/shopify/login`}
-      className="rounded-full bg-black px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+      className="flex items-center justify-center gap-3 rounded-full bg-cashmere-navy px-6 py-3.5 text-sm font-medium text-white transition-colors hover:bg-cashmere-navy-dark"
     >
+      <ShoppingBag size={18} strokeWidth={1.75} />
       Sign in with Shopify
+      <ChevronRight size={18} strokeWidth={1.75} />
     </a>
   );
 }

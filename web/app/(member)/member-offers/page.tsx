@@ -15,12 +15,15 @@ import { RequireAccess } from "@/components/require-access";
 export default function MemberOffersPage() {
   return (
     <RequireAccess area="memberOffers">
-      <div className="flex max-w-2xl flex-col items-center gap-3 rounded-2xl border border-cashmere-border bg-white px-6 py-16 text-center">
-        <Tag size={28} strokeWidth={1.5} className="text-cashmere-text-muted" />
-        <p className="font-medium text-cashmere-text">Member Offers coming soon</p>
-        <p className="max-w-sm text-sm text-cashmere-text-muted">
-          Exclusive offers from Cashmere House and participating partners will appear here.
-        </p>
+      <div className="flex max-w-2xl flex-col gap-6">
+        <h1 className="font-serif text-3xl tracking-tight text-cashmere-text">Member Offers</h1>
+        <div className="flex flex-col items-center gap-3 rounded-2xl border border-cashmere-border bg-white px-6 py-16 text-center">
+          <Tag size={28} strokeWidth={1.5} className="text-cashmere-text-muted" />
+          <p className="font-medium text-cashmere-text">Member Offers coming soon</p>
+          <p className="max-w-sm text-sm text-cashmere-text-muted">
+            Exclusive offers from Cashmere House and participating partners will appear here.
+          </p>
+        </div>
       </div>
     </RequireAccess>
   );

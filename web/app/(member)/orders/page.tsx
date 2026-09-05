@@ -26,7 +26,7 @@ export default function OrdersPage() {
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
-      <h1 className="text-2xl font-semibold tracking-tight text-cashmere-text">
+      <h1 className="font-serif text-3xl tracking-tight text-cashmere-text">
         My Orders
       </h1>
 
