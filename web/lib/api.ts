@@ -36,6 +36,15 @@ export interface CollectionItem {
   orderDate: string;
 }
 
+export interface WishlistItem {
+  id: string;
+  shopifyProductId: string;
+  title: string;
+  variantTitle: string | null;
+  price: string | null;
+  addedAt: string;
+}
+
 export interface DataSubjectRequest {
   id: string;
   type: "ACCESS" | "EXPORT" | "DELETION";
@@ -78,6 +87,17 @@ export async function fetchMemberCollection(): Promise<CollectionItem[]> {
   const res = await apiFetch("/members/me/collection");
   if (!res.ok) throw new Error(`Unexpected response fetching collection: ${res.status}`);
   return res.json();
+}
+
+export async function fetchWishlist(): Promise<WishlistItem[]> {
+  const res = await apiFetch("/members/me/wishlist");
+  if (!res.ok) throw new Error(`Unexpected response fetching wishlist: ${res.status}`);
+  return res.json();
+}
+
+export async function removeWishlistItem(id: string): Promise<void> {
+  const res = await apiFetch(`/members/me/wishlist/${id}`, { method: "DELETE" });
+  if (!res.ok) throw new Error(`Unexpected response removing wishlist item: ${res.status}`);
 }
 
 export async function fetchMemberDataRequests(): Promise<DataSubjectRequest[]> {

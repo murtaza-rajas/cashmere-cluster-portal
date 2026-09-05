@@ -97,6 +97,7 @@ model Member {
   updatedAt DateTime @updatedAt
 
   orders               MemberOrderCache[]
+  wishlistItems        WishlistItem[]
   dataSubjectRequests  DataSubjectRequest[]
   auditLogEntries      AuditLog[]           @relation("AuditLogTargetMember")
 
@@ -129,6 +130,29 @@ model MemberOrderCache {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([memberId])
+}
+
+// A member's saved products. Real feature per the client's confirmed Wishlist
+// flow (PROJECT_TRACKER.md Section 3c): "Add to Wishlist" on a CashmereHouse.com
+// product page saves it here, shown under "My Wishlist" in the portal. This is
+// our side of that integration; the storefront side (how the click on
+// CashmereHouse.com actually authenticates and calls this) is a separate,
+// unresolved design question — see the tracker — so this table has no writer
+// yet beyond this API's own endpoint.
+model WishlistItem {
+  id     String @id @default(uuid())
+  memberId String
+  member   Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  shopifyProductId String
+  title            String
+  variantTitle     String?
+  price            String?
+
+  addedAt DateTime @default(now())
+
+  @@unique([memberId, shopifyProductId])
   @@index([memberId])
 }
 

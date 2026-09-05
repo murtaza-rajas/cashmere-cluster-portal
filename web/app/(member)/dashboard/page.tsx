@@ -115,8 +115,20 @@ function FullDashboard({ displayName }: { displayName: string }) {
       </section>
 
       <section className="grid grid-cols-2 gap-4 rounded-2xl border border-cashmere-border bg-white p-6 sm:grid-cols-4">
-        <UtilityLink icon={ShoppingBag} title="Exclusive Collections" description="Shop member-only collections and pre-orders" />
-        <UtilityLink icon={CalendarHeart} title="Members Events" description="Join exclusive events, launches and previews" />
+        <UtilityLink
+          icon={ShoppingBag}
+          title="Exclusive Collections"
+          description="Shop member-only collections and pre-orders"
+          href="/exclusive-collections"
+          linkLabel="Explore now →"
+        />
+        <UtilityLink
+          icon={CalendarHeart}
+          title="Members Events"
+          description="Join exclusive events, launches and previews"
+          href="/invitations"
+          linkLabel="See upcoming events →"
+        />
         <UtilityLink
           icon={Gift}
           title="My Benefits"
