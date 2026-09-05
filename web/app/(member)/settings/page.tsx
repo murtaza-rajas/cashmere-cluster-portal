@@ -43,6 +43,12 @@ export default function SettingsPage() {
   }
 
   const pending = state.status === "loaded" ? state.requests.find((r) => r.status === "PENDING") : undefined;
+  // requests are ordered newest-first (see fetchMemberDataRequests) — this is
+  // the most recently completed one, so a member who just had a request
+  // fulfilled sees confirmation of that instead of the button just silently
+  // reappearing as if nothing happened.
+  const lastCompleted =
+    state.status === "loaded" ? state.requests.find((r) => r.status === "COMPLETED") : undefined;
 
   return (
     <RequireAccess area="settings">
@@ -83,13 +89,26 @@ export default function SettingsPage() {
             )}
 
             {state.status === "loaded" && !pending && (
-              <button
-                onClick={handleRequest}
-                disabled={submitting}
-                className="rounded-full bg-cashmere-accent px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-cashmere-accent-dark disabled:opacity-60"
-              >
-                {submitting ? "Requesting…" : "Request my data"}
-              </button>
+              <div className="flex flex-col gap-3">
+                {lastCompleted?.completedAt && (
+                  <p className="text-sm text-cashmere-text-muted">
+                    Your last request was completed on{" "}
+                    {new Date(lastCompleted.completedAt).toLocaleDateString("en-US", {
+                      month: "long",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                    .
+                  </p>
+                )}
+                <button
+                  onClick={handleRequest}
+                  disabled={submitting}
+                  className="w-fit rounded-full bg-cashmere-accent px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-cashmere-accent-dark disabled:opacity-60"
+                >
+                  {submitting ? "Requesting…" : "Request my data"}
+                </button>
+              </div>
             )}
           </div>
         </section>
