@@ -49,7 +49,7 @@ const FULL_NAV_ITEMS: NavItem[] = [
   { href: "/collection", label: "My Collection", icon: Shirt },
   { href: "/wishlist", label: "Wishlist", icon: Heart },
   { href: "/invitations", label: "Invitations & Events", icon: CalendarHeart },
-  { href: "/news", label: "News & Updates", icon: Newspaper },
+  { href: "/news", label: "Stories & Knowledge", icon: Newspaper },
   { href: "/care-repair", label: "Care & Repair", icon: Wrench },
   { href: "/benefits", label: "My Benefits", icon: Gift },
   { href: "/profile", label: "Profile", icon: User },
