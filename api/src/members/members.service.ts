@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { MembershipTier, Prisma } from '@prisma/client';
 import { ExternalIdentity } from '../auth/interfaces/identity-provider.interface';
@@ -62,6 +62,52 @@ export class MembersService {
 
   findById(id: string) {
     return this.prisma.member.findUniqueOrThrow({ where: { id } });
+  }
+
+  // Nullable variant for the staff-facing member-detail lookup, where the id
+  // comes from an untrusted URL param rather than a signed JWT — an unknown id
+  // is a normal, expected case there (a clean 404), not a 500. findById() above
+  // is left alone: every existing caller passes a trusted id from a validated
+  // session, where a miss really would be an unexpected error.
+  async findByIdForStaff(id: string) {
+    const member = await this.prisma.member.findUnique({ where: { id } });
+    if (!member) {
+      throw new NotFoundException('Member not found');
+    }
+    return member;
+  }
+
+  // Staff-facing directory (Members & Users admin) — case-insensitive search
+  // across email/first/last name. No pagination yet (matches the simplicity
+  // level of the rest of the admin backend so far — findAll() on StaffService
+  // has none either); worth adding once real member volume makes that matter.
+  findAllForStaff(search?: string) {
+    const where: Prisma.MemberWhereInput = search
+      ? {
+          OR: [
+            { email: { contains: search, mode: 'insensitive' } },
+            { firstName: { contains: search, mode: 'insensitive' } },
+            { lastName: { contains: search, mode: 'insensitive' } },
+          ],
+        }
+      : {};
+
+    return this.prisma.member.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        membershipTier: true,
+        membershipStatus: true,
+        region: true,
+        language: true,
+        isFoundingMember: true,
+        createdAt: true,
+      },
+    });
   }
 
   // Read-only summary cache (see schema.prisma) — kept in sync via Shopify order

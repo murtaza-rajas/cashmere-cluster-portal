@@ -13,12 +13,11 @@ interface NavItem {
   allowedRoles: string[];
 }
 
-// Only two admin areas exist yet — both fully backed by real endpoints already
-// built in earlier Milestone 5 backend work. "Members & Users" and "Audit Log"
-// are real gaps (no admin-facing list/search endpoint or audit-log read
-// endpoint exists yet), not built here — see PROJECT_TRACKER.md.
+// "Audit Log" is the one remaining real gap — no read endpoint exists on
+// AuditLogService yet, not built here — see PROJECT_TRACKER.md.
 const NAV_ITEMS: NavItem[] = [
   { href: "/staff/directory", label: "Staff & Roles", icon: ShieldCheck, allowedRoles: ["Super Administrator"] },
+  { href: "/staff/members", label: "Members & Users", icon: Users, allowedRoles: ["Club Manager", "Member Support"] },
   { href: "/staff/data-requests", label: "GDPR Requests", icon: ClipboardList, allowedRoles: ["Super Administrator", "Member Support"] },
 ];
 

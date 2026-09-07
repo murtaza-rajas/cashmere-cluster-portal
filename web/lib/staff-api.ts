@@ -1,4 +1,5 @@
 import { apiFetch } from "./api";
+import type { Member, MemberOrder, CollectionItem, WishlistItem } from "./api";
 
 // Separate from lib/api.ts's member-facing types/fetchers on purpose — staff
 // auth is a completely separate session (clc_staff_session cookie, different
@@ -18,6 +19,29 @@ export interface RoleOption {
   id: string;
   name: string;
   description: string | null;
+}
+
+// The shape GET /members actually selects (members.service.ts's findAllForStaff)
+// — a subset of the full Member fields, not the complete row the detail view
+// below gets, so this is its own type rather than reusing `Member` as-is.
+export interface MemberSummary {
+  id: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  membershipTier: Member["membershipTier"];
+  membershipStatus: Member["membershipStatus"];
+  region: Member["region"];
+  language: Member["language"];
+  isFoundingMember: boolean;
+  createdAt: string;
+}
+
+export interface MemberDetail {
+  member: Member;
+  orders: MemberOrder[];
+  collection: CollectionItem[];
+  wishlist: WishlistItem[];
 }
 
 export interface StaffDataSubjectRequest {
@@ -75,6 +99,20 @@ export async function revokeRole(staffUserId: string, roleName: string): Promise
     method: "DELETE",
   });
   if (!res.ok) throw new Error(`Unexpected response revoking role: ${res.status}`);
+}
+
+export async function fetchMembers(search?: string): Promise<MemberSummary[]> {
+  const query = search ? `?search=${encodeURIComponent(search)}` : "";
+  const res = await apiFetch(`/members${query}`);
+  if (!res.ok) throw new Error(`Unexpected response fetching members: ${res.status}`);
+  return res.json();
+}
+
+export async function fetchMemberDetail(id: string): Promise<MemberDetail> {
+  const res = await apiFetch(`/members/${id}`);
+  if (res.status === 404) throw new Error("Member not found");
+  if (!res.ok) throw new Error(`Unexpected response fetching member detail: ${res.status}`);
+  return res.json();
 }
 
 export async function fetchPendingDataRequests(): Promise<StaffDataSubjectRequest[]> {

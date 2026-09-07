@@ -18,12 +18,38 @@ const nextConfig: NextConfig = {
   // this app's own public URL when this is active — see README "Testing the
   // Shopify login flow". Mirrors how production is expected to sit behind one
   // shared domain anyway.
+  //
+  // /staff/* is deliberately NOT a single blanket rewrite (unlike /auth, /members,
+  // /webhooks) — the admin app added real Next.js pages under /staff/* (2026-09-05/07:
+  // /staff, /staff/directory, /staff/data-requests, /staff/members, /staff/members/[id]),
+  // so that namespace is now shared between frontend pages and backend API routes.
+  // Per Next's own routing order (rewrites.md: non-dynamic pages are checked BEFORE
+  // afterFiles rewrites, but dynamic routes are only checked AFTER them), a blanket
+  // /staff/:path* rewrite would swallow the dynamic /staff/members/[id] page — a real,
+  // reproduced bug (confirmed: a direct page navigation there returned the API's raw
+  // 404 JSON instead of rendering the page). Listing only the real backend sub-paths
+  // here avoids that; none of them collide with the frontend's own /staff/* segments.
+  //
+  // NOT YET FIXED, flagged rather than guessed at: GET/POST /staff itself (the staff
+  // list/create endpoint) is the one genuinely irreducible collision — the bare
+  // "/staff" path means both a real backend endpoint AND the frontend's own staff
+  // home page, and Next always serves the (non-dynamic) page first for a plain GET.
+  // Doesn't reproduce in local dev (NEXT_PUBLIC_API_URL points straight at
+  // localhost:3000, bypassing this proxy entirely — see .env.local), but will once
+  // this is tested through the single-tunnel/production-style setup this proxy exists
+  // for. Needs a real decision (most likely: namespacing all backend API routes under
+  // a prefix like /api/* that no frontend page will ever occupy) before that happens —
+  // see PROJECT_TRACKER.md.
   async rewrites() {
     const apiOrigin = process.env.API_PROXY_TARGET ?? "http://localhost:3000";
     return [
       { source: "/auth/:path*", destination: `${apiOrigin}/auth/:path*` },
       { source: "/members/:path*", destination: `${apiOrigin}/members/:path*` },
-      { source: "/staff/:path*", destination: `${apiOrigin}/staff/:path*` },
+      { source: "/staff/me", destination: `${apiOrigin}/staff/me` },
+      { source: "/staff/roles", destination: `${apiOrigin}/staff/roles` },
+      { source: "/staff/:id/roles", destination: `${apiOrigin}/staff/:id/roles` },
+      { source: "/staff/:id/roles/:roleName", destination: `${apiOrigin}/staff/:id/roles/:roleName` },
+      { source: "/data-subject-requests/:path*", destination: `${apiOrigin}/data-subject-requests/:path*` },
       { source: "/health", destination: `${apiOrigin}/health` },
       { source: "/webhooks/:path*", destination: `${apiOrigin}/webhooks/:path*` },
     ];

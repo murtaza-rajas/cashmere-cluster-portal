@@ -5,11 +5,15 @@ import {
   Get,
   Param,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { StaffAuthGuard } from '../staff/guards/staff-auth.guard';
+import { RolesGuard } from '../staff/guards/roles.guard';
+import { Roles } from '../staff/decorators/roles.decorator';
 import { MembersService } from './members.service';
 import { DataSubjectRequestsService } from '../data-subject-requests/data-subject-requests.service';
 import { WishlistService } from '../wishlist/wishlist.service';
@@ -79,5 +83,33 @@ export class MembersController {
   @Delete('me/wishlist/:id')
   removeWishlistItem(@Req() req: Request, @Param('id') id: string) {
     return this.wishlist.removeItem((req.user as Member).id, id);
+  }
+
+  // Members & Users admin (Milestone 5) — staff-facing directory/search.
+  // Declared after every /members/me/* route above: both routes below share the
+  // same path shape as those (/members/<segment>), and Nest/Express resolve
+  // ambiguous routes in registration order, so the literal "me" routes must stay
+  // registered first or a request for /members/me would incorrectly match
+  // memberDetail's :id param instead.
+  @UseGuards(StaffAuthGuard, RolesGuard)
+  @Roles('Club Manager', 'Member Support')
+  @Get()
+  findAllMembers(@Query('search') search?: string) {
+    return this.members.findAllForStaff(search);
+  }
+
+  // Combined read-only snapshot (profile + orders + collection + wishlist) so
+  // Member Support can look someone up in one call instead of four.
+  @UseGuards(StaffAuthGuard, RolesGuard)
+  @Roles('Club Manager', 'Member Support')
+  @Get(':id')
+  async memberDetail(@Param('id') id: string) {
+    const member = await this.members.findByIdForStaff(id);
+    const [orders, collection, wishlistItems] = await Promise.all([
+      this.members.findOrdersForMember(id),
+      this.members.findCollectionForMember(id),
+      this.wishlist.findForMember(id),
+    ]);
+    return { member, orders, collection, wishlist: wishlistItems };
   }
 }

@@ -401,3 +401,139 @@ describe('GET/POST/DELETE /members/me/wishlist (e2e)', () => {
     expect(list.body).toEqual([]);
   });
 });
+
+// GET /members, GET /members/:id — the Members & Users admin view (Milestone 5).
+// Staff-session-guarded, sharing the /members path prefix with the member-facing
+// /members/me/* routes above; exercising both together here specifically to catch
+// any route-precedence regression (see members.controller.ts's comment on why the
+// staff routes must stay registered after the "me" ones).
+describe('GET /members, GET /members/:id (e2e, staff-facing)', () => {
+  let app: INestApplication<App>;
+  let prisma: PrismaService;
+  let members: MembersService;
+
+  beforeAll(async () => {
+    app = await createTestApp();
+    prisma = app.get(PrismaService);
+    members = app.get(MembersService);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  function sessionCookieFor(memberId: string): string {
+    const token = jwt.sign({ sub: memberId }, process.env.JWT_SECRET!, {
+      expiresIn: '1h',
+    });
+    return `clc_session=${token}`;
+  }
+
+  async function staffCookieFor(roleName: string): Promise<string> {
+    const role = await prisma.role.findUniqueOrThrow({
+      where: { name: roleName },
+    });
+    const staff = await prisma.staffUser.create({
+      data: {
+        email: `members-admin-e2e-${roleName.replace(/\s+/g, '-')}-${Date.now()}@example.com`,
+        name: `Test ${roleName}`,
+      },
+    });
+    await prisma.staffRoleAssignment.create({
+      data: { staffUserId: staff.id, roleId: role.id },
+    });
+    const token = jwt.sign({ sub: staff.id }, process.env.STAFF_JWT_SECRET!, {
+      expiresIn: '1h',
+    });
+    return `clc_staff_session=${token}`;
+  }
+
+  it('/members/me still resolves to the member session route, not the staff :id route', async () => {
+    const member = await members.findOrCreateFromIdentity({
+      providerId: 'shopify',
+      externalId: `members-admin-e2e-precedence-${Date.now()}`,
+      email: `members-admin-e2e-precedence-${Date.now()}@example.com`,
+    });
+    const res = await request(app.getHttpServer())
+      .get('/members/me')
+      .set('Cookie', sessionCookieFor(member.id))
+      .expect(200);
+    expect(res.body.id).toBe(member.id);
+  });
+
+  it('GET /members: 401 with no session, 403 for a role without access, 200 with search for Club Manager/Member Support', async () => {
+    await request(app.getHttpServer()).get('/members').expect(401);
+
+    const wrongRoleCookie = await staffCookieFor('Analytics Viewer');
+    await request(app.getHttpServer())
+      .get('/members')
+      .set('Cookie', wrongRoleCookie)
+      .expect(403);
+
+    // firstName carries the same timestamp as externalId — a fixed name like
+    // "Searchable" would collide with itself across repeated local test runs,
+    // since findOrCreateFromIdentity creates a genuinely new member each time.
+    const externalId = `members-admin-e2e-search-${Date.now()}`;
+    const uniqueFirstName = `Searchable${Date.now()}`;
+    const member = await members.findOrCreateFromIdentity({
+      providerId: 'shopify',
+      externalId,
+      email: `${externalId}@example.com`,
+      firstName: uniqueFirstName,
+      lastName: 'Person',
+    });
+
+    const clubManagerCookie = await staffCookieFor('Club Manager');
+    const all = await request(app.getHttpServer())
+      .get('/members')
+      .set('Cookie', clubManagerCookie)
+      .expect(200);
+    expect(all.body.some((m: { id: string }) => m.id === member.id)).toBe(true);
+
+    const memberSupportCookie = await staffCookieFor('Member Support');
+    const filtered = await request(app.getHttpServer())
+      .get(`/members?search=${uniqueFirstName}`)
+      .set('Cookie', memberSupportCookie)
+      .expect(200);
+    expect(filtered.body).toHaveLength(1);
+    expect(filtered.body[0].id).toBe(member.id);
+
+    const noMatch = await request(app.getHttpServer())
+      .get('/members?search=definitely-does-not-exist-anywhere')
+      .set('Cookie', clubManagerCookie)
+      .expect(200);
+    expect(noMatch.body).toEqual([]);
+  });
+
+  it('GET /members/:id: 401 with no session, 403 for a role without access, 404 for an unknown id, 200 with the combined snapshot for a real member', async () => {
+    await request(app.getHttpServer())
+      .get('/members/does-not-exist')
+      .expect(401);
+
+    const clubManagerCookie = await staffCookieFor('Club Manager');
+    await request(app.getHttpServer())
+      .get('/members/00000000-0000-0000-0000-000000000000')
+      .set('Cookie', await staffCookieFor('Analytics Viewer'))
+      .expect(403);
+
+    await request(app.getHttpServer())
+      .get('/members/00000000-0000-0000-0000-000000000000')
+      .set('Cookie', clubManagerCookie)
+      .expect(404);
+
+    const externalId = `members-admin-e2e-detail-${Date.now()}`;
+    const member = await members.findOrCreateFromIdentity({
+      providerId: 'shopify',
+      externalId,
+      email: `${externalId}@example.com`,
+    });
+    const res = await request(app.getHttpServer())
+      .get(`/members/${member.id}`)
+      .set('Cookie', clubManagerCookie)
+      .expect(200);
+    expect(res.body.member.id).toBe(member.id);
+    expect(res.body.orders).toEqual([]);
+    expect(res.body.collection).toEqual([]);
+    expect(res.body.wishlist).toEqual([]);
+  });
+});
