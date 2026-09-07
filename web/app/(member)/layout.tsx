@@ -6,6 +6,7 @@ import { fetchCurrentMember, type Member } from "@/lib/api";
 import { MemberProvider } from "@/contexts/member-context";
 import Sidebar from "@/components/sidebar";
 import Header from "@/components/header";
+import BottomTabBar from "@/components/bottom-tab-bar";
 
 type Status =
   | { state: "loading" }
@@ -63,8 +64,11 @@ export default function MemberLayout({
         <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <div className="flex min-w-0 flex-1 flex-col">
           <Header onMenuClick={() => setSidebarOpen(true)} />
-          <main className="flex-1 px-4 py-6 sm:px-8 sm:py-8">{children}</main>
+          {/* pb-24 reserves room for BottomTabBar (mobile only, fixed) so the
+              last section of a page's content is never hidden behind it. */}
+          <main className="flex-1 px-4 py-6 pb-24 sm:px-8 sm:py-8 md:pb-8">{children}</main>
         </div>
+        <BottomTabBar />
       </div>
     </MemberProvider>
   );
