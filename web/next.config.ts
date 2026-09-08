@@ -55,6 +55,13 @@ const nextConfig: NextConfig = {
       // member-facing "My Benefits" frontend page. This path has no frontend
       // page at all, so (unlike /staff) a blanket rewrite here is safe.
       { source: "/benefit-catalog/:path*", destination: `${apiOrigin}/benefit-catalog/:path*` },
+      { source: "/site-image-catalog/:path*", destination: `${apiOrigin}/site-image-catalog/:path*` },
+      // Staff-uploaded photos themselves (main.ts's useStaticAssets serves
+      // these from the API) — the browser requests this path directly from
+      // whatever origin rendered the <img>/<Image> tag (this app), so it
+      // needs the same proxying as any other backend route, independent of
+      // whether NEXT_PUBLIC_API_URL itself is proxied for JSON calls.
+      { source: "/uploads/:path*", destination: `${apiOrigin}/uploads/:path*` },
       { source: "/health", destination: `${apiOrigin}/health` },
       { source: "/webhooks/:path*", destination: `${apiOrigin}/webhooks/:path*` },
     ];

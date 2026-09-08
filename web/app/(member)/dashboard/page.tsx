@@ -20,7 +20,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useMember } from "@/contexts/member-context";
-import { formatMemberId, formatMonthYear, membershipTierLabel, fetchMemberOrders } from "@/lib/api";
+import { formatMemberId, formatMonthYear, membershipTierLabel, fetchMemberOrders, fetchMySiteImages } from "@/lib/api";
 import { getAccessLevel } from "@/lib/access";
 
 // Matches founding-member-dashboard.jpeg section-for-section. Real data used
@@ -42,14 +42,24 @@ export default function DashboardPage() {
   return <FullDashboard displayName={displayName} />;
 }
 
+const DEFAULT_DASHBOARD_HERO = "/images/dashboard-hero.jpeg";
+
 function FullDashboard({ displayName }: { displayName: string }) {
   const member = useMember();
   const [orderCount, setOrderCount] = useState<number | null>(null);
+  const [heroSrc, setHeroSrc] = useState(DEFAULT_DASHBOARD_HERO);
 
   useEffect(() => {
     fetchMemberOrders()
       .then((orders) => setOrderCount(orders.length))
       .catch(() => setOrderCount(null));
+    // Staff-uploaded, tier-specific hero photo (Milestone 5) — falls back to
+    // the bundled default above for any tier staff haven't set one for yet.
+    fetchMySiteImages()
+      .then((images) => {
+        if (images.DASHBOARD_HERO) setHeroSrc(images.DASHBOARD_HERO);
+      })
+      .catch(() => undefined);
   }, []);
 
   return (
@@ -64,11 +74,11 @@ function FullDashboard({ displayName }: { displayName: string }) {
           <p className="mt-3 text-cashmere-text-muted">Thank you for being part of our journey.</p>
         </div>
         {/* Real photo (2026-09-08, public/images/dashboard-hero.jpeg — one of the
-            client's supplied images, matching this exact mockup slot) — this
-            section used to be a plain white card with a CSS gradient in place
-            of the photo the mockup shows here. */}
+            client's supplied images, matching this exact mockup slot) as the
+            default; staff can override it per tier via /staff/images
+            (2026-09-08) without a code change, see fetchMySiteImages above. */}
         <div className="relative h-40 sm:h-auto sm:w-2/5">
-          <Image src="/images/dashboard-hero.jpeg" alt="" fill className="object-cover" />
+          <Image src={heroSrc} alt="" fill className="object-cover" />
         </div>
       </section>
 

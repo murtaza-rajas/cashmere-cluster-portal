@@ -1,5 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import type { NestExpressApplication } from '@nestjs/platform-express';
+import { join } from 'path';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 
@@ -9,9 +11,19 @@ async function bootstrap() {
   // must be computed over the exact raw bytes Shopify sent, not a re-serialized
   // JSON.stringify(req.body) (whitespace/key-order differences would break the
   // signature). Doesn't disable or change normal body parsing for any other route.
-  const app = await NestFactory.create(AppModule, { rawBody: true });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    rawBody: true,
+  });
 
   app.use(cookieParser());
+
+  // Serves staff-uploaded site images (SiteImagesService writes files under
+  // ./uploads/site-images) back out at /uploads/site-images/<filename>. Public,
+  // unauthenticated — these are decorative member-portal hero photos, not
+  // sensitive personal data, matching how web/public/images is already served
+  // openly. Local disk for now (see schema.prisma's SiteImage comment on
+  // migrating to real object storage before a multi-instance deployment).
+  app.useStaticAssets(join(process.cwd(), 'uploads'), { prefix: '/uploads/' });
 
   // class-validator/class-transformer were installed but nothing was actually
   // enforcing DTO validation — every request body was accepted as-is. whitelist

@@ -187,6 +187,7 @@ model StaffUser {
   grantedAssignments    StaffRoleAssignment[] @relation("AssignmentsGrantedBy")
   auditLogEntries       AuditLog[]            @relation("AuditLogActor")
   createdBenefits       Benefit[]             @relation("BenefitsCreatedBy")
+  uploadedSiteImages    SiteImage[]           @relation("SiteImagesUploadedBy")
 
   @@index([email])
 }
@@ -302,6 +303,46 @@ model Benefit {
   createdBy   StaffUser? @relation("BenefitsCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
 
   @@index([type])
+}
+
+// ---------------------------------------------------------------------------
+// Tier-specific images (staff-uploaded, replacing bundled static photos)
+// ---------------------------------------------------------------------------
+// A handful of member-facing pages show a hero photo that was previously a
+// single bundled file in web/public/images, the same for every member
+// regardless of tier. This lets staff upload a different real photo per
+// (slot, tier) pair instead of a code change. `slot` is a fixed enum, not a
+// free-form string — each value corresponds to one specific, already-wired
+// spot in the frontend, not an arbitrary/unbounded set of "make up a slot
+// name" possibilities that nothing would actually render.
+
+enum SiteImageSlot {
+  DASHBOARD_HERO
+  CARE_REPAIR_HERO
+}
+
+model SiteImage {
+  id String @id @default(uuid())
+
+  slot SiteImageSlot
+  tier MembershipTier
+
+  // Public path the uploaded file is served from (see main.ts's
+  // useStaticAssets), e.g. "/uploads/site-images/dashboard-hero-founding-....jpeg".
+  // The physical file lives on local disk for now (uploads/site-images/) —
+  // fine for a single-instance dev/staging deployment, but will need to move
+  // to real object storage (matching whatever the Norway-hosting decision
+  // ends up being, PROJECT_TRACKER.md Section 4) before a multi-instance or
+  // ephemeral-filesystem production deployment.
+  url String
+
+  uploadedAt   DateTime  @default(now())
+  uploadedById String?
+  uploadedBy   StaffUser? @relation("SiteImagesUploadedBy", fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  // One image per (slot, tier) — uploading again replaces it (old file
+  // deleted from disk), never adds a second row.
+  @@unique([slot, tier])
 }
 
 // ---------------------------------------------------------------------------

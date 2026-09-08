@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ShieldCheck, ClipboardList, Users, Gift } from "lucide-react";
+import { ShieldCheck, ClipboardList, Users, Gift, Image as ImageIcon } from "lucide-react";
 import { useStaff, staffHasAnyRole } from "@/contexts/staff-context";
 
 export default function StaffHomePage() {
@@ -48,6 +48,18 @@ export default function StaffHomePage() {
             <div>
               <p className="font-medium text-cashmere-text">Offers &amp; Benefits</p>
               <p className="text-sm text-cashmere-text-muted">Manage My Benefits and Member Offers content</p>
+            </div>
+          </Link>
+        )}
+        {staffHasAnyRole(staff, ["Club Manager", "Content Manager"]) && (
+          <Link
+            href="/staff/images"
+            className="flex items-center gap-3 rounded-2xl border border-cashmere-border bg-white p-5 transition-colors hover:border-cashmere-accent/40"
+          >
+            <ImageIcon size={20} strokeWidth={1.5} className="text-cashmere-accent" />
+            <div>
+              <p className="font-medium text-cashmere-text">Site Images</p>
+              <p className="text-sm text-cashmere-text-muted">Upload tier-specific hero photos</p>
             </div>
           </Link>
         )}

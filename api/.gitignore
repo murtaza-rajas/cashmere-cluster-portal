@@ -5,3 +5,4 @@ coverage
 *.log
 .dev-postgres-data/
 *.tsbuildinfo
+uploads/

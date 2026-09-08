@@ -5,6 +5,7 @@ import { DataSubjectRequestsModule } from '../data-subject-requests/data-subject
 import { WishlistModule } from '../wishlist/wishlist.module';
 import { StaffModule } from '../staff/staff.module';
 import { BenefitsModule } from '../benefits/benefits.module';
+import { SiteImagesModule } from '../site-images/site-images.module';
 
 @Module({
   // StaffModule needed for the Members & Users admin routes below (StaffAuthGuard
@@ -16,6 +17,7 @@ import { BenefitsModule } from '../benefits/benefits.module';
     WishlistModule,
     StaffModule,
     BenefitsModule,
+    SiteImagesModule,
   ],
   controllers: [MembersController],
   providers: [MembersService],

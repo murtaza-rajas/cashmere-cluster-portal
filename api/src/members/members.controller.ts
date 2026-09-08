@@ -19,6 +19,7 @@ import { DataSubjectRequestsService } from '../data-subject-requests/data-subjec
 import { WishlistService } from '../wishlist/wishlist.service';
 import { AddWishlistItemDto } from '../wishlist/dto/add-wishlist-item.dto';
 import { BenefitsService } from '../benefits/benefits.service';
+import { SiteImagesService } from '../site-images/site-images.service';
 import { Member, BenefitType } from '@prisma/client';
 
 @Controller('members')
@@ -28,6 +29,7 @@ export class MembersController {
     private readonly dataSubjectRequests: DataSubjectRequestsService,
     private readonly wishlist: WishlistService,
     private readonly benefits: BenefitsService,
+    private readonly siteImages: SiteImagesService,
   ) {}
 
   // What the frontend calls on load to check login state — 401 if no/invalid
@@ -106,6 +108,15 @@ export class MembersController {
       (req.user as Member).membershipTier,
       BenefitType.OFFER,
     );
+  }
+
+  // Tier-specific hero photos (see SiteImagesService) — a map of slot name to
+  // URL for just the slots staff have configured for this member's tier. The
+  // frontend falls back to its bundled static default for any slot missing here.
+  @UseGuards(JwtAuthGuard)
+  @Get('me/site-images')
+  mySiteImages(@Req() req: Request) {
+    return this.siteImages.findForMember((req.user as Member).membershipTier);
   }
 
   // Members & Users admin (Milestone 5) — staff-facing directory/search.

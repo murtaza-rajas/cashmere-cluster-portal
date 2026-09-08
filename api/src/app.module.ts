@@ -11,6 +11,7 @@ import { AuditLogModule } from './audit-log/audit-log.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
 import { DataSubjectRequestsModule } from './data-subject-requests/data-subject-requests.module';
 import { BenefitsModule } from './benefits/benefits.module';
+import { SiteImagesModule } from './site-images/site-images.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { BenefitsModule } from './benefits/benefits.module';
     WebhooksModule,
     DataSubjectRequestsModule,
     BenefitsModule,
+    SiteImagesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

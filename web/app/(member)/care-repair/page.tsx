@@ -1,10 +1,12 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Droplets, Archive, CircleDot, Scissors, Clock } from "lucide-react";
 import { useMember } from "@/contexts/member-context";
 import { RequireAccess } from "@/components/require-access";
 import { getAccessLevel } from "@/lib/access";
+import { fetchMySiteImages } from "@/lib/api";
 
 // Topics are the client's own confirmed list (PROJECT_TRACKER.md Section 3c,
 // "Care & Repair"): washing, storage, pilling, simple repairs, longevity.
@@ -23,18 +25,31 @@ const TOPICS = [
   { icon: Clock, title: "Longevity", description: "Getting the most years out of every piece." },
 ];
 
+const DEFAULT_CARE_REPAIR_HERO = "/images/care-repair-hero.jpeg";
+
 export default function CareRepairPage() {
   const member = useMember();
   const isPreview = getAccessLevel(member.membershipTier, "careRepair") === "preview";
+  const [heroSrc, setHeroSrc] = useState(DEFAULT_CARE_REPAIR_HERO);
+
+  useEffect(() => {
+    // Staff-uploaded, tier-specific hero photo (Milestone 5) — falls back to
+    // the bundled default above for any tier staff haven't set one for yet.
+    fetchMySiteImages()
+      .then((images) => {
+        if (images.CARE_REPAIR_HERO) setHeroSrc(images.CARE_REPAIR_HERO);
+      })
+      .catch(() => undefined);
+  }, []);
 
   return (
     <RequireAccess area="careRepair">
       <div className="flex max-w-4xl flex-col gap-6">
         {/* Real photo (2026-09-08, public/images/care-repair-hero.jpeg — one of
-            the client's supplied images) in place of the plain title-only
-            header this page had before nothing had been supplied yet. */}
+            the client's supplied images) as the default; staff can override
+            it per tier via /staff/images without a code change. */}
         <div className="relative h-40 overflow-hidden rounded-2xl sm:h-52">
-          <Image src="/images/care-repair-hero.jpeg" alt="" fill className="object-cover" />
+          <Image src={heroSrc} alt="" fill className="object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-cashmere-navy/70 via-cashmere-navy/10 to-transparent" />
           <div className="absolute right-0 bottom-0 left-0 p-6">
             <h1 className="font-serif text-3xl tracking-tight text-white">Care &amp; Repair</h1>

@@ -114,6 +114,18 @@ export async function fetchMyOffers(): Promise<Benefit[]> {
   return res.json();
 }
 
+// Slot name -> URL, only for slots staff have actually uploaded an image for
+// this member's own tier. Callers should fall back to their bundled static
+// default for any slot missing here — nothing breaks before staff upload
+// anything, or for a slot nobody's gotten to yet.
+export type SiteImages = Partial<Record<"DASHBOARD_HERO" | "CARE_REPAIR_HERO", string>>;
+
+export async function fetchMySiteImages(): Promise<SiteImages> {
+  const res = await apiFetch("/members/me/site-images");
+  if (!res.ok) throw new Error(`Unexpected response fetching site images: ${res.status}`);
+  return res.json();
+}
+
 export async function fetchWishlist(): Promise<WishlistItem[]> {
   const res = await apiFetch("/members/me/wishlist");
   if (!res.ok) throw new Error(`Unexpected response fetching wishlist: ${res.status}`);

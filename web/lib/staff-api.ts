@@ -59,6 +59,17 @@ export interface StaffBenefit {
   createdAt: string;
 }
 
+export type SiteImageSlot = "DASHBOARD_HERO" | "CARE_REPAIR_HERO";
+export type MembershipTierValue = "FOUNDING" | "ANNUAL" | "MONGOLIA" | "NEWSLETTER";
+
+export interface StaffSiteImage {
+  id: string;
+  slot: SiteImageSlot;
+  tier: MembershipTierValue;
+  url: string;
+  uploadedAt: string;
+}
+
 export interface StaffDataSubjectRequest {
   id: string;
   type: "ACCESS" | "EXPORT" | "DELETION";
@@ -176,6 +187,37 @@ export async function updateBenefit(id: string, dto: Partial<BenefitInput>): Pro
 export async function deleteBenefit(id: string): Promise<void> {
   const res = await apiFetch(`/benefit-catalog/${id}`, { method: "DELETE" });
   if (!res.ok) throw new Error(`Unexpected response deleting benefit: ${res.status}`);
+}
+
+export async function fetchSiteImages(): Promise<StaffSiteImage[]> {
+  const res = await apiFetch("/site-image-catalog");
+  if (!res.ok) throw new Error(`Unexpected response fetching site images: ${res.status}`);
+  return res.json();
+}
+
+export async function uploadSiteImage(
+  slot: SiteImageSlot,
+  tier: MembershipTierValue,
+  file: File,
+): Promise<StaffSiteImage> {
+  const formData = new FormData();
+  formData.append("file", file);
+  // No Content-Type header here — the browser sets the correct multipart
+  // boundary itself when the body is a FormData; setting it manually breaks that.
+  const res = await apiFetch(`/site-image-catalog/${slot}/${tier}`, {
+    method: "POST",
+    body: formData,
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.message ?? `Unexpected response uploading image: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function deleteSiteImage(slot: SiteImageSlot, tier: MembershipTierValue): Promise<void> {
+  const res = await apiFetch(`/site-image-catalog/${slot}/${tier}`, { method: "DELETE" });
+  if (!res.ok) throw new Error(`Unexpected response removing image: ${res.status}`);
 }
 
 export async function fetchPendingDataRequests(): Promise<StaffDataSubjectRequest[]> {
