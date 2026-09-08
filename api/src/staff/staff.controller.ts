@@ -56,21 +56,7 @@ export class StaffController {
     return this.staffService.findAllRoles();
   }
 
-  // Reference implementation for how future admin routes (Members & Users, etc.)
-  // should be protected: StaffAuthGuard first (who are you), RolesGuard second
-  // (are you allowed here). Super Administrator always passes regardless of the
-  // roles listed — see StaffService.hasAnyRole.
-  @UseGuards(StaffAuthGuard, RolesGuard)
-  @Roles('Club Manager', 'Member Support')
-  @Get('members-preview')
-  membersPreview() {
-    return {
-      note: 'Placeholder — real Members & Users admin endpoints come in Milestone 5.',
-    };
-  }
-
-  // Role grants are Super Administrator only — deliberately not extended to any
-  // other role, unlike members-preview above. Every call is audit-logged
+  // Role grants are Super Administrator only. Every call is audit-logged
   // (see StaffService.grantRole/revokeRole).
   @UseGuards(StaffAuthGuard, RolesGuard)
   @Roles('Super Administrator')
