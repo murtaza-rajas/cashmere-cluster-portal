@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { Award, Gem, Gift, Heart, Leaf, MapPinned } from "lucide-react";
+import { Award, Gem, Gift, Heart, Leaf, Lock, MapPinned } from "lucide-react";
 import SessionStatus from "./session-status";
 
 // Matches the client's login-ui.jpeg wireframe exactly: the real photo
@@ -12,76 +12,95 @@ import SessionStatus from "./session-status";
 // photo's own darker lower portion / the solid navy footer below it.
 export default function Home() {
   return (
-    <div className="relative flex min-h-screen flex-col items-center px-6 py-16">
-      <Image src="/images/login-hero.jpeg" alt="" fill priority className="object-cover object-top" />
+    <div className="flex min-h-screen flex-col items-center px-6 py-16">
+      {/* Photo is confined to this wrapper (sized by its own in-flow children,
+          not the whole page) instead of covering the entire min-h-screen
+          container. Letting it span the full page made the photo's own
+          bottom edge reappear below the solid footer band further down,
+          producing a duplicated/redundant curve that isn't in the mockup —
+          the mockup has exactly one clean navy transition, made by the
+          footer band alone. */}
+      <div className="relative flex w-full flex-col items-center px-6 pt-16 pb-24">
+        <Image src="/images/login-hero.jpeg" alt="" fill priority className="object-cover object-top" />
 
-      <div className="relative flex flex-col items-center gap-3 text-center">
-        <div className="flex font-serif text-6xl leading-none text-cashmere-navy">
-          <span className="-mr-2">C</span>
-          <span className="mt-3 -ml-2">L</span>
-        </div>
-        <p className="text-sm font-semibold tracking-[0.3em] text-cashmere-navy">CASHMERE LOVERS&rsquo; CLUB</p>
-        <HeartDivider className="mt-1 w-48" />
-      </div>
-
-      <div className="relative mt-10 w-full max-w-md rounded-3xl bg-cashmere-bg p-8 text-center shadow-2xl sm:p-10">
-        <h1 className="font-serif text-3xl leading-tight text-cashmere-navy">
-          Welcome to
-          <br />
-          Cashmere Lovers&rsquo; Club
-        </h1>
-        <HeartDivider className="mx-auto mt-4 w-20" />
-        <p className="mt-4 text-sm text-cashmere-text-muted">
-          Your exclusive community for ethical luxury, rooted in <strong className="text-cashmere-text">Mongolia</strong>.
-          Crafted for a <strong className="text-cashmere-text">better future</strong>.
-        </p>
-
-        <div className="mt-6">
-          <SessionStatus />
+        <div className="relative flex flex-col items-center gap-3 text-center">
+          <div className="flex font-serif text-6xl leading-none text-cashmere-navy">
+            <span className="-mr-2">C</span>
+            <span className="mt-3 -ml-2">L</span>
+          </div>
+          <p className="text-sm font-semibold tracking-[0.3em] text-cashmere-navy">CASHMERE LOVERS&rsquo; CLUB</p>
+          <HeartDivider className="mt-1 w-48" />
         </div>
 
-        <div className="mt-8 flex items-center justify-center gap-2 border-t border-cashmere-border pt-6 text-xs font-semibold uppercase tracking-wide text-cashmere-navy">
-          <Award size={14} strokeWidth={1.75} />
-          Secure &amp; Private
-        </div>
-        <p className="mt-2 text-xs text-cashmere-text-muted">
-          Your data is safe with us and used only to enhance your experience.
-        </p>
+        <div className="relative mt-10 w-full max-w-md rounded-3xl bg-cashmere-bg p-8 text-center shadow-2xl sm:p-10">
+          <h1 className="font-serif text-3xl leading-tight text-cashmere-navy">
+            Welcome to
+            <br />
+            Cashmere Lovers&rsquo; Club
+          </h1>
+          <HeartDivider className="mx-auto mt-4 w-20" />
+          <p className="mt-4 text-sm text-cashmere-text-muted">
+            Your exclusive community for ethical luxury, rooted in <strong className="text-cashmere-text">Mongolia</strong>.
+            Crafted for a <strong className="text-cashmere-text">better future</strong>.
+          </p>
 
-        <div className="mt-8 grid grid-cols-3 gap-4 border-t border-cashmere-border pt-6 text-xs">
-          <TrustItem
-            icon={Gift}
-            title="Member Benefits"
-            description="Exclusive offers, early access and special privileges."
-          />
-          <TrustItem
-            icon={Award}
-            title="Exclusive Access"
-            description="For members only — stories, insights and inspiration."
-          />
-          <TrustItem icon={Leaf} title="Ethical by Nature" description="Respect for animals, people and the planet." />
-        </div>
-      </div>
+          <div className="mt-6">
+            <SessionStatus />
+          </div>
 
-      {/* Navy, not white — this row lands on a light/varied part of the photo
-          (checked live: it does not reliably land on a dark area the way it
-          does in the static mockup export), so white text isn't legible here. */}
-      <div className="relative mt-8 rounded-full bg-cashmere-bg/90 px-6 py-2 text-center text-sm text-cashmere-text shadow-sm">
-        Not a member yet?{" "}
-        <a
-          href="https://cashmerehouse.com"
-          className="font-medium text-cashmere-accent hover:underline"
-        >
-          Discover more about the Club →
-        </a>
+          {/* Line runs edge-to-edge with the label sitting on top of it (matches
+              the mockup's divider-with-centred-label), not a plain border
+              above the row. */}
+          <div className="relative mt-8 flex items-center justify-center">
+            <span className="absolute inset-x-0 top-1/2 h-px bg-cashmere-border" />
+            <span className="relative flex items-center gap-2 bg-cashmere-bg px-4 text-xs font-semibold uppercase tracking-wide text-cashmere-navy">
+              <Lock size={14} strokeWidth={1.75} />
+              Secure &amp; Private
+            </span>
+          </div>
+          <p className="mt-2 text-xs text-cashmere-text-muted">
+            Your data is safe with us and used only to enhance your experience.
+          </p>
+
+          <div className="mt-8 grid grid-cols-3 gap-4 border-t border-cashmere-border pt-6 text-xs">
+            <TrustItem
+              icon={Gift}
+              title="Member Benefits"
+              description="Exclusive offers, early access and special privileges."
+            />
+            <TrustItem
+              icon={Award}
+              title="Exclusive Access"
+              description="For members only — stories, insights and inspiration."
+            />
+            <TrustItem icon={Leaf} title="Ethical by Nature" description="Respect for animals, people and the planet." />
+          </div>
+        </div>
+
+        {/* Kept as a solid pill rather than plain text over the photo — this
+            row can land on a light/varied part of the photo depending on
+            content height, so plain navy text isn't reliably legible here. */}
+        <div className="relative mt-8 rounded-full bg-cashmere-bg/90 px-6 py-2 text-center text-sm text-cashmere-text shadow-sm">
+          Not a member yet?{" "}
+          <a
+            href="https://cashmerehouse.com"
+            className="font-medium text-cashmere-accent hover:underline"
+          >
+            Discover more about the Club →
+          </a>
+        </div>
       </div>
 
       {/* Solid (not a tint over the photo) — matches the mockup's own navy
           curve at the bottom of image1.jpeg, but built separately in CSS
           since this page's real content height varies and can't rely on a
           single fixed photo's baked-in shape landing in the right place at
-          every viewport size the way a static mockup export can. */}
-      <div className="relative mt-12 w-full max-w-3xl rounded-t-[3rem] bg-cashmere-navy-dark px-6 py-10">
+          every viewport size the way a static mockup export can. Pulled up
+          with a negative margin so it rises into the photo with no gap
+          (mockup has the curve touching the photo directly), and given a
+          wide, shallow elliptical top edge instead of a rounded corner,
+          matching the mockup's hill-like curve rather than a card corner. */}
+      <div className="relative -mt-16 w-full max-w-3xl bg-cashmere-navy-dark px-6 pt-16 pb-10 [border-radius:50%_50%_0_0/64px_64px_0_0]">
         <div className="grid grid-cols-1 gap-8 text-center sm:grid-cols-3">
           <FooterItem
             icon={MapPinned}
