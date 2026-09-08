@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
@@ -21,9 +22,9 @@ import {
   Home,
   Sparkles,
   Mail,
+  Headphones,
 } from "lucide-react";
 import { useMember } from "@/contexts/member-context";
-import { membershipTierLabel } from "@/lib/api";
 
 interface NavItem {
   href: string;
@@ -101,11 +102,11 @@ export default function Sidebar({
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-64 shrink-0 flex-col justify-between border-r border-cashmere-border bg-cashmere-sidebar px-4 py-6 transition-transform duration-200 ease-in-out md:static md:z-auto md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-64 shrink-0 flex-col overflow-hidden border-r border-cashmere-border bg-cashmere-sidebar transition-transform duration-200 ease-in-out md:static md:z-auto md:translate-x-0 ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div>
+        <div className="flex-1 overflow-y-auto px-4 py-6">
           <div className="flex items-start justify-between px-2 pb-8">
             <div>
               <p className="text-lg font-semibold tracking-tight text-cashmere-text">
@@ -159,20 +160,37 @@ export default function Sidebar({
           </nav>
         </div>
 
-        {member.isFoundingMember && (
+        {/* Matches founding-member-dashboard.jpeg's sidebar footer — a "Need
+            Help?" card, then a full-bleed photo filling the rest of the
+            sidebar down to the bottom edge. Previously this was a different,
+            invented "thank you" card shown only to Founding members; the
+            mockup's actual sidebar footer isn't tier-specific and has no such
+            card at all (Founding status is shown in the dark stat card in the
+            main content instead), so this replaces it rather than sitting
+            alongside it. */}
+        <div className="shrink-0 px-4 pb-4">
           <div className="rounded-lg border border-cashmere-border bg-white/60 p-4 text-sm">
-            <p className="text-xs font-semibold uppercase tracking-wide text-cashmere-accent-dark">
-              {membershipTierLabel(
-                member.membershipTier,
-                member.isFoundingMember,
-                member.region,
-              )}
-            </p>
-            <p className="mt-1 text-cashmere-text-muted">
-              Thank you for being part of something truly special.
-            </p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-cashmere-text">Need Help?</p>
+            <p className="mt-1 text-cashmere-text-muted">We are here for you</p>
+            <Link
+              href="/help"
+              onClick={onClose}
+              className="mt-3 flex items-center justify-center gap-2 rounded-full border border-cashmere-border bg-white px-4 py-2 text-sm font-medium text-cashmere-text transition-colors hover:border-cashmere-accent"
+            >
+              <Headphones size={16} strokeWidth={1.75} />
+              Contact Support
+            </Link>
           </div>
-        )}
+        </div>
+        <div className="relative h-48 shrink-0">
+          <Image
+            src="/images/sidebar-help.jpeg"
+            alt=""
+            fill
+            className="object-cover"
+            style={{ objectPosition: "72% 55%" }}
+          />
+        </div>
       </aside>
     </>
   );

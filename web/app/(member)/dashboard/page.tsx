@@ -64,8 +64,22 @@ function FullDashboard({ displayName }: { displayName: string }) {
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="flex flex-col overflow-hidden rounded-2xl border border-cashmere-border bg-white sm:flex-row">
-        <div className="flex flex-1 flex-col justify-center p-8">
+      <section className="flex flex-col overflow-hidden rounded-2xl border border-cashmere-border bg-white sm:relative sm:block sm:h-56">
+        {/* Desktop (sm+): the mockup is one continuous photo bleeding the full
+            card width, with the text sitting on a soft white gradient fade
+            over the photo's left side — not a hard-split two-column layout
+            (photo confined to a solid sm:w-2/5 panel), which is what this
+            used to be and is noticeably narrower/more tightly cropped than
+            founding-member-dashboard.jpeg actually shows. Mobile keeps the
+            simpler stacked text-then-photo pattern instead — the mockup is a
+            desktop composition and a full-bleed text-over-photo treatment at
+            narrow widths risks illegible text depending on what the photo's
+            crop puts behind it. */}
+        <div className="relative hidden sm:block sm:h-full">
+          <Image src={heroSrc} alt="" fill className="object-cover object-right" />
+          <div className="absolute inset-0 bg-gradient-to-r from-white from-10% via-white/85 via-40% to-transparent to-70%" />
+        </div>
+        <div className="flex flex-1 flex-col justify-center p-8 sm:absolute sm:inset-y-0 sm:left-0 sm:w-3/5">
           <h1 className="font-serif text-3xl tracking-tight text-cashmere-text">Welcome back, {displayName}</h1>
           <p className="mt-1 text-sm font-semibold uppercase tracking-wide text-cashmere-accent">
             Cashmere Lovers {membershipTierLabel(member.membershipTier, member.isFoundingMember, member.region)}
@@ -77,7 +91,7 @@ function FullDashboard({ displayName }: { displayName: string }) {
             client's supplied images, matching this exact mockup slot) as the
             default; staff can override it per tier via /staff/images
             (2026-09-08) without a code change, see fetchMySiteImages above. */}
-        <div className="relative h-40 sm:h-auto sm:w-2/5">
+        <div className="relative h-40 sm:hidden">
           <Image src={heroSrc} alt="" fill className="object-cover" />
         </div>
       </section>
