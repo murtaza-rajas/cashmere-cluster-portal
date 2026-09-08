@@ -49,7 +49,7 @@ export default function SessionStatus() {
   return (
     <a
       href={`${API_URL}/auth/shopify/login`}
-      className="flex items-center justify-center gap-3 rounded-full bg-cashmere-navy px-6 py-3.5 text-sm font-medium text-white transition-colors hover:bg-cashmere-navy-dark"
+      className="flex items-center justify-center gap-3 rounded-full bg-cashmere-navy px-6 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-cashmere-navy-dark"
     >
       <ShoppingBag size={18} strokeWidth={1.75} />
       Sign in with Shopify
