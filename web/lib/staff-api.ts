@@ -44,6 +44,21 @@ export interface MemberDetail {
   wishlist: WishlistItem[];
 }
 
+// Full staff-facing shape of a Benefit row — includes tiers/active/sortOrder,
+// which the member-facing Benefit type (lib/api.ts) deliberately omits since
+// members only ever see the filtered, already-scoped result.
+export interface StaffBenefit {
+  id: string;
+  type: "BENEFIT" | "OFFER";
+  tiers: ("FOUNDING" | "ANNUAL" | "MONGOLIA" | "NEWSLETTER")[];
+  icon: string | null;
+  title: string;
+  description: string | null;
+  sortOrder: number;
+  active: boolean;
+  createdAt: string;
+}
+
 export interface StaffDataSubjectRequest {
   id: string;
   type: "ACCESS" | "EXPORT" | "DELETION";
@@ -113,6 +128,54 @@ export async function fetchMemberDetail(id: string): Promise<MemberDetail> {
   if (res.status === 404) throw new Error("Member not found");
   if (!res.ok) throw new Error(`Unexpected response fetching member detail: ${res.status}`);
   return res.json();
+}
+
+export async function fetchBenefitCatalog(type?: "BENEFIT" | "OFFER"): Promise<StaffBenefit[]> {
+  const query = type ? `?type=${type}` : "";
+  const res = await apiFetch(`/benefit-catalog${query}`);
+  if (!res.ok) throw new Error(`Unexpected response fetching benefit catalog: ${res.status}`);
+  return res.json();
+}
+
+export interface BenefitInput {
+  type: "BENEFIT" | "OFFER";
+  tiers: ("FOUNDING" | "ANNUAL" | "MONGOLIA" | "NEWSLETTER")[];
+  icon?: string;
+  title: string;
+  description?: string;
+  sortOrder?: number;
+  active?: boolean;
+}
+
+export async function createBenefit(dto: BenefitInput): Promise<StaffBenefit> {
+  const res = await apiFetch("/benefit-catalog", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(dto),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.message ?? `Unexpected response creating benefit: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function updateBenefit(id: string, dto: Partial<BenefitInput>): Promise<StaffBenefit> {
+  const res = await apiFetch(`/benefit-catalog/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(dto),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.message ?? `Unexpected response updating benefit: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function deleteBenefit(id: string): Promise<void> {
+  const res = await apiFetch(`/benefit-catalog/${id}`, { method: "DELETE" });
+  if (!res.ok) throw new Error(`Unexpected response deleting benefit: ${res.status}`);
 }
 
 export async function fetchPendingDataRequests(): Promise<StaffDataSubjectRequest[]> {

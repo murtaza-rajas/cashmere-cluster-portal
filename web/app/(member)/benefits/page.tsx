@@ -1,46 +1,27 @@
 "use client";
 
-import { Gift, Tag, CalendarDays, Sparkles, Star, Crown } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Sparkles } from "lucide-react";
 import { useMember } from "@/contexts/member-context";
 import { RequireAccess } from "@/components/require-access";
 import { getAccessLevel } from "@/lib/access";
-
-// Real, complete content — the client's own confirmed My Benefits table
-// (PROJECT_TRACKER.md Section 3c), not placeholder copy. Per the client's
-// note this should eventually be "a real, admin-editable Benefit model per
-// tier, not hardcoded copy" — that backend/admin piece isn't built yet (it's
-// separate, larger Milestone 5 scope: a new Benefit model + staff CRUD UI);
-// this page hardcodes the confirmed table so the real content is live now
-// rather than waiting on that follow-up.
-const BENEFITS: Record<
-  "FOUNDING" | "ANNUAL",
-  { icon: typeof Gift; label: string; value: string }[]
-> = {
-  FOUNDING: [
-    { icon: Star, label: "Term", value: "5-year membership" },
-    { icon: Star, label: "Status", value: "Founding Member status" },
-    { icon: Gift, label: "Welcome gift", value: "Cashmere scarf, ~€200 value" },
-    { icon: Tag, label: "Discount", value: "20% until 31 March 2027, then permanent 15%" },
-    { icon: CalendarDays, label: "Early access", value: "Selected products/collections" },
-    { icon: Sparkles, label: "Offers", value: "Exclusive member offers" },
-    { icon: CalendarDays, label: "Events", value: "Exclusive member events" },
-    { icon: Crown, label: "Other", value: "Priority access to future Club benefits" },
-  ],
-  ANNUAL: [
-    { icon: Star, label: "Term", value: "1-year membership" },
-    { icon: Star, label: "Status", value: "Member status" },
-    { icon: Gift, label: "Welcome gift", value: "—" },
-    { icon: Tag, label: "Discount", value: "10%" },
-    { icon: CalendarDays, label: "Early access", value: "Selected products/collections" },
-    { icon: Sparkles, label: "Offers", value: "Standard member offers" },
-    { icon: CalendarDays, label: "Events", value: "Selected member events" },
-    { icon: Crown, label: "Other", value: "—" },
-  ],
-};
+import { fetchMyBenefits, type Benefit } from "@/lib/api";
+import { resolveBenefitIcon } from "@/lib/benefit-icons";
 
 export default function BenefitsPage() {
   const member = useMember();
   const isPreview = getAccessLevel(member.membershipTier, "myBenefits") === "preview";
+
+  const [state, setState] = useState<
+    { status: "loading" } | { status: "error"; message: string } | { status: "loaded"; rows: Benefit[] }
+  >({ status: "loading" });
+
+  useEffect(() => {
+    if (isPreview) return;
+    fetchMyBenefits()
+      .then((rows) => setState({ status: "loaded", rows }))
+      .catch((err: Error) => setState({ status: "error", message: err.message }));
+  }, [isPreview]);
 
   if (isPreview) {
     return (
@@ -67,7 +48,6 @@ export default function BenefitsPage() {
   }
 
   const tier = member.membershipTier === "FOUNDING" ? "FOUNDING" : "ANNUAL";
-  const rows = BENEFITS[tier];
 
   return (
     <RequireAccess area="myBenefits">
@@ -79,20 +59,39 @@ export default function BenefitsPage() {
           </p>
         </div>
 
-        <div className="overflow-hidden rounded-2xl border border-cashmere-border bg-white">
-          {rows.map(({ icon: Icon, label, value }, index) => (
-            <div
-              key={label}
-              className={`flex items-start gap-4 px-6 py-4 ${index > 0 ? "border-t border-cashmere-border" : ""}`}
-            >
-              <Icon size={18} strokeWidth={1.5} className="mt-0.5 shrink-0 text-cashmere-accent" />
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-cashmere-text-muted">{label}</p>
-                <p className="mt-0.5 font-medium text-cashmere-text">{value}</p>
-              </div>
-            </div>
-          ))}
-        </div>
+        {state.status === "loading" && <p className="text-cashmere-text-muted">Loading your benefits…</p>}
+        {state.status === "error" && (
+          <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+            Could not load your benefits ({state.message}).
+          </p>
+        )}
+
+        {state.status === "loaded" && (
+          <div className="overflow-hidden rounded-2xl border border-cashmere-border bg-white">
+            {state.rows.length === 0 && (
+              <p className="px-6 py-8 text-center text-sm text-cashmere-text-muted">
+                Your benefits will appear here soon.
+              </p>
+            )}
+            {state.rows.map((row, index) => {
+              const Icon = resolveBenefitIcon(row.icon);
+              return (
+                <div
+                  key={row.id}
+                  className={`flex items-start gap-4 px-6 py-4 ${index > 0 ? "border-t border-cashmere-border" : ""}`}
+                >
+                  <Icon size={18} strokeWidth={1.5} className="mt-0.5 shrink-0 text-cashmere-accent" />
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-cashmere-text-muted">
+                      {row.title}
+                    </p>
+                    {row.description && <p className="mt-0.5 font-medium text-cashmere-text">{row.description}</p>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         {tier === "FOUNDING" && (
           <p className="rounded-lg bg-cashmere-accent/10 px-4 py-3 text-sm text-cashmere-accent-dark">

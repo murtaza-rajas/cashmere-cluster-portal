@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Users, ShieldCheck, ClipboardList, LogOut, X } from "lucide-react";
+import { Users, ShieldCheck, ClipboardList, Gift, LogOut, X } from "lucide-react";
 import { useStaff, staffHasAnyRole } from "@/contexts/staff-context";
 import { API_URL } from "@/lib/api";
 
@@ -18,6 +18,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { href: "/staff/directory", label: "Staff & Roles", icon: ShieldCheck, allowedRoles: ["Super Administrator"] },
   { href: "/staff/members", label: "Members & Users", icon: Users, allowedRoles: ["Club Manager", "Member Support"] },
+  { href: "/staff/benefits", label: "Offers & Benefits", icon: Gift, allowedRoles: ["Club Manager"] },
   { href: "/staff/data-requests", label: "GDPR Requests", icon: ClipboardList, allowedRoles: ["Super Administrator", "Member Support"] },
 ];
 

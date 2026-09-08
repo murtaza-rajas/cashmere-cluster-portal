@@ -18,7 +18,8 @@ import { MembersService } from './members.service';
 import { DataSubjectRequestsService } from '../data-subject-requests/data-subject-requests.service';
 import { WishlistService } from '../wishlist/wishlist.service';
 import { AddWishlistItemDto } from '../wishlist/dto/add-wishlist-item.dto';
-import { Member } from '@prisma/client';
+import { BenefitsService } from '../benefits/benefits.service';
+import { Member, BenefitType } from '@prisma/client';
 
 @Controller('members')
 export class MembersController {
@@ -26,6 +27,7 @@ export class MembersController {
     private readonly members: MembersService,
     private readonly dataSubjectRequests: DataSubjectRequestsService,
     private readonly wishlist: WishlistService,
+    private readonly benefits: BenefitsService,
   ) {}
 
   // What the frontend calls on load to check login state — 401 if no/invalid
@@ -83,6 +85,27 @@ export class MembersController {
   @Delete('me/wishlist/:id')
   removeWishlistItem(@Req() req: Request, @Param('id') id: string) {
     return this.wishlist.removeItem((req.user as Member).id, id);
+  }
+
+  // My Benefits / Member Offers — real, staff-curated content (see BenefitsService),
+  // replacing what used to be hardcoded copy on both pages. Filtered to the
+  // member's own tier and active rows only.
+  @UseGuards(JwtAuthGuard)
+  @Get('me/benefits')
+  myBenefits(@Req() req: Request) {
+    return this.benefits.findForMember(
+      (req.user as Member).membershipTier,
+      BenefitType.BENEFIT,
+    );
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('me/offers')
+  myOffers(@Req() req: Request) {
+    return this.benefits.findForMember(
+      (req.user as Member).membershipTier,
+      BenefitType.OFFER,
+    );
   }
 
   // Members & Users admin (Milestone 5) — staff-facing directory/search.

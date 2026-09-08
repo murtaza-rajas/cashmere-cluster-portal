@@ -53,6 +53,19 @@ export interface DataSubjectRequest {
   completedAt: string | null;
 }
 
+// A single row shown on My Benefits (type BENEFIT) or Member Offers (type
+// OFFER) — see api/prisma/schema.prisma's Benefit model comment. The member-
+// facing fetchers below already filter to the member's own tier and active
+// rows only (server-side), so nothing here needs the `tiers`/`active` fields.
+export interface Benefit {
+  id: string;
+  type: "BENEFIT" | "OFFER";
+  icon: string | null;
+  title: string;
+  description: string | null;
+  sortOrder: number;
+}
+
 export function apiFetch(path: string, init?: RequestInit): Promise<Response> {
   if (!API_URL) {
     throw new Error("NEXT_PUBLIC_API_URL is not set");
@@ -86,6 +99,18 @@ export async function fetchMemberOrders(): Promise<MemberOrder[]> {
 export async function fetchMemberCollection(): Promise<CollectionItem[]> {
   const res = await apiFetch("/members/me/collection");
   if (!res.ok) throw new Error(`Unexpected response fetching collection: ${res.status}`);
+  return res.json();
+}
+
+export async function fetchMyBenefits(): Promise<Benefit[]> {
+  const res = await apiFetch("/members/me/benefits");
+  if (!res.ok) throw new Error(`Unexpected response fetching benefits: ${res.status}`);
+  return res.json();
+}
+
+export async function fetchMyOffers(): Promise<Benefit[]> {
+  const res = await apiFetch("/members/me/offers");
+  if (!res.ok) throw new Error(`Unexpected response fetching offers: ${res.status}`);
   return res.json();
 }
 

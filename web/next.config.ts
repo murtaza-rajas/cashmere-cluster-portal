@@ -50,6 +50,11 @@ const nextConfig: NextConfig = {
       { source: "/staff/:id/roles", destination: `${apiOrigin}/staff/:id/roles` },
       { source: "/staff/:id/roles/:roleName", destination: `${apiOrigin}/staff/:id/roles/:roleName` },
       { source: "/data-subject-requests/:path*", destination: `${apiOrigin}/data-subject-requests/:path*` },
+      // Staff Benefits/Offers CRUD — deliberately not /benefits, see
+      // benefits.controller.ts's comment: that bare path is already the
+      // member-facing "My Benefits" frontend page. This path has no frontend
+      // page at all, so (unlike /staff) a blanket rewrite here is safe.
+      { source: "/benefit-catalog/:path*", destination: `${apiOrigin}/benefit-catalog/:path*` },
       { source: "/health", destination: `${apiOrigin}/health` },
       { source: "/webhooks/:path*", destination: `${apiOrigin}/webhooks/:path*` },
     ];

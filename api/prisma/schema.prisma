@@ -186,6 +186,7 @@ model StaffUser {
   roleAssignments      StaffRoleAssignment[] @relation("AssignmentsForStaff")
   grantedAssignments    StaffRoleAssignment[] @relation("AssignmentsGrantedBy")
   auditLogEntries       AuditLog[]            @relation("AuditLogActor")
+  createdBenefits       Benefit[]             @relation("BenefitsCreatedBy")
 
   @@index([email])
 }
@@ -255,6 +256,52 @@ model AuditLog {
 
   @@index([targetType, targetId])
   @@index([createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Offers & Benefits (Milestone 5 content curation)
+// ---------------------------------------------------------------------------
+// Replaces two previously-hardcoded pieces of content with real, staff-editable
+// rows: the My Benefits table (client's confirmed per-tier list, PROJECT_TRACKER.md
+// Section 3c) and the Member Offers catalog (previously just a placeholder — no
+// data model existed for it at all). Same model, distinguished by `type`, since
+// both are "a titled thing shown to certain tiers" — a benefit is a fixed
+// membership perk, an offer is a more rotating/time-limited promotion, but
+// neither needs a structurally different shape.
+
+enum BenefitType {
+  BENEFIT // My Benefits — fixed per-tier perks (term, discount, welcome gift, etc.)
+  OFFER   // Member Offers — rotating/time-limited offers catalog
+}
+
+model Benefit {
+  id String @id @default(uuid())
+
+  type BenefitType
+
+  // Which tiers see this row. Deliberately explicit per-row rather than derived
+  // from anything else — an empty array means visible to nobody (a draft row),
+  // not "everyone", so a half-configured row can never accidentally leak to a
+  // tier it wasn't meant for.
+  tiers MembershipTier[]
+
+  // lucide-react icon name (see web/lib/benefit-icons.ts for the fixed set staff
+  // can choose from); null renders a sensible default icon client-side.
+  icon        String?
+  title       String
+  description String?
+
+  // Staff-controlled display order (ascending); ties broken by createdAt.
+  sortOrder Int     @default(0)
+  active    Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  createdById String?
+  createdBy   StaffUser? @relation("BenefitsCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([type])
 }
 
 // ---------------------------------------------------------------------------
