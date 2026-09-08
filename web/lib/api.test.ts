@@ -28,28 +28,37 @@ describe("formatMemberId", () => {
 
 describe("membershipTierLabel", () => {
   // isFoundingMember is a permanent flag independent of membershipTier (see
-  // schema.prisma) and must always win regardless of what tier is passed —
+  // schema.prisma) and wins regardless of tier for INTERNATIONAL members —
   // that's the whole point of it being a separate field.
-  it("shows 'Founding Member' whenever isFoundingMember is true, regardless of tier", () => {
-    expect(membershipTierLabel("FOUNDING", true)).toBe("Founding Member");
-    expect(membershipTierLabel("ANNUAL", true)).toBe("Founding Member");
-    expect(membershipTierLabel("NEWSLETTER", true)).toBe("Founding Member");
+  it("shows 'Founding Member' whenever isFoundingMember is true and region is INTERNATIONAL, regardless of tier", () => {
+    expect(membershipTierLabel("FOUNDING", true, "INTERNATIONAL")).toBe("Founding Member");
+    expect(membershipTierLabel("ANNUAL", true, "INTERNATIONAL")).toBe("Founding Member");
+    expect(membershipTierLabel("NEWSLETTER", true, "INTERNATIONAL")).toBe("Founding Member");
   });
 
   it("shows 'Annual Member' for ANNUAL tier when not a Founding Member", () => {
-    expect(membershipTierLabel("ANNUAL", false)).toBe("Annual Member");
-  });
-
-  it("shows 'Mongolia Community Member' for MONGOLIA tier", () => {
-    // Regression test: this branch didn't exist originally, so a Mongolia
-    // member's label silently fell through to "Newsletter Subscriber" until it
-    // was caught and fixed manually. This is exactly the kind of thing an
-    // automated test should have caught the first time.
-    expect(membershipTierLabel("MONGOLIA", false)).toBe("Mongolia Community Member");
+    expect(membershipTierLabel("ANNUAL", false, "INTERNATIONAL")).toBe("Annual Member");
   });
 
   it("shows 'Newsletter Subscriber' for NEWSLETTER tier when not a Founding Member", () => {
-    expect(membershipTierLabel("NEWSLETTER", false)).toBe("Newsletter Subscriber");
+    expect(membershipTierLabel("NEWSLETTER", false, "INTERNATIONAL")).toBe("Newsletter Subscriber");
+  });
+
+  // Client-confirmed 2026-09-07: Mongolia has its own two levels ("Mongolia
+  // Newsletter" / "Mongolia Founding Member"), entirely separate from the
+  // international tiers — region is checked before tier/isFoundingMember.
+  it("shows 'Mongolia Founding Member' for MONGOLIA region + MONGOLIA tier", () => {
+    expect(membershipTierLabel("MONGOLIA", false, "MONGOLIA")).toBe("Mongolia Founding Member");
+  });
+
+  it("shows 'Mongolia Newsletter' for MONGOLIA region + NEWSLETTER tier", () => {
+    expect(membershipTierLabel("NEWSLETTER", false, "MONGOLIA")).toBe("Mongolia Newsletter");
+  });
+
+  it("region MONGOLIA always wins over isFoundingMember — never mislabeled as the plain international 'Founding Member'", () => {
+    // Not expected to occur today (isFoundingMember is an international-only
+    // mechanic), but the function itself must not depend on that.
+    expect(membershipTierLabel("MONGOLIA", true, "MONGOLIA")).toBe("Mongolia Founding Member");
   });
 });
 

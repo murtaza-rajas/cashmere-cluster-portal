@@ -165,6 +165,7 @@ export default function Sidebar({
               {membershipTierLabel(
                 member.membershipTier,
                 member.isFoundingMember,
+                member.region,
               )}
             </p>
             <p className="mt-1 text-cashmere-text-muted">

@@ -71,10 +71,18 @@ const ACCESS_MATRIX: Record<Tier, Record<PortalArea, AccessLevel>> = {
   ANNUAL: FULL_ACCESS,
   NEWSLETTER: NEWSLETTER_ACCESS,
   // Not covered by the PDF (predates the Mongolia Community decision, Section 3a
-  // of PROJECT_TRACKER.md) — defaulting to the same restricted set as NEWSLETTER
-  // until the client confirms Mongolia-specific access rules. Deliberately NOT
-  // defaulted to FULL_ACCESS: per the Mongolia review, a Mongolia membership must
-  // never be assumed to carry the same benefits as the international paid tiers.
+  // of PROJECT_TRACKER.md). Client-confirmed 2026-09-07: Mongolia Founding
+  // Member is a real, distinct, more-privileged tier ("access to additional
+  // areas and opportunities for active participation, including voting and
+  // other member-only content") — this is now KNOWN incomplete, not merely
+  // unconfirmed, but the specific per-area matrix (which of the international
+  // PDF's 13 areas apply to Mongolia at all, e.g. Care & Repair/My Benefits/
+  // Member Offers as currently defined are international-specific concepts)
+  // hasn't been given yet, so this still defaults to the restricted NEWSLETTER
+  // set rather than guessing one. Deliberately NOT defaulted to FULL_ACCESS
+  // either: a Mongolia membership must never be assumed to carry the same
+  // benefits as the international paid tiers just because it's now confirmed
+  // as "more privileged than Mongolia Newsletter" in the abstract.
   MONGOLIA: NEWSLETTER_ACCESS,
 };
 

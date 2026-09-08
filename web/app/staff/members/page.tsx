@@ -106,7 +106,7 @@ export default function StaffMembersPage() {
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-cashmere-text-muted">{m.email}</td>
                     <td className="whitespace-nowrap px-6 py-4 text-cashmere-text-muted">
-                      {membershipTierLabel(m.membershipTier, m.isFoundingMember)}
+                      {membershipTierLabel(m.membershipTier, m.isFoundingMember, m.region)}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-cashmere-text-muted">
                       {new Date(m.createdAt).toLocaleDateString("en-US", { month: "short", year: "numeric" })}

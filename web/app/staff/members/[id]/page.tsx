@@ -56,7 +56,11 @@ export default function StaffMemberDetailPage() {
               {state.detail.member.firstName ?? state.detail.member.email} {state.detail.member.lastName ?? ""}
             </h1>
             <p className="mt-1 text-sm font-semibold uppercase tracking-wide text-cashmere-accent">
-              {membershipTierLabel(state.detail.member.membershipTier, state.detail.member.isFoundingMember)}
+              {membershipTierLabel(
+                state.detail.member.membershipTier,
+                state.detail.member.isFoundingMember,
+                state.detail.member.region,
+              )}
             </p>
           </div>
 

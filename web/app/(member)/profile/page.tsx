@@ -35,7 +35,10 @@ export default function ProfilePage() {
         <h2 className="text-sm font-semibold uppercase tracking-wide text-cashmere-text-muted">Membership</h2>
 
         <dl className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Status" value={membershipTierLabel(member.membershipTier, member.isFoundingMember)} />
+          <Field
+            label="Status"
+            value={membershipTierLabel(member.membershipTier, member.isFoundingMember, member.region)}
+          />
           <Field label="Member ID" value={formatMemberId(member.id)} />
           <Field label="Member since" value={formatMonthYear(member.createdAt)} />
           <Field

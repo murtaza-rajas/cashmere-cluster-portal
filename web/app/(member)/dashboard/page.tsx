@@ -61,7 +61,7 @@ function FullDashboard({ displayName }: { displayName: string }) {
         <div className="relative">
           <h1 className="font-serif text-3xl tracking-tight text-cashmere-text">Welcome back, {displayName}</h1>
           <p className="mt-1 text-sm font-semibold uppercase tracking-wide text-cashmere-accent">
-            Cashmere Lovers {membershipTierLabel(member.membershipTier, member.isFoundingMember)}
+            Cashmere Lovers {membershipTierLabel(member.membershipTier, member.isFoundingMember, member.region)}
           </p>
           <div className="mt-3 h-px w-10 bg-cashmere-border" />
           <p className="mt-3 text-cashmere-text-muted">Thank you for being part of our journey.</p>

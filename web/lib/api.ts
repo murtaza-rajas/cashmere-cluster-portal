@@ -127,9 +127,22 @@ export function formatMemberId(id: string): string {
   return `CLUB-${id.replace(/-/g, "").slice(0, 6).toUpperCase()}`;
 }
 
-export function membershipTierLabel(tier: Member["membershipTier"], isFoundingMember: boolean): string {
+// Mongolia checked first, deliberately — client-confirmed 2026-09-07: Mongolia
+// has its own two levels ("Mongolia Newsletter" / "Mongolia Founding Member"),
+// entirely separate from the international Founding Member tier. `region`
+// takes priority over `isFoundingMember` so a Mongolia member can never be
+// mislabeled with the plain international "Founding Member" string, even if
+// `isFoundingMember` is ever true for one (not expected today, but this
+// function shouldn't depend on that never happening).
+export function membershipTierLabel(
+  tier: Member["membershipTier"],
+  isFoundingMember: boolean,
+  region: Member["region"],
+): string {
+  if (region === "MONGOLIA") {
+    return tier === "MONGOLIA" ? "Mongolia Founding Member" : "Mongolia Newsletter";
+  }
   if (isFoundingMember) return "Founding Member";
   if (tier === "ANNUAL") return "Annual Member";
-  if (tier === "MONGOLIA") return "Mongolia Community Member";
   return "Newsletter Subscriber";
 }
