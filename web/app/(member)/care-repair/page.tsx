@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { Droplets, Archive, CircleDot, Scissors, Clock } from "lucide-react";
 import { useMember } from "@/contexts/member-context";
 import { RequireAccess } from "@/components/require-access";
@@ -29,13 +30,20 @@ export default function CareRepairPage() {
   return (
     <RequireAccess area="careRepair">
       <div className="flex max-w-4xl flex-col gap-6">
-        <div>
-          <h1 className="font-serif text-3xl tracking-tight text-cashmere-text">Care &amp; Repair</h1>
-          <p className="mt-1 text-cashmere-text-muted">
-            {isPreview
-              ? "Public guides for looking after genuine cashmere."
-              : "Guides for washing, storing and repairing your cashmere."}
-          </p>
+        {/* Real photo (2026-09-08, public/images/care-repair-hero.jpeg — one of
+            the client's supplied images) in place of the plain title-only
+            header this page had before nothing had been supplied yet. */}
+        <div className="relative h-40 overflow-hidden rounded-2xl sm:h-52">
+          <Image src="/images/care-repair-hero.jpeg" alt="" fill className="object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-cashmere-navy/70 via-cashmere-navy/10 to-transparent" />
+          <div className="absolute right-0 bottom-0 left-0 p-6">
+            <h1 className="font-serif text-3xl tracking-tight text-white">Care &amp; Repair</h1>
+            <p className="mt-1 text-white/85">
+              {isPreview
+                ? "Public guides for looking after genuine cashmere."
+                : "Guides for washing, storing and repairing your cashmere."}
+            </p>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

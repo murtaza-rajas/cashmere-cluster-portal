@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import {
   Star,
   Gift,
@@ -53,18 +54,21 @@ function FullDashboard({ displayName }: { displayName: string }) {
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="relative overflow-hidden rounded-2xl border border-cashmere-border bg-white p-8">
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 bg-gradient-to-br from-cashmere-accent/10 via-transparent to-transparent"
-        />
-        <div className="relative">
+      <section className="flex flex-col overflow-hidden rounded-2xl border border-cashmere-border bg-white sm:flex-row">
+        <div className="flex flex-1 flex-col justify-center p-8">
           <h1 className="font-serif text-3xl tracking-tight text-cashmere-text">Welcome back, {displayName}</h1>
           <p className="mt-1 text-sm font-semibold uppercase tracking-wide text-cashmere-accent">
             Cashmere Lovers {membershipTierLabel(member.membershipTier, member.isFoundingMember, member.region)}
           </p>
           <div className="mt-3 h-px w-10 bg-cashmere-border" />
           <p className="mt-3 text-cashmere-text-muted">Thank you for being part of our journey.</p>
+        </div>
+        {/* Real photo (2026-09-08, public/images/dashboard-hero.jpeg — one of the
+            client's supplied images, matching this exact mockup slot) — this
+            section used to be a plain white card with a CSS gradient in place
+            of the photo the mockup shows here. */}
+        <div className="relative h-40 sm:h-auto sm:w-2/5">
+          <Image src="/images/dashboard-hero.jpeg" alt="" fill className="object-cover" />
         </div>
       </section>
 

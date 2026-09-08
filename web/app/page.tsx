@@ -1,17 +1,31 @@
+import Image from "next/image";
 import { Award, Gem, Gift, Heart, Leaf, MapPinned } from "lucide-react";
 import SessionStatus from "./session-status";
 
 // Matches the client's login-ui.jpeg wireframe: navy/cream marketing landing
-// page, monogram, trust-signal rows, footer band. The mockup's full-bleed
-// Mongolia/cashmere photography isn't reproduced — no approved photography
-// exists yet (PROJECT_TRACKER.md Section 3c: "Images: AI-generated for now,
-// transitioning to real photography later") — so this uses a navy gradient in
-// its place, structure and copy matched, photography deferred like every other
-// image slot in this portal.
+// page, monogram, trust-signal rows, footer band. Real photography (2026-09-08,
+// public/images/login-hero.jpeg — one of the images the client sent, matching
+// this exact mockup slot: scarf + Mongolia mountains) replaces the navy
+// gradient this used before nothing had been supplied yet. A navy gradient
+// still sits over the photo, not instead of it — the mockup's own text (the
+// monogram, "CASHMERE LOVERS' CLUB") is white and needs the same contrast it
+// had before to stay legible over a real sky rather than a flat colour.
 export default function Home() {
   return (
-    <div className="relative flex min-h-screen flex-col items-center bg-gradient-to-b from-cashmere-navy to-cashmere-navy-dark px-6 py-16">
-      <div className="flex flex-col items-center gap-3 text-center">
+    <div className="relative flex min-h-screen flex-col items-center px-6 py-16">
+      <Image
+        src="/images/login-hero.jpeg"
+        alt=""
+        fill
+        priority
+        className="object-cover object-top"
+      />
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 bg-gradient-to-b from-cashmere-navy/75 via-cashmere-navy/70 to-cashmere-navy-dark/95"
+      />
+
+      <div className="relative flex flex-col items-center gap-3 text-center">
         <div className="flex font-serif text-6xl leading-none text-white">
           <span className="-mr-2">C</span>
           <span className="mt-3 -ml-2">L</span>
@@ -20,7 +34,7 @@ export default function Home() {
         <HeartDivider className="mt-1 w-48" />
       </div>
 
-      <div className="mt-10 w-full max-w-md rounded-3xl bg-cashmere-bg p-8 text-center shadow-2xl sm:p-10">
+      <div className="relative mt-10 w-full max-w-md rounded-3xl bg-cashmere-bg p-8 text-center shadow-2xl sm:p-10">
         <h1 className="font-serif text-3xl leading-tight text-cashmere-navy">
           Welcome to
           <br />
@@ -59,7 +73,7 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="mt-8 text-center text-sm text-white/80">
+      <div className="relative mt-8 text-center text-sm text-white/80">
         Not a member yet?{" "}
         <a
           href="https://cashmerehouse.com"
@@ -69,7 +83,7 @@ export default function Home() {
         </a>
       </div>
 
-      <div className="mt-12 w-full max-w-3xl rounded-t-[3rem] bg-cashmere-navy-dark/60 px-6 py-10">
+      <div className="relative mt-12 w-full max-w-3xl rounded-t-[3rem] bg-cashmere-navy-dark/60 px-6 py-10">
         <div className="grid grid-cols-1 gap-8 text-center sm:grid-cols-3">
           <FooterItem
             icon={MapPinned}
