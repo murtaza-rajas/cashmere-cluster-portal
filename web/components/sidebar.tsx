@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -25,6 +26,9 @@ import {
   Headphones,
 } from "lucide-react";
 import { useMember } from "@/contexts/member-context";
+import { fetchMySiteImages } from "@/lib/api";
+
+const DEFAULT_SIDEBAR_HELP_PHOTO = "/images/sidebar-help.jpeg";
 
 interface NavItem {
   href: string;
@@ -88,6 +92,17 @@ export default function Sidebar({
     member.membershipTier === "FOUNDING" || member.membershipTier === "ANNUAL"
       ? FULL_NAV_ITEMS
       : NEWSLETTER_NAV_ITEMS;
+
+  const [helpPhotoSrc, setHelpPhotoSrc] = useState(DEFAULT_SIDEBAR_HELP_PHOTO);
+  useEffect(() => {
+    // Staff-uploaded, tier-specific photo (Milestone 5) — falls back to the
+    // bundled default above for any tier staff haven't set one for yet.
+    fetchMySiteImages()
+      .then((images) => {
+        if (images.SIDEBAR_HELP) setHelpPhotoSrc(images.SIDEBAR_HELP);
+      })
+      .catch(() => undefined);
+  }, []);
 
   return (
     <>
@@ -184,11 +199,16 @@ export default function Sidebar({
         </div>
         <div className="relative h-48 shrink-0">
           <Image
-            src="/images/sidebar-help.jpeg"
+            src={helpPhotoSrc}
             alt=""
             fill
             className="object-cover"
-            style={{ objectPosition: "72% 55%" }}
+            // Only the bundled default needs this specific crop focal point
+            // (isolates the goat herd from image19.jpeg's much wider scene,
+            // away from the herder/yurt on the left) — a staff-uploaded
+            // override could be framed completely differently, so it gets a
+            // plain centred crop instead of guessing a focal point for it.
+            style={helpPhotoSrc === DEFAULT_SIDEBAR_HELP_PHOTO ? { objectPosition: "72% 55%" } : undefined}
           />
         </div>
       </aside>

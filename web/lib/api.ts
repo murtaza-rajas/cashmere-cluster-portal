@@ -118,7 +118,7 @@ export async function fetchMyOffers(): Promise<Benefit[]> {
 // this member's own tier. Callers should fall back to their bundled static
 // default for any slot missing here — nothing breaks before staff upload
 // anything, or for a slot nobody's gotten to yet.
-export type SiteImages = Partial<Record<"DASHBOARD_HERO" | "CARE_REPAIR_HERO", string>>;
+export type SiteImages = Partial<Record<"DASHBOARD_HERO" | "CARE_REPAIR_HERO" | "SIDEBAR_HELP", string>>;
 
 export async function fetchMySiteImages(): Promise<SiteImages> {
   const res = await apiFetch("/members/me/site-images");

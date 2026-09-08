@@ -17,6 +17,7 @@ import {
 const SLOTS: { key: SiteImageSlot; label: string }[] = [
   { key: "DASHBOARD_HERO", label: "Dashboard hero" },
   { key: "CARE_REPAIR_HERO", label: "Care & Repair hero" },
+  { key: "SIDEBAR_HELP", label: "Sidebar “Need Help?” photo" },
 ];
 const TIERS: MembershipTierValue[] = ["FOUNDING", "ANNUAL", "MONGOLIA", "NEWSLETTER"];
 

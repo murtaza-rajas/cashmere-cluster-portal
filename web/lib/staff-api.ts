@@ -59,7 +59,7 @@ export interface StaffBenefit {
   createdAt: string;
 }
 
-export type SiteImageSlot = "DASHBOARD_HERO" | "CARE_REPAIR_HERO";
+export type SiteImageSlot = "DASHBOARD_HERO" | "CARE_REPAIR_HERO" | "SIDEBAR_HELP";
 export type MembershipTierValue = "FOUNDING" | "ANNUAL" | "MONGOLIA" | "NEWSLETTER";
 
 export interface StaffSiteImage {

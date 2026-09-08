@@ -319,6 +319,7 @@ model Benefit {
 enum SiteImageSlot {
   DASHBOARD_HERO
   CARE_REPAIR_HERO
+  SIDEBAR_HELP // The member sidebar's bottom "Need Help?" photo (components/sidebar.tsx)
 }
 
 model SiteImage {
