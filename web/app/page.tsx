@@ -2,35 +2,25 @@ import Image from "next/image";
 import { Award, Gem, Gift, Heart, Leaf, MapPinned } from "lucide-react";
 import SessionStatus from "./session-status";
 
-// Matches the client's login-ui.jpeg wireframe: navy/cream marketing landing
-// page, monogram, trust-signal rows, footer band. Real photography (2026-09-08,
-// public/images/login-hero.jpeg — one of the images the client sent, matching
-// this exact mockup slot: scarf + Mongolia mountains) replaces the navy
-// gradient this used before nothing had been supplied yet. A navy gradient
-// still sits over the photo, not instead of it — the mockup's own text (the
-// monogram, "CASHMERE LOVERS' CLUB") is white and needs the same contrast it
-// had before to stay legible over a real sky rather than a flat colour.
+// Matches the client's login-ui.jpeg wireframe exactly: the real photo
+// (public/images/login-hero.jpeg = the client's own image1.jpeg) is shown
+// as-is, full colour, no dark overlay on top of it — the mockup itself has
+// none. Text over the photo is navy (matching the mockup), not white — white
+// was a leftover from the earlier CSS-gradient-only version and was never
+// correct once a real (light-sky) photo replaced it. Only "Not a member yet"
+// and the footer band stay white, since they sit low enough to fall on the
+// photo's own darker lower portion / the solid navy footer below it.
 export default function Home() {
   return (
     <div className="relative flex min-h-screen flex-col items-center px-6 py-16">
-      <Image
-        src="/images/login-hero.jpeg"
-        alt=""
-        fill
-        priority
-        className="object-cover object-top"
-      />
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 bg-gradient-to-b from-cashmere-navy/75 via-cashmere-navy/70 to-cashmere-navy-dark/95"
-      />
+      <Image src="/images/login-hero.jpeg" alt="" fill priority className="object-cover object-top" />
 
       <div className="relative flex flex-col items-center gap-3 text-center">
-        <div className="flex font-serif text-6xl leading-none text-white">
+        <div className="flex font-serif text-6xl leading-none text-cashmere-navy">
           <span className="-mr-2">C</span>
           <span className="mt-3 -ml-2">L</span>
         </div>
-        <p className="text-sm font-semibold tracking-[0.3em] text-white">CASHMERE LOVERS&rsquo; CLUB</p>
+        <p className="text-sm font-semibold tracking-[0.3em] text-cashmere-navy">CASHMERE LOVERS&rsquo; CLUB</p>
         <HeartDivider className="mt-1 w-48" />
       </div>
 
@@ -73,7 +63,10 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="relative mt-8 text-center text-sm text-white/80">
+      {/* Navy, not white — this row lands on a light/varied part of the photo
+          (checked live: it does not reliably land on a dark area the way it
+          does in the static mockup export), so white text isn't legible here. */}
+      <div className="relative mt-8 rounded-full bg-cashmere-bg/90 px-6 py-2 text-center text-sm text-cashmere-text shadow-sm">
         Not a member yet?{" "}
         <a
           href="https://cashmerehouse.com"
@@ -83,7 +76,12 @@ export default function Home() {
         </a>
       </div>
 
-      <div className="relative mt-12 w-full max-w-3xl rounded-t-[3rem] bg-cashmere-navy-dark/60 px-6 py-10">
+      {/* Solid (not a tint over the photo) — matches the mockup's own navy
+          curve at the bottom of image1.jpeg, but built separately in CSS
+          since this page's real content height varies and can't rely on a
+          single fixed photo's baked-in shape landing in the right place at
+          every viewport size the way a static mockup export can. */}
+      <div className="relative mt-12 w-full max-w-3xl rounded-t-[3rem] bg-cashmere-navy-dark px-6 py-10">
         <div className="grid grid-cols-1 gap-8 text-center sm:grid-cols-3">
           <FooterItem
             icon={MapPinned}
