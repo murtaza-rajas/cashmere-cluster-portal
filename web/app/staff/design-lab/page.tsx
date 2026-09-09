@@ -159,7 +159,7 @@ export default function DesignLabAdminPage() {
     slot === "hero" ? row.heroImageUrl : slot === "swatch" ? row.swatchImageUrl : row.sketchImageUrl;
 
   return (
-    <div className="flex max-w-4xl flex-col gap-6">
+    <div className="flex w-full flex-col gap-6">
       <div>
         <h1 className="font-serif text-3xl tracking-tight text-cashmere-text">Founders&apos; Design Lab</h1>
         <p className="mt-1 text-cashmere-text-muted">

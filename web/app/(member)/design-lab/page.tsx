@@ -83,7 +83,7 @@ export default function DesignLabPage() {
 
   return (
     <RequireAccess area="designLab">
-      <div className="flex max-w-4xl flex-col gap-6">
+      <div className="flex w-full flex-col gap-6">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-cashmere-accent">Founders&apos; Design Lab</p>
           <h1 className="mt-1 font-serif text-3xl tracking-tight text-cashmere-text">Help shape what we make next</h1>
@@ -133,7 +133,7 @@ export default function DesignLabPage() {
             )}
 
             {visible.length > 0 && (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {visible.map((design) => (
                   <div key={design.id} className="flex flex-col gap-3 rounded-2xl border border-cashmere-border bg-white p-5">
                     <div className="flex gap-2">
