@@ -6,7 +6,13 @@ import { getAccessLevel, AccessLevel, PortalArea } from "./access";
 // access matrix"), NOT copied from access.ts's own implementation — the point is
 // to catch a transcription error in the implementation, which a test that just
 // re-asserts the same source data can't do.
-const EXPECTED_FOUNDING_AND_ANNUAL: Record<PortalArea, AccessLevel> = {
+// The 13 areas named in the PDF. designLab is deliberately NOT one of them —
+// it postdates the PDF entirely (client email 2026-09-07/08) and, unlike
+// every area here, Founding and Annual genuinely differ on it — see the
+// separate describe block below rather than folding it into this constant.
+type PdfArea = Exclude<PortalArea, "designLab">;
+
+const EXPECTED_FOUNDING_AND_ANNUAL: Record<PdfArea, AccessLevel> = {
   dashboard: "full",
   memberOffers: "full",
   exclusiveCollections: "full",
@@ -22,7 +28,7 @@ const EXPECTED_FOUNDING_AND_ANNUAL: Record<PortalArea, AccessLevel> = {
   helpSupport: "full",
 };
 
-const EXPECTED_NEWSLETTER: Record<PortalArea, AccessLevel> = {
+const EXPECTED_NEWSLETTER: Record<PdfArea, AccessLevel> = {
   dashboard: "preview", // "Simple home page"
   memberOffers: "none", // "No access"
   exclusiveCollections: "preview", // "Public previews only"
@@ -38,7 +44,7 @@ const EXPECTED_NEWSLETTER: Record<PortalArea, AccessLevel> = {
   helpSupport: "full", // "General customer support" — lower priority, but not blocked
 };
 
-const AREAS = Object.keys(EXPECTED_FOUNDING_AND_ANNUAL) as PortalArea[];
+const AREAS = Object.keys(EXPECTED_FOUNDING_AND_ANNUAL) as PdfArea[];
 
 describe("getAccessLevel — Founding Member", () => {
   it.each(AREAS)("%s matches the PDF's access matrix", (area) => {
@@ -74,6 +80,28 @@ describe("getAccessLevel — Mongolia (not covered by the PDF)", () => {
     for (const area of restrictedAreas) {
       expect(getAccessLevel("MONGOLIA", area)).not.toBe("full");
     }
+  });
+});
+
+describe("getAccessLevel — Founders' Design Lab (client email 2026-09-07/08, not the PDF)", () => {
+  // Transcribed independently from the three real tier-homepage mockups
+  // (Founder/Annual/Newsletter), not from access.ts's own implementation —
+  // Founding has a full dedicated nav tab (view/save/vote); Annual gets a
+  // homepage teaser leading to a preview (view/save, no vote — its own
+  // mockup card mentions saving but never voting); Newsletter has no
+  // presence at all; Mongolia isn't shown anywhere (international-only per
+  // the client's own written scope).
+  it("Founding gets full access", () => {
+    expect(getAccessLevel("FOUNDING", "designLab")).toBe("full");
+  });
+  it("Annual gets preview access (view/save, no vote)", () => {
+    expect(getAccessLevel("ANNUAL", "designLab")).toBe("preview");
+  });
+  it("Newsletter has no access", () => {
+    expect(getAccessLevel("NEWSLETTER", "designLab")).toBe("none");
+  });
+  it("Mongolia has no access (international portal only)", () => {
+    expect(getAccessLevel("MONGOLIA", "designLab")).toBe("none");
   });
 });
 

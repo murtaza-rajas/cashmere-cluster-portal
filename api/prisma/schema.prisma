@@ -100,6 +100,8 @@ model Member {
   wishlistItems        WishlistItem[]
   dataSubjectRequests  DataSubjectRequest[]
   auditLogEntries      AuditLog[]           @relation("AuditLogTargetMember")
+  designFavorites      DesignFavorite[]
+  designVotes          DesignVote[]
 
   @@index([membershipTier])
   @@index([region])
@@ -190,6 +192,7 @@ model StaffUser {
   uploadedSiteImages    SiteImage[]           @relation("SiteImagesUploadedBy")
   createdEvents         Event[]               @relation("EventsCreatedBy")
   updatedCareGuides     CareGuide[]           @relation("CareGuidesUpdatedBy")
+  createdDesigns        Design[]              @relation("DesignsCreatedBy")
 
   @@index([email])
 }
@@ -405,6 +408,102 @@ model Event {
   createdBy   StaffUser? @relation("EventsCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
 
   @@index([active])
+}
+
+// Founders' Design Lab (client email 2026-09-07/08) — international portal
+// only, per the client's own written scope ("new tab, international portal
+// only"). Access is tier-differentiated in a way no other portal area is:
+// confirmed directly from the three real tier-homepage mockups (Founder/
+// Annual/Newsletter), not guessed at — Founding gets a full dedicated nav
+// tab (view + save + vote), Annual gets a homepage teaser leading to a
+// preview (view + save, no vote — its own mockup card never mentions
+// voting), Newsletter has no presence at all, Mongolia isn't shown anywhere
+// (out of scope for this specific feature). See web/lib/access.ts.
+enum DesignStatus {
+  CURRENT
+  SELECTED_FOR_PRODUCTION
+  PAST_ROUND
+}
+
+model Design {
+  id String @id @default(uuid())
+
+  title       String
+  description String?
+
+  // Freeform, staff-provided — the mockup's own example ("Spring 2027") isn't
+  // from a fixed list of seasons/rounds, and future rounds aren't known yet.
+  round String?
+
+  status DesignStatus @default(CURRENT)
+
+  // Chip-style tags on each design card in the mockup ("Lightweight",
+  // "Everyday", "Versatile").
+  tags String[]
+
+  // The mockup's own three image slots per design: the worn/hero photo, a
+  // fabric swatch close-up, and a flat sketch. Same disk-storage pattern and
+  // nullable-until-uploaded convention as Event/SiteImage — a design can be
+  // drafted with text content before any photography exists for it.
+  heroImageUrl   String?
+  swatchImageUrl String?
+  sketchImageUrl String?
+
+  // Same "draft, not yet visible to anybody" convention as Benefit/Event —
+  // status/round alone don't gate visibility, active does.
+  active    Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  createdById String?
+  createdBy   StaffUser? @relation("DesignsCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  favorites DesignFavorite[]
+  votes     DesignVote[]
+
+  @@index([active])
+  @@index([status])
+}
+
+// Save/heart — every tier with any Design Lab access at all (Founding,
+// Annual) can do this. Separate from DesignVote below: confirmed as two
+// genuinely distinct actions, not a UI-only distinction, directly from the
+// Annual-tier mockup's own teaser copy ("Save your favourites and follow the
+// journey") — it names saving specifically while never mentioning voting,
+// matching the dashboard mockup's two visually separate buttons.
+model DesignFavorite {
+  id String @id @default(uuid())
+
+  designId String
+  design   Design @relation(fields: [designId], references: [id], onDelete: Cascade)
+
+  memberId String
+  member   Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([designId, memberId])
+}
+
+// Vote — Founding-only ("in selected cases vote," per the client's email;
+// the mockups confirm Founding is that selected case). Enforced server-side
+// in the service layer, not just hidden in the UI, matching this project's
+// established "must be blocked even via direct URL" discipline for every
+// other tier-gated action.
+model DesignVote {
+  id String @id @default(uuid())
+
+  designId String
+  design   Design @relation(fields: [designId], references: [id], onDelete: Cascade)
+
+  memberId String
+  member   Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([designId, memberId])
 }
 
 // ---------------------------------------------------------------------------

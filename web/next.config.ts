@@ -80,6 +80,9 @@ const nextConfig: NextConfig = {
       // Staff Dashboard overview data — no frontend page at
       // /staff-dashboard, so a blanket rewrite here is safe.
       { source: "/staff-dashboard/:path*", destination: `${apiOrigin}/staff-dashboard/:path*` },
+      // Founders' Design Lab staff CRUD — no frontend page at
+      // /design-catalog, so a blanket rewrite here is safe.
+      { source: "/design-catalog/:path*", destination: `${apiOrigin}/design-catalog/:path*` },
       { source: "/health", destination: `${apiOrigin}/health` },
       { source: "/webhooks/:path*", destination: `${apiOrigin}/webhooks/:path*` },
     ];

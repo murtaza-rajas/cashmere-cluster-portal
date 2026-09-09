@@ -24,9 +24,11 @@ import {
   Sparkles,
   Mail,
   Headphones,
+  Palette,
 } from "lucide-react";
 import { useMember } from "@/contexts/member-context";
 import { fetchMySiteImages } from "@/lib/api";
+import { getAccessLevel } from "@/lib/access";
 
 const DEFAULT_SIDEBAR_HELP_PHOTO = "/images/sidebar-help.jpeg";
 
@@ -44,6 +46,11 @@ interface NavItem {
 // into two lists for a label nuance).
 const FULL_NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  // Founding-only in practice (filtered out below for Annual, per
+  // lib/access.ts's designLab area) — Annual reaches a preview of this same
+  // page via a dashboard teaser card instead of a persistent nav item,
+  // confirmed directly from the client's own tier-homepage mockups.
+  { href: "/design-lab", label: "Design Lab", icon: Palette, badge: "NEW" },
   { href: "/member-offers", label: "Member Offers", icon: Tag, badge: "NEW" },
   {
     href: "/exclusive-collections",
@@ -90,7 +97,9 @@ export default function Sidebar({
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
   const navItems =
     member.membershipTier === "FOUNDING" || member.membershipTier === "ANNUAL"
-      ? FULL_NAV_ITEMS
+      ? FULL_NAV_ITEMS.filter(
+          (item) => item.href !== "/design-lab" || getAccessLevel(member.membershipTier, "designLab") === "full",
+        )
       : NEWSLETTER_NAV_ITEMS;
 
   const [helpPhotoSrc, setHelpPhotoSrc] = useState(DEFAULT_SIDEBAR_HELP_PHOTO);

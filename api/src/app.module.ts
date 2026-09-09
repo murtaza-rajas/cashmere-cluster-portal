@@ -17,6 +17,7 @@ import { CareGuidesModule } from './care-guides/care-guides.module';
 import { ReportsModule } from './reports/reports.module';
 import { IntegrationsModule } from './integrations/integrations.module';
 import { StaffDashboardModule } from './staff-dashboard/staff-dashboard.module';
+import { DesignsModule } from './designs/designs.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { StaffDashboardModule } from './staff-dashboard/staff-dashboard.module';
     ReportsModule,
     IntegrationsModule,
     StaffDashboardModule,
+    DesignsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

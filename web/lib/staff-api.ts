@@ -518,3 +518,84 @@ export async function fetchDashboardPendingTasks(): Promise<DashboardPendingTask
   if (!res.ok) throw new Error(`Unexpected response fetching pending tasks: ${res.status}`);
   return res.json();
 }
+
+export type DesignStatus = "CURRENT" | "SELECTED_FOR_PRODUCTION" | "PAST_ROUND";
+export type DesignImageSlot = "hero" | "swatch" | "sketch";
+
+export interface StaffDesign {
+  id: string;
+  title: string;
+  description: string | null;
+  round: string | null;
+  status: DesignStatus;
+  tags: string[];
+  heroImageUrl: string | null;
+  swatchImageUrl: string | null;
+  sketchImageUrl: string | null;
+  active: boolean;
+  sortOrder: number;
+  createdAt: string;
+}
+
+export interface DesignInput {
+  title: string;
+  description?: string;
+  round?: string;
+  status?: DesignStatus;
+  tags?: string[];
+  sortOrder?: number;
+  active?: boolean;
+}
+
+export async function fetchDesignCatalog(): Promise<StaffDesign[]> {
+  const res = await apiFetch("/design-catalog");
+  if (!res.ok) throw new Error(`Unexpected response fetching designs: ${res.status}`);
+  return res.json();
+}
+
+export async function createDesign(dto: DesignInput): Promise<StaffDesign> {
+  const res = await apiFetch("/design-catalog", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(dto),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.message ?? `Unexpected response creating design: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function updateDesign(id: string, dto: Partial<DesignInput>): Promise<StaffDesign> {
+  const res = await apiFetch(`/design-catalog/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(dto),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.message ?? `Unexpected response updating design: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function deleteDesign(id: string): Promise<void> {
+  const res = await apiFetch(`/design-catalog/${id}`, { method: "DELETE" });
+  if (!res.ok) throw new Error(`Unexpected response deleting design: ${res.status}`);
+}
+
+export async function uploadDesignImage(id: string, slot: DesignImageSlot, file: File): Promise<StaffDesign> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await apiFetch(`/design-catalog/${id}/image/${slot}`, { method: "POST", body: formData });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.message ?? `Unexpected response uploading design image: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function deleteDesignImage(id: string, slot: DesignImageSlot): Promise<void> {
+  const res = await apiFetch(`/design-catalog/${id}/image/${slot}`, { method: "DELETE" });
+  if (!res.ok) throw new Error(`Unexpected response removing design image: ${res.status}`);
+}

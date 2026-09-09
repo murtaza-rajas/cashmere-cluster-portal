@@ -22,6 +22,7 @@ import { BenefitsService } from '../benefits/benefits.service';
 import { SiteImagesService } from '../site-images/site-images.service';
 import { EventsService } from '../events/events.service';
 import { CareGuidesService } from '../care-guides/care-guides.service';
+import { DesignsService } from '../designs/designs.service';
 import { Member, BenefitType } from '@prisma/client';
 
 @Controller('members')
@@ -34,6 +35,7 @@ export class MembersController {
     private readonly siteImages: SiteImagesService,
     private readonly events: EventsService,
     private readonly careGuides: CareGuidesService,
+    private readonly designs: DesignsService,
   ) {}
 
   // What the frontend calls on load to check login state — 401 if no/invalid
@@ -139,6 +141,44 @@ export class MembersController {
   @Get('me/care-guides')
   myCareGuides() {
     return this.careGuides.findAllForMember();
+  }
+
+  // Founders' Design Lab — international-only, tier-gated to Founding (full:
+  // view/save/vote) and Annual (preview: view/save only). The service itself
+  // enforces the real gate (returns [] / throws 403), matching this
+  // project's "must be blocked even via direct URL" rule — this controller
+  // doesn't duplicate that logic, just passes the member's real tier through.
+  @UseGuards(JwtAuthGuard)
+  @Get('me/designs')
+  myDesigns(@Req() req: Request) {
+    const member = req.user as Member;
+    return this.designs.findForMember(member.id, member.membershipTier);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('me/designs/:id/favorite')
+  favoriteDesign(@Param('id') id: string, @Req() req: Request) {
+    const member = req.user as Member;
+    return this.designs.addFavorite(id, member.id, member.membershipTier);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete('me/designs/:id/favorite')
+  unfavoriteDesign(@Param('id') id: string, @Req() req: Request) {
+    return this.designs.removeFavorite(id, (req.user as Member).id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('me/designs/:id/vote')
+  voteDesign(@Param('id') id: string, @Req() req: Request) {
+    const member = req.user as Member;
+    return this.designs.addVote(id, member.id, member.membershipTier);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete('me/designs/:id/vote')
+  unvoteDesign(@Param('id') id: string, @Req() req: Request) {
+    return this.designs.removeVote(id, (req.user as Member).id);
   }
 
   // Members & Users admin (Milestone 5) — staff-facing directory/search.

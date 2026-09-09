@@ -8,6 +8,7 @@ import { BenefitsModule } from '../benefits/benefits.module';
 import { SiteImagesModule } from '../site-images/site-images.module';
 import { EventsModule } from '../events/events.module';
 import { CareGuidesModule } from '../care-guides/care-guides.module';
+import { DesignsModule } from '../designs/designs.module';
 
 @Module({
   // StaffModule needed for the Members & Users admin routes below (StaffAuthGuard
@@ -22,6 +23,7 @@ import { CareGuidesModule } from '../care-guides/care-guides.module';
     SiteImagesModule,
     EventsModule,
     CareGuidesModule,
+    DesignsModule,
   ],
   controllers: [MembersController],
   providers: [MembersService],

@@ -27,7 +27,8 @@ export type PortalArea =
   | "myBenefits"
   | "profile"
   | "settings"
-  | "helpSupport";
+  | "helpSupport"
+  | "designLab";
 
 type Tier = Member["membershipTier"];
 
@@ -48,6 +49,18 @@ const FULL_ACCESS: Record<PortalArea, AccessLevel> = {
   profile: "full",
   settings: "full",
   helpSupport: "full",
+  designLab: "full",
+};
+
+// The one area where Founding and Annual genuinely differ — confirmed
+// directly from the three real tier-homepage mockups (client email
+// 2026-09-07/08, see schema.prisma's Design model comment), not assumed
+// from FOUNDING and ANNUAL's usual "identical for access purposes" rule.
+// Annual gets a homepage teaser leading to a preview (view + save, no vote,
+// no persistent sidebar nav item); Founding gets the full experience.
+const ANNUAL_ACCESS: Record<PortalArea, AccessLevel> = {
+  ...FULL_ACCESS,
+  designLab: "preview",
 };
 
 const NEWSLETTER_ACCESS: Record<PortalArea, AccessLevel> = {
@@ -64,11 +77,12 @@ const NEWSLETTER_ACCESS: Record<PortalArea, AccessLevel> = {
   profile: "full",
   settings: "preview", // "Newsletter settings" only, not full account settings
   helpSupport: "full", // "General customer support" — lower-priority, but not blocked
+  designLab: "none", // International-only feature (client's own written scope) — Mongolia inherits this same "none" below, deliberately, not because Mongolia is otherwise like Newsletter
 };
 
 const ACCESS_MATRIX: Record<Tier, Record<PortalArea, AccessLevel>> = {
   FOUNDING: FULL_ACCESS,
-  ANNUAL: FULL_ACCESS,
+  ANNUAL: ANNUAL_ACCESS,
   NEWSLETTER: NEWSLETTER_ACCESS,
   // Not covered by the PDF (predates the Mongolia Community decision, Section 3a
   // of PROJECT_TRACKER.md). Client-confirmed 2026-09-07: Mongolia Founding

@@ -156,6 +156,53 @@ export async function fetchMyCareGuides(): Promise<CareGuide[]> {
   return res.json();
 }
 
+// Founders' Design Lab — real favorite/vote counts and this member's own
+// favorited/voted state on each design. `canVote` is the server's own
+// tier-gating decision (Founding only) — the frontend just reads it rather
+// than re-deriving the rule, so there's one source of truth for who can vote.
+export interface MemberDesign {
+  id: string;
+  title: string;
+  description: string | null;
+  round: string | null;
+  status: "CURRENT" | "SELECTED_FOR_PRODUCTION" | "PAST_ROUND";
+  tags: string[];
+  heroImageUrl: string | null;
+  swatchImageUrl: string | null;
+  sketchImageUrl: string | null;
+  favoriteCount: number;
+  voteCount: number;
+  isFavorited: boolean;
+  isVoted: boolean;
+  canVote: boolean;
+}
+
+export async function fetchMyDesigns(): Promise<MemberDesign[]> {
+  const res = await apiFetch("/members/me/designs");
+  if (!res.ok) throw new Error(`Unexpected response fetching designs: ${res.status}`);
+  return res.json();
+}
+
+export async function favoriteDesign(id: string): Promise<void> {
+  const res = await apiFetch(`/members/me/designs/${id}/favorite`, { method: "POST" });
+  if (!res.ok) throw new Error(`Unexpected response favoriting design: ${res.status}`);
+}
+
+export async function unfavoriteDesign(id: string): Promise<void> {
+  const res = await apiFetch(`/members/me/designs/${id}/favorite`, { method: "DELETE" });
+  if (!res.ok) throw new Error(`Unexpected response unfavoriting design: ${res.status}`);
+}
+
+export async function voteDesign(id: string): Promise<void> {
+  const res = await apiFetch(`/members/me/designs/${id}/vote`, { method: "POST" });
+  if (!res.ok) throw new Error(`Unexpected response voting for design: ${res.status}`);
+}
+
+export async function unvoteDesign(id: string): Promise<void> {
+  const res = await apiFetch(`/members/me/designs/${id}/vote`, { method: "DELETE" });
+  if (!res.ok) throw new Error(`Unexpected response removing vote: ${res.status}`);
+}
+
 export async function fetchWishlist(): Promise<WishlistItem[]> {
   const res = await apiFetch("/members/me/wishlist");
   if (!res.ok) throw new Error(`Unexpected response fetching wishlist: ${res.status}`);

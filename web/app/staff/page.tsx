@@ -292,7 +292,8 @@ export default function StaffDashboardPage() {
           icon={Palette}
           title="Design Lab"
           description="Manage featured designs, voting and production status."
-          ctaLabel="Coming soon"
+          ctaLabel="Manage Designs"
+          href={staffHasAnyRole(staff, ["Content Manager"]) ? "/staff/design-lab" : undefined}
         />
         <FeatureCard
           icon={Newspaper}
