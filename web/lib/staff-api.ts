@@ -347,6 +347,34 @@ export async function deleteEventImage(id: string): Promise<void> {
   if (!res.ok) throw new Error(`Unexpected response removing event image: ${res.status}`);
 }
 
+export type CareGuideTopic = "WASHING" | "STORAGE" | "PILLING" | "REPAIRS" | "LONGEVITY";
+
+export interface StaffCareGuide {
+  id: string;
+  topic: CareGuideTopic;
+  body: string | null;
+  updatedAt: string;
+}
+
+export async function fetchCareGuideCatalog(): Promise<StaffCareGuide[]> {
+  const res = await apiFetch("/care-guide-catalog");
+  if (!res.ok) throw new Error(`Unexpected response fetching care guides: ${res.status}`);
+  return res.json();
+}
+
+export async function updateCareGuide(topic: CareGuideTopic, body: string): Promise<StaffCareGuide> {
+  const res = await apiFetch(`/care-guide-catalog/${topic}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ body }),
+  });
+  if (!res.ok) {
+    const errBody = await res.json().catch(() => null);
+    throw new Error(errBody?.message ?? `Unexpected response updating care guide: ${res.status}`);
+  }
+  return res.json();
+}
+
 export async function fetchPendingDataRequests(): Promise<StaffDataSubjectRequest[]> {
   const res = await apiFetch("/data-subject-requests/pending");
   if (!res.ok) throw new Error(`Unexpected response fetching pending requests: ${res.status}`);

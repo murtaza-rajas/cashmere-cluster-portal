@@ -59,6 +59,9 @@ const nextConfig: NextConfig = {
       // Staff Events & Invitations CRUD — no frontend page at /event-catalog,
       // so (like /benefit-catalog) a blanket rewrite here is safe.
       { source: "/event-catalog/:path*", destination: `${apiOrigin}/event-catalog/:path*` },
+      // Staff Care & Repair guide CRUD — no frontend page at
+      // /care-guide-catalog, so a blanket rewrite here is safe.
+      { source: "/care-guide-catalog/:path*", destination: `${apiOrigin}/care-guide-catalog/:path*` },
       // Staff-uploaded photos themselves (main.ts's useStaticAssets serves
       // these from the API) — the browser requests this path directly from
       // whatever origin rendered the <img>/<Image> tag (this app), so it

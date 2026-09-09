@@ -3,7 +3,7 @@
 // to staff (with a data scope) via the admin UI, but cannot invent new roles. See
 // PROJECT_TRACKER.md Section 3 ("fixed roles as configurable presets").
 
-import { PrismaClient, BenefitType, MembershipTier } from '@prisma/client';
+import { PrismaClient, BenefitType, MembershipTier, CareGuideTopic } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -82,6 +82,18 @@ const ROLES: { name: string; description: string }[] = [
   },
 ];
 
+// The client's own confirmed five Care & Repair topics (PROJECT_TRACKER.md
+// Section 3c) — always seeded with a null body ("structure only for now",
+// per the client's own instruction) so exactly five rows always exist for
+// staff to fill in, never a missing or duplicate topic.
+const CARE_GUIDE_TOPICS: CareGuideTopic[] = [
+  CareGuideTopic.WASHING,
+  CareGuideTopic.STORAGE,
+  CareGuideTopic.PILLING,
+  CareGuideTopic.REPAIRS,
+  CareGuideTopic.LONGEVITY,
+];
+
 async function main() {
   for (const role of ROLES) {
     await prisma.role.upsert({
@@ -111,6 +123,15 @@ async function main() {
   } else {
     console.log('Benefit rows already exist, skipping seed.');
   }
+
+  for (const topic of CARE_GUIDE_TOPICS) {
+    await prisma.careGuide.upsert({
+      where: { topic },
+      update: {},
+      create: { topic },
+    });
+  }
+  console.log(`Seeded ${CARE_GUIDE_TOPICS.length} care guide topics.`);
 }
 
 main()

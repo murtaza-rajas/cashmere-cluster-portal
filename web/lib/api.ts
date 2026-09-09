@@ -145,6 +145,17 @@ export async function fetchMyEvents(): Promise<MemberEvent[]> {
   return res.json();
 }
 
+export interface CareGuide {
+  topic: "WASHING" | "STORAGE" | "PILLING" | "REPAIRS" | "LONGEVITY";
+  body: string | null;
+}
+
+export async function fetchMyCareGuides(): Promise<CareGuide[]> {
+  const res = await apiFetch("/members/me/care-guides");
+  if (!res.ok) throw new Error(`Unexpected response fetching care guides: ${res.status}`);
+  return res.json();
+}
+
 export async function fetchWishlist(): Promise<WishlistItem[]> {
   const res = await apiFetch("/members/me/wishlist");
   if (!res.ok) throw new Error(`Unexpected response fetching wishlist: ${res.status}`);

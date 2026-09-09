@@ -189,6 +189,7 @@ model StaffUser {
   createdBenefits       Benefit[]             @relation("BenefitsCreatedBy")
   uploadedSiteImages    SiteImage[]           @relation("SiteImagesUploadedBy")
   createdEvents         Event[]               @relation("EventsCreatedBy")
+  updatedCareGuides     CareGuide[]           @relation("CareGuidesUpdatedBy")
 
   @@index([email])
 }
@@ -404,6 +405,43 @@ model Event {
   createdBy   StaffUser? @relation("EventsCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
 
   @@index([active])
+}
+
+// ---------------------------------------------------------------------------
+// Care & Repair guides (Milestone 5 content curation)
+// ---------------------------------------------------------------------------
+// The client's own instruction (PROJECT_TRACKER.md Section 3c) was
+// deliberately "structure and templates only for now" — the five topics
+// themselves (washing, storage, pilling, repairs, longevity) are the
+// client's own confirmed, fixed list, not something staff invent or
+// reorder, so `topic` is a fixed enum rather than a free-form/creatable
+// row like Benefit or Event. What staff actually need to manage is just
+// each topic's guide text, added "continuously after launch" per the
+// client's own words — so this is deliberately a narrower model than
+// Benefit/Event: no create/delete, just update-the-body-per-topic. Every
+// topic row is seeded up front (prisma/seed.ts) so there are always
+// exactly five, never a missing or duplicate topic.
+
+enum CareGuideTopic {
+  WASHING
+  STORAGE
+  PILLING
+  REPAIRS
+  LONGEVITY
+}
+
+model CareGuide {
+  id String @id @default(uuid())
+
+  topic CareGuideTopic @unique
+
+  // Null keeps the existing "Guide coming soon" placeholder on the member
+  // page — real content lands here incrementally, not all at once.
+  body String?
+
+  updatedAt   DateTime  @updatedAt
+  updatedById String?
+  updatedBy   StaffUser? @relation("CareGuidesUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
 }
 
 // ---------------------------------------------------------------------------

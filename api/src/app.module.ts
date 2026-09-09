@@ -13,6 +13,7 @@ import { DataSubjectRequestsModule } from './data-subject-requests/data-subject-
 import { BenefitsModule } from './benefits/benefits.module';
 import { SiteImagesModule } from './site-images/site-images.module';
 import { EventsModule } from './events/events.module';
+import { CareGuidesModule } from './care-guides/care-guides.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { EventsModule } from './events/events.module';
     BenefitsModule,
     SiteImagesModule,
     EventsModule,
+    CareGuidesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

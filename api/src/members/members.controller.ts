@@ -21,6 +21,7 @@ import { AddWishlistItemDto } from '../wishlist/dto/add-wishlist-item.dto';
 import { BenefitsService } from '../benefits/benefits.service';
 import { SiteImagesService } from '../site-images/site-images.service';
 import { EventsService } from '../events/events.service';
+import { CareGuidesService } from '../care-guides/care-guides.service';
 import { Member, BenefitType } from '@prisma/client';
 
 @Controller('members')
@@ -32,6 +33,7 @@ export class MembersController {
     private readonly benefits: BenefitsService,
     private readonly siteImages: SiteImagesService,
     private readonly events: EventsService,
+    private readonly careGuides: CareGuidesService,
   ) {}
 
   // What the frontend calls on load to check login state — 401 if no/invalid
@@ -128,6 +130,15 @@ export class MembersController {
   @Get('me/events')
   myEvents(@Req() req: Request) {
     return this.events.findForMember((req.user as Member).membershipTier);
+  }
+
+  // Care & Repair guide bodies — not tier-scoped (unlike the above), since
+  // the page's existing preview/full split is already handled at the page
+  // level via lib/access.ts, not per-guide.
+  @UseGuards(JwtAuthGuard)
+  @Get('me/care-guides')
+  myCareGuides() {
+    return this.careGuides.findAllForMember();
   }
 
   // Members & Users admin (Milestone 5) — staff-facing directory/search.
