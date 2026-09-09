@@ -79,6 +79,53 @@ export interface StaffDataSubjectRequest {
   member: { id: string; email: string; firstName: string | null; lastName: string | null };
 }
 
+export interface AuditLogEntry {
+  id: string;
+  action: string;
+  targetType: string;
+  targetId: string;
+  targetMemberId: string | null;
+  reason: string | null;
+  metadata: unknown;
+  createdAt: string;
+  actorStaffUser: { id: string; name: string; email: string } | null;
+  targetMember: { id: string; email: string; firstName: string | null; lastName: string | null } | null;
+}
+
+export interface AuditLogPage {
+  items: AuditLogEntry[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface AuditLogFilters {
+  action?: string;
+  targetType?: string;
+  actorStaffUserId?: string;
+  from?: string;
+  to?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export async function fetchAuditLog(filters: AuditLogFilters = {}): Promise<AuditLogPage> {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(filters)) {
+    if (value !== undefined && value !== "") params.set(key, String(value));
+  }
+  const query = params.toString() ? `?${params.toString()}` : "";
+  const res = await apiFetch(`/audit-log${query}`);
+  if (!res.ok) throw new Error(`Unexpected response fetching audit log: ${res.status}`);
+  return res.json();
+}
+
+export async function fetchAuditLogActions(): Promise<string[]> {
+  const res = await apiFetch("/audit-log/actions");
+  if (!res.ok) throw new Error(`Unexpected response fetching audit log actions: ${res.status}`);
+  return res.json();
+}
+
 export async function fetchCurrentStaff(): Promise<StaffUser | null> {
   const res = await apiFetch("/staff/me");
   if (res.status === 401) return null;

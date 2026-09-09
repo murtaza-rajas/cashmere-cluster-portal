@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ShieldCheck, ClipboardList, Users, Gift, Image as ImageIcon } from "lucide-react";
+import { ShieldCheck, ClipboardList, Users, Gift, Image as ImageIcon, ScrollText } from "lucide-react";
 import { useStaff, staffHasAnyRole } from "@/contexts/staff-context";
 
 export default function StaffHomePage() {
@@ -74,6 +74,18 @@ export default function StaffHomePage() {
               <p className="text-sm text-cashmere-text-muted">Review and complete pending member data requests</p>
             </div>
           </a>
+        )}
+        {staffHasAnyRole(staff, ["Super Administrator"]) && (
+          <Link
+            href="/staff/audit-log"
+            className="flex items-center gap-3 rounded-2xl border border-cashmere-border bg-white p-5 transition-colors hover:border-cashmere-accent/40"
+          >
+            <ScrollText size={20} strokeWidth={1.5} className="text-cashmere-accent" />
+            <div>
+              <p className="font-medium text-cashmere-text">Audit Log</p>
+              <p className="text-sm text-cashmere-text-muted">Review every sensitive administrative action</p>
+            </div>
+          </Link>
         )}
       </div>
     </div>

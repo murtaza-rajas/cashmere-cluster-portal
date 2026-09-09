@@ -62,6 +62,9 @@ const nextConfig: NextConfig = {
       // needs the same proxying as any other backend route, independent of
       // whether NEXT_PUBLIC_API_URL itself is proxied for JSON calls.
       { source: "/uploads/:path*", destination: `${apiOrigin}/uploads/:path*` },
+      // Audit Log viewer — no frontend page at /audit-log, so a blanket
+      // rewrite here is safe (same reasoning as /benefit-catalog).
+      { source: "/audit-log/:path*", destination: `${apiOrigin}/audit-log/:path*` },
       { source: "/health", destination: `${apiOrigin}/health` },
       { source: "/webhooks/:path*", destination: `${apiOrigin}/webhooks/:path*` },
     ];

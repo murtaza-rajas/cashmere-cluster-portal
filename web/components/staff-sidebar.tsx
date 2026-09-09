@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Users, ShieldCheck, ClipboardList, Gift, Image as ImageIcon, LogOut, X } from "lucide-react";
+import { Users, ShieldCheck, ClipboardList, Gift, Image as ImageIcon, ScrollText, LogOut, X } from "lucide-react";
 import { useStaff, staffHasAnyRole } from "@/contexts/staff-context";
 import { API_URL } from "@/lib/api";
 
@@ -13,14 +13,13 @@ interface NavItem {
   allowedRoles: string[];
 }
 
-// "Audit Log" is the one remaining real gap — no read endpoint exists on
-// AuditLogService yet, not built here — see PROJECT_TRACKER.md.
 const NAV_ITEMS: NavItem[] = [
   { href: "/staff/directory", label: "Staff & Roles", icon: ShieldCheck, allowedRoles: ["Super Administrator"] },
   { href: "/staff/members", label: "Members & Users", icon: Users, allowedRoles: ["Club Manager", "Member Support"] },
   { href: "/staff/benefits", label: "Offers & Benefits", icon: Gift, allowedRoles: ["Club Manager"] },
   { href: "/staff/images", label: "Site Images", icon: ImageIcon, allowedRoles: ["Club Manager", "Content Manager"] },
   { href: "/staff/data-requests", label: "GDPR Requests", icon: ClipboardList, allowedRoles: ["Super Administrator", "Member Support"] },
+  { href: "/staff/audit-log", label: "Audit Log", icon: ScrollText, allowedRoles: ["Super Administrator"] },
 ];
 
 export default function StaffSidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
