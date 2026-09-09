@@ -375,6 +375,54 @@ export async function updateCareGuide(topic: CareGuideTopic, body: string): Prom
   return res.json();
 }
 
+export interface MemberTotals {
+  byStatus: Record<string, number>;
+  total: number;
+}
+
+export interface TierBreakdown {
+  byTier: Record<string, number>;
+  foundingMemberCount: number;
+}
+
+export interface NewMembersBucket {
+  periodStart: string;
+  count: number;
+}
+
+export interface OrderTotalsRow {
+  currency: string;
+  totalAmount: string;
+  orderCount: number;
+}
+
+export async function fetchMemberTotals(): Promise<MemberTotals> {
+  const res = await apiFetch("/reports/members/totals");
+  if (!res.ok) throw new Error(`Unexpected response fetching member totals: ${res.status}`);
+  return res.json();
+}
+
+export async function fetchTierBreakdown(): Promise<TierBreakdown> {
+  const res = await apiFetch("/reports/members/tiers");
+  if (!res.ok) throw new Error(`Unexpected response fetching tier breakdown: ${res.status}`);
+  return res.json();
+}
+
+export async function fetchNewMembersByPeriod(
+  period: "week" | "month",
+  periods: number,
+): Promise<NewMembersBucket[]> {
+  const res = await apiFetch(`/reports/members/new?period=${period}&periods=${periods}`);
+  if (!res.ok) throw new Error(`Unexpected response fetching new-members report: ${res.status}`);
+  return res.json();
+}
+
+export async function fetchOrderTotals(): Promise<OrderTotalsRow[]> {
+  const res = await apiFetch("/reports/orders");
+  if (!res.ok) throw new Error(`Unexpected response fetching order totals: ${res.status}`);
+  return res.json();
+}
+
 export async function fetchPendingDataRequests(): Promise<StaffDataSubjectRequest[]> {
   const res = await apiFetch("/data-subject-requests/pending");
   if (!res.ok) throw new Error(`Unexpected response fetching pending requests: ${res.status}`);

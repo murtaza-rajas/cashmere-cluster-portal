@@ -71,6 +71,9 @@ const nextConfig: NextConfig = {
       // Audit Log viewer — no frontend page at /audit-log, so a blanket
       // rewrite here is safe (same reasoning as /benefit-catalog).
       { source: "/audit-log/:path*", destination: `${apiOrigin}/audit-log/:path*` },
+      // Reports & Analytics — no frontend page at /reports, so a blanket
+      // rewrite here is safe.
+      { source: "/reports/:path*", destination: `${apiOrigin}/reports/:path*` },
       { source: "/health", destination: `${apiOrigin}/health` },
       { source: "/webhooks/:path*", destination: `${apiOrigin}/webhooks/:path*` },
     ];

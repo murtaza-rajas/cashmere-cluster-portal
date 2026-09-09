@@ -14,6 +14,7 @@ import { BenefitsModule } from './benefits/benefits.module';
 import { SiteImagesModule } from './site-images/site-images.module';
 import { EventsModule } from './events/events.module';
 import { CareGuidesModule } from './care-guides/care-guides.module';
+import { ReportsModule } from './reports/reports.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { CareGuidesModule } from './care-guides/care-guides.module';
     SiteImagesModule,
     EventsModule,
     CareGuidesModule,
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
