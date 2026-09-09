@@ -438,3 +438,23 @@ export async function completeDataRequest(id: string, reason?: string): Promise<
   if (!res.ok) throw new Error(`Unexpected response completing request: ${res.status}`);
   return res.json();
 }
+
+export interface IntegrationsStatus {
+  shopify: {
+    oauthConfigured: boolean;
+    webhookSecretConfigured: boolean;
+    shopDomain: string | null;
+    webhookEndpoints: string[];
+    lastOrderWebhookAt: string | null;
+    lastGdprWebhookAt: string | null;
+  };
+  database: { healthy: boolean };
+  mailchimp: { built: boolean };
+  cms: { built: boolean };
+}
+
+export async function fetchIntegrationsStatus(): Promise<IntegrationsStatus> {
+  const res = await apiFetch("/integrations/status");
+  if (!res.ok) throw new Error(`Unexpected response fetching integrations status: ${res.status}`);
+  return res.json();
+}

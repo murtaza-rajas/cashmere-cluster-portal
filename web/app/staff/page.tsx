@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ShieldCheck, ClipboardList, Users, Gift, Image as ImageIcon, ScrollText, CalendarHeart, Wrench, BarChart3 } from "lucide-react";
+import { ShieldCheck, ClipboardList, Users, Gift, Image as ImageIcon, ScrollText, CalendarHeart, Wrench, BarChart3, Plug } from "lucide-react";
 import { useStaff, staffHasAnyRole } from "@/contexts/staff-context";
 
 export default function StaffHomePage() {
@@ -120,6 +120,18 @@ export default function StaffHomePage() {
             <div>
               <p className="font-medium text-cashmere-text">Reports &amp; Analytics</p>
               <p className="text-sm text-cashmere-text-muted">Member totals, tiers, growth and order KPIs</p>
+            </div>
+          </Link>
+        )}
+        {staffHasAnyRole(staff, ["Technical Administrator"]) && (
+          <Link
+            href="/staff/integrations"
+            className="flex items-center gap-3 rounded-2xl border border-cashmere-border bg-white p-5 transition-colors hover:border-cashmere-accent/40"
+          >
+            <Plug size={20} strokeWidth={1.5} className="text-cashmere-accent" />
+            <div>
+              <p className="font-medium text-cashmere-text">Integrations &amp; Settings</p>
+              <p className="text-sm text-cashmere-text-muted">Shopify, database and connection status</p>
             </div>
           </Link>
         )}

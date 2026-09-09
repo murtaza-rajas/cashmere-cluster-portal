@@ -74,6 +74,9 @@ const nextConfig: NextConfig = {
       // Reports & Analytics — no frontend page at /reports, so a blanket
       // rewrite here is safe.
       { source: "/reports/:path*", destination: `${apiOrigin}/reports/:path*` },
+      // Integrations & Settings — no frontend page at /integrations, so a
+      // blanket rewrite here is safe.
+      { source: "/integrations/:path*", destination: `${apiOrigin}/integrations/:path*` },
       { source: "/health", destination: `${apiOrigin}/health` },
       { source: "/webhooks/:path*", destination: `${apiOrigin}/webhooks/:path*` },
     ];

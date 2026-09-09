@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Users, ShieldCheck, ClipboardList, Gift, Image as ImageIcon, ScrollText, CalendarHeart, Wrench, BarChart3, LogOut, X } from "lucide-react";
+import { Users, ShieldCheck, ClipboardList, Gift, Image as ImageIcon, ScrollText, CalendarHeart, Wrench, BarChart3, Plug, LogOut, X } from "lucide-react";
 import { useStaff, staffHasAnyRole } from "@/contexts/staff-context";
 import { API_URL } from "@/lib/api";
 
@@ -23,6 +23,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/staff/data-requests", label: "GDPR Requests", icon: ClipboardList, allowedRoles: ["Super Administrator", "Member Support"] },
   { href: "/staff/audit-log", label: "Audit Log", icon: ScrollText, allowedRoles: ["Super Administrator"] },
   { href: "/staff/reports", label: "Reports & Analytics", icon: BarChart3, allowedRoles: ["Analytics Viewer"] },
+  { href: "/staff/integrations", label: "Integrations & Settings", icon: Plug, allowedRoles: ["Technical Administrator"] },
 ];
 
 export default function StaffSidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
