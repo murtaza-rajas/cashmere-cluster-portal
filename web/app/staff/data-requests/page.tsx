@@ -21,6 +21,7 @@ export default function DataRequestsPage() {
   >({ status: "loading" });
   const [reasonById, setReasonById] = useState<Record<string, string>>({});
   const [completingId, setCompletingId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   function load() {
     fetchPendingDataRequests()
@@ -40,9 +41,21 @@ export default function DataRequestsPage() {
 
   async function handleComplete(id: string) {
     setCompletingId(id);
+    setActionError(null);
     try {
       await completeDataRequest(id, reasonById[id]);
       load();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Something went wrong";
+      if (message.includes("409")) {
+        // Someone/something else already completed this one since the list
+        // was last fetched — a stale list, not a real failure. Refresh so
+        // it drops off rather than crashing the page on it.
+        setActionError("That request was already marked complete — the list has been refreshed.");
+        load();
+      } else {
+        setActionError(`Could not mark this request complete (${message}).`);
+      }
     } finally {
       setCompletingId(null);
     }
@@ -54,6 +67,15 @@ export default function DataRequestsPage() {
         <h1 className="font-serif text-3xl tracking-tight text-cashmere-text">GDPR Requests</h1>
         <p className="mt-1 text-cashmere-text-muted">Pending member data access requests, oldest first.</p>
       </div>
+
+      {actionError && (
+        <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+          {actionError}{" "}
+          <button onClick={() => setActionError(null)} className="ml-2 underline">
+            Dismiss
+          </button>
+        </p>
+      )}
 
       {state.status === "loading" && <p className="text-cashmere-text-muted">Loading…</p>}
       {state.status === "error" && (
