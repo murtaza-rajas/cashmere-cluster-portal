@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Users, ShieldCheck, ClipboardList, Gift, Image as ImageIcon, ScrollText, CalendarHeart, Wrench, BarChart3, Plug, LogOut, X } from "lucide-react";
+import { LayoutDashboard, Users, ShieldCheck, ClipboardList, Gift, Image as ImageIcon, ScrollText, CalendarHeart, Wrench, BarChart3, Plug, LogOut, X } from "lucide-react";
 import { useStaff, staffHasAnyRole } from "@/contexts/staff-context";
 import { API_URL } from "@/lib/api";
 
@@ -12,6 +12,12 @@ interface NavItem {
   icon: typeof Users;
   allowedRoles: string[];
 }
+
+// Not run through the role filter below — /staff itself has no @Roles()
+// gate (any authenticated staff member can view their own overview), so
+// this always shows, unlike every other item here which is gated to
+// whichever role(s) its destination actually requires.
+const DASHBOARD_ITEM = { href: "/staff", label: "Dashboard", icon: LayoutDashboard };
 
 const NAV_ITEMS: NavItem[] = [
   { href: "/staff/directory", label: "Staff & Roles", icon: ShieldCheck, allowedRoles: ["Super Administrator"] },
@@ -57,7 +63,7 @@ export default function StaffSidebar({ open, onClose }: { open: boolean; onClose
             {navItems.length === 0 && (
               <p className="px-3 py-2 text-sm text-white/50">No admin areas available for your role.</p>
             )}
-            {navItems.map(({ href, label, icon: Icon }) => {
+            {[DASHBOARD_ITEM, ...navItems].map(({ href, label, icon: Icon }) => {
               const active = pathname === href;
               return (
                 <Link
