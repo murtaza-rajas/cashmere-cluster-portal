@@ -458,3 +458,63 @@ export async function fetchIntegrationsStatus(): Promise<IntegrationsStatus> {
   if (!res.ok) throw new Error(`Unexpected response fetching integrations status: ${res.status}`);
   return res.json();
 }
+
+export interface DashboardStatEntry {
+  count: number;
+  deltaPercent: number | null;
+}
+export interface DashboardStats {
+  total: DashboardStatEntry;
+  byTier: Record<string, DashboardStatEntry>;
+}
+export interface DashboardGrowthPoint {
+  periodStart: string;
+  total: number;
+  byTier: Record<string, number>;
+}
+export interface DashboardRecentMember {
+  id: string;
+  name: string;
+  tier: string;
+  region: string;
+  status: string;
+  joinedAt: string;
+}
+export interface DashboardActivityItem {
+  type: "member_joined" | "order_received";
+  message: string;
+  timestamp: string;
+}
+export interface DashboardPendingTasks {
+  gdprRequestsPending: number;
+}
+
+export async function fetchDashboardStats(): Promise<DashboardStats> {
+  const res = await apiFetch("/staff-dashboard/stats");
+  if (!res.ok) throw new Error(`Unexpected response fetching dashboard stats: ${res.status}`);
+  return res.json();
+}
+
+export async function fetchDashboardGrowth(months: number): Promise<DashboardGrowthPoint[]> {
+  const res = await apiFetch(`/staff-dashboard/growth?months=${months}`);
+  if (!res.ok) throw new Error(`Unexpected response fetching dashboard growth: ${res.status}`);
+  return res.json();
+}
+
+export async function fetchDashboardRecentMembers(limit = 5): Promise<DashboardRecentMember[]> {
+  const res = await apiFetch(`/staff-dashboard/recent-members?limit=${limit}`);
+  if (!res.ok) throw new Error(`Unexpected response fetching recent members: ${res.status}`);
+  return res.json();
+}
+
+export async function fetchDashboardRecentActivity(limit = 5): Promise<DashboardActivityItem[]> {
+  const res = await apiFetch(`/staff-dashboard/recent-activity?limit=${limit}`);
+  if (!res.ok) throw new Error(`Unexpected response fetching recent activity: ${res.status}`);
+  return res.json();
+}
+
+export async function fetchDashboardPendingTasks(): Promise<DashboardPendingTasks> {
+  const res = await apiFetch("/staff-dashboard/pending-tasks");
+  if (!res.ok) throw new Error(`Unexpected response fetching pending tasks: ${res.status}`);
+  return res.json();
+}

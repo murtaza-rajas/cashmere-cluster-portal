@@ -16,6 +16,7 @@ import { EventsModule } from './events/events.module';
 import { CareGuidesModule } from './care-guides/care-guides.module';
 import { ReportsModule } from './reports/reports.module';
 import { IntegrationsModule } from './integrations/integrations.module';
+import { StaffDashboardModule } from './staff-dashboard/staff-dashboard.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { IntegrationsModule } from './integrations/integrations.module';
     CareGuidesModule,
     ReportsModule,
     IntegrationsModule,
+    StaffDashboardModule,
   ],
   controllers: [AppController],
   providers: [AppService],
