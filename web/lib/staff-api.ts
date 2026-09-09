@@ -267,6 +267,86 @@ export async function deleteSiteImage(slot: SiteImageSlot, tier: MembershipTierV
   if (!res.ok) throw new Error(`Unexpected response removing image: ${res.status}`);
 }
 
+export interface StaffEvent {
+  id: string;
+  title: string;
+  description: string | null;
+  locationType: "IN_PERSON" | "ONLINE";
+  location: string | null;
+  startsAt: string | null;
+  registrationUrl: string | null;
+  imageUrl: string | null;
+  tiers: MembershipTierValue[];
+  active: boolean;
+  sortOrder: number;
+  createdAt: string;
+}
+
+export interface EventInput {
+  title: string;
+  description?: string;
+  locationType: "IN_PERSON" | "ONLINE";
+  location?: string;
+  startsAt?: string;
+  registrationUrl?: string;
+  tiers: MembershipTierValue[];
+  sortOrder?: number;
+  active?: boolean;
+}
+
+export async function fetchEventCatalog(): Promise<StaffEvent[]> {
+  const res = await apiFetch("/event-catalog");
+  if (!res.ok) throw new Error(`Unexpected response fetching events: ${res.status}`);
+  return res.json();
+}
+
+export async function createEvent(dto: EventInput): Promise<StaffEvent> {
+  const res = await apiFetch("/event-catalog", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(dto),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.message ?? `Unexpected response creating event: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function updateEvent(id: string, dto: Partial<EventInput>): Promise<StaffEvent> {
+  const res = await apiFetch(`/event-catalog/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(dto),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.message ?? `Unexpected response updating event: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function deleteEvent(id: string): Promise<void> {
+  const res = await apiFetch(`/event-catalog/${id}`, { method: "DELETE" });
+  if (!res.ok) throw new Error(`Unexpected response deleting event: ${res.status}`);
+}
+
+export async function uploadEventImage(id: string, file: File): Promise<StaffEvent> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await apiFetch(`/event-catalog/${id}/image`, { method: "POST", body: formData });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.message ?? `Unexpected response uploading event image: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function deleteEventImage(id: string): Promise<void> {
+  const res = await apiFetch(`/event-catalog/${id}/image`, { method: "DELETE" });
+  if (!res.ok) throw new Error(`Unexpected response removing event image: ${res.status}`);
+}
+
 export async function fetchPendingDataRequests(): Promise<StaffDataSubjectRequest[]> {
   const res = await apiFetch("/data-subject-requests/pending");
   if (!res.ok) throw new Error(`Unexpected response fetching pending requests: ${res.status}`);

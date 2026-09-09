@@ -1,0 +1,187 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { promises as fs } from 'fs';
+import { join, extname } from 'path';
+import { randomUUID } from 'crypto';
+import { PrismaService } from '../prisma/prisma.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
+import { MembershipTier } from '@prisma/client';
+import { CreateEventDto } from './dto/create-event.dto';
+import { UpdateEventDto } from './dto/update-event.dto';
+
+const UPLOAD_DIR = join(process.cwd(), 'uploads', 'events');
+const PUBLIC_PREFIX = '/uploads/events';
+
+@Injectable()
+export class EventsService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditLog: AuditLogService,
+  ) {}
+
+  // Staff-facing: every event regardless of active/tier, same reasoning as
+  // BenefitsService.findAllForStaff — a draft or currently-inactive event is
+  // still visible to edit.
+  findAllForStaff() {
+    return this.prisma.event.findMany({
+      orderBy: [{ sortOrder: 'asc' }, { startsAt: 'asc' }],
+    });
+  }
+
+  async create(dto: CreateEventDto, staffUserId: string) {
+    const created = await this.prisma.event.create({
+      data: {
+        title: dto.title,
+        description: dto.description,
+        locationType: dto.locationType,
+        location: dto.location,
+        startsAt: dto.startsAt ? new Date(dto.startsAt) : undefined,
+        registrationUrl: dto.registrationUrl,
+        tiers: dto.tiers,
+        sortOrder: dto.sortOrder ?? 0,
+        active: dto.active ?? true,
+        createdById: staffUserId,
+      },
+    });
+
+    await this.auditLog.log({
+      actorStaffUserId: staffUserId,
+      action: 'event.created',
+      targetType: 'Event',
+      targetId: created.id,
+      metadata: { title: created.title },
+    });
+
+    return created;
+  }
+
+  async update(id: string, dto: UpdateEventDto, staffUserId: string) {
+    const existing = await this.findOrThrow(id);
+
+    const updated = await this.prisma.event.update({
+      where: { id },
+      data: {
+        title: dto.title,
+        description: dto.description,
+        locationType: dto.locationType,
+        location: dto.location,
+        startsAt: dto.startsAt ? new Date(dto.startsAt) : undefined,
+        registrationUrl: dto.registrationUrl,
+        tiers: dto.tiers,
+        sortOrder: dto.sortOrder,
+        active: dto.active,
+      },
+    });
+
+    await this.auditLog.log({
+      actorStaffUserId: staffUserId,
+      action: 'event.updated',
+      targetType: 'Event',
+      targetId: updated.id,
+      metadata: { before: existing, after: updated },
+    });
+
+    return updated;
+  }
+
+  async remove(id: string, staffUserId: string) {
+    const existing = await this.findOrThrow(id);
+
+    await this.prisma.event.delete({ where: { id } });
+    if (existing.imageUrl) {
+      await this.deletePhysicalFile(existing.imageUrl);
+    }
+
+    await this.auditLog.log({
+      actorStaffUserId: staffUserId,
+      action: 'event.deleted',
+      targetType: 'Event',
+      targetId: id,
+      metadata: { title: existing.title },
+    });
+
+    return { id };
+  }
+
+  // Uploading again replaces the existing photo — same pattern as
+  // SiteImagesService.upsert: write the new file and commit the DB row
+  // before deleting the old physical file, so a failure partway through
+  // never leaves the DB pointing at a file that's already gone.
+  async uploadImage(
+    id: string,
+    file: Express.Multer.File,
+    staffUserId: string,
+  ) {
+    const existing = await this.findOrThrow(id);
+
+    await fs.mkdir(UPLOAD_DIR, { recursive: true });
+    const filename = `${id}-${randomUUID()}${extname(file.originalname)}`;
+    await fs.writeFile(join(UPLOAD_DIR, filename), file.buffer);
+    const imageUrl = `${PUBLIC_PREFIX}/${filename}`;
+
+    const updated = await this.prisma.event.update({
+      where: { id },
+      data: { imageUrl },
+    });
+
+    if (existing.imageUrl) {
+      await this.deletePhysicalFile(existing.imageUrl);
+    }
+
+    await this.auditLog.log({
+      actorStaffUserId: staffUserId,
+      action: existing.imageUrl
+        ? 'event.image_replaced'
+        : 'event.image_uploaded',
+      targetType: 'Event',
+      targetId: id,
+    });
+
+    return updated;
+  }
+
+  async removeImage(id: string, staffUserId: string) {
+    const existing = await this.findOrThrow(id);
+    if (!existing.imageUrl) {
+      return existing;
+    }
+
+    const updated = await this.prisma.event.update({
+      where: { id },
+      data: { imageUrl: null },
+    });
+    await this.deletePhysicalFile(existing.imageUrl);
+
+    await this.auditLog.log({
+      actorStaffUserId: staffUserId,
+      action: 'event.image_removed',
+      targetType: 'Event',
+      targetId: id,
+    });
+
+    return updated;
+  }
+
+  // Member-facing: only active events visible to the member's own tier,
+  // soonest first — same convention as BenefitsService.findForMember for the
+  // tier scoping, but ordered by start date since "what's coming up next" is
+  // what a member actually wants from this page.
+  findForMember(tier: MembershipTier) {
+    return this.prisma.event.findMany({
+      where: { active: true, tiers: { has: tier } },
+      orderBy: [{ sortOrder: 'asc' }, { startsAt: 'asc' }],
+    });
+  }
+
+  private async findOrThrow(id: string) {
+    const existing = await this.prisma.event.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundException('Event not found');
+    }
+    return existing;
+  }
+
+  private async deletePhysicalFile(url: string): Promise<void> {
+    const relative = url.startsWith('/') ? url.slice(1) : url;
+    await fs.unlink(join(process.cwd(), relative)).catch(() => undefined);
+  }
+}

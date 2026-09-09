@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Users, ShieldCheck, ClipboardList, Gift, Image as ImageIcon, ScrollText, LogOut, X } from "lucide-react";
+import { Users, ShieldCheck, ClipboardList, Gift, Image as ImageIcon, ScrollText, CalendarHeart, LogOut, X } from "lucide-react";
 import { useStaff, staffHasAnyRole } from "@/contexts/staff-context";
 import { API_URL } from "@/lib/api";
 
@@ -18,6 +18,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/staff/members", label: "Members & Users", icon: Users, allowedRoles: ["Club Manager", "Member Support"] },
   { href: "/staff/benefits", label: "Offers & Benefits", icon: Gift, allowedRoles: ["Club Manager"] },
   { href: "/staff/images", label: "Site Images", icon: ImageIcon, allowedRoles: ["Club Manager", "Content Manager"] },
+  { href: "/staff/events", label: "Events & Invitations", icon: CalendarHeart, allowedRoles: ["Event Manager"] },
   { href: "/staff/data-requests", label: "GDPR Requests", icon: ClipboardList, allowedRoles: ["Super Administrator", "Member Support"] },
   { href: "/staff/audit-log", label: "Audit Log", icon: ScrollText, allowedRoles: ["Super Administrator"] },
 ];

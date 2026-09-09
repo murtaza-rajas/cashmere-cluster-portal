@@ -20,6 +20,7 @@ import { WishlistService } from '../wishlist/wishlist.service';
 import { AddWishlistItemDto } from '../wishlist/dto/add-wishlist-item.dto';
 import { BenefitsService } from '../benefits/benefits.service';
 import { SiteImagesService } from '../site-images/site-images.service';
+import { EventsService } from '../events/events.service';
 import { Member, BenefitType } from '@prisma/client';
 
 @Controller('members')
@@ -30,6 +31,7 @@ export class MembersController {
     private readonly wishlist: WishlistService,
     private readonly benefits: BenefitsService,
     private readonly siteImages: SiteImagesService,
+    private readonly events: EventsService,
   ) {}
 
   // What the frontend calls on load to check login state — 401 if no/invalid
@@ -117,6 +119,15 @@ export class MembersController {
   @Get('me/site-images')
   mySiteImages(@Req() req: Request) {
     return this.siteImages.findForMember((req.user as Member).membershipTier);
+  }
+
+  // Invitations & Events — real, staff-curated events (see EventsService),
+  // replacing the two hardcoded dummy events. Filtered to the member's own
+  // tier and active rows only.
+  @UseGuards(JwtAuthGuard)
+  @Get('me/events')
+  myEvents(@Req() req: Request) {
+    return this.events.findForMember((req.user as Member).membershipTier);
   }
 
   // Members & Users admin (Milestone 5) — staff-facing directory/search.

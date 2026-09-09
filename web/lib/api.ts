@@ -126,6 +126,25 @@ export async function fetchMySiteImages(): Promise<SiteImages> {
   return res.json();
 }
 
+// A single event as shown to a member — already filtered server-side to
+// active rows visible to the member's own tier, soonest first.
+export interface MemberEvent {
+  id: string;
+  title: string;
+  description: string | null;
+  locationType: "IN_PERSON" | "ONLINE";
+  location: string | null;
+  startsAt: string | null;
+  registrationUrl: string | null;
+  imageUrl: string | null;
+}
+
+export async function fetchMyEvents(): Promise<MemberEvent[]> {
+  const res = await apiFetch("/members/me/events");
+  if (!res.ok) throw new Error(`Unexpected response fetching events: ${res.status}`);
+  return res.json();
+}
+
 export async function fetchWishlist(): Promise<WishlistItem[]> {
   const res = await apiFetch("/members/me/wishlist");
   if (!res.ok) throw new Error(`Unexpected response fetching wishlist: ${res.status}`);

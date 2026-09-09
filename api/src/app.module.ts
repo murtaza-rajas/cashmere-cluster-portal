@@ -12,6 +12,7 @@ import { WebhooksModule } from './webhooks/webhooks.module';
 import { DataSubjectRequestsModule } from './data-subject-requests/data-subject-requests.module';
 import { BenefitsModule } from './benefits/benefits.module';
 import { SiteImagesModule } from './site-images/site-images.module';
+import { EventsModule } from './events/events.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { SiteImagesModule } from './site-images/site-images.module';
     DataSubjectRequestsModule,
     BenefitsModule,
     SiteImagesModule,
+    EventsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

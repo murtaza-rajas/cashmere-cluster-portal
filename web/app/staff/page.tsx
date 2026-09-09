@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ShieldCheck, ClipboardList, Users, Gift, Image as ImageIcon, ScrollText } from "lucide-react";
+import { ShieldCheck, ClipboardList, Users, Gift, Image as ImageIcon, ScrollText, CalendarHeart } from "lucide-react";
 import { useStaff, staffHasAnyRole } from "@/contexts/staff-context";
 
 export default function StaffHomePage() {
@@ -60,6 +60,18 @@ export default function StaffHomePage() {
             <div>
               <p className="font-medium text-cashmere-text">Site Images</p>
               <p className="text-sm text-cashmere-text-muted">Upload tier-specific hero photos</p>
+            </div>
+          </Link>
+        )}
+        {staffHasAnyRole(staff, ["Event Manager"]) && (
+          <Link
+            href="/staff/events"
+            className="flex items-center gap-3 rounded-2xl border border-cashmere-border bg-white p-5 transition-colors hover:border-cashmere-accent/40"
+          >
+            <CalendarHeart size={20} strokeWidth={1.5} className="text-cashmere-accent" />
+            <div>
+              <p className="font-medium text-cashmere-text">Events &amp; Invitations</p>
+              <p className="text-sm text-cashmere-text-muted">Create and manage member events</p>
             </div>
           </Link>
         )}

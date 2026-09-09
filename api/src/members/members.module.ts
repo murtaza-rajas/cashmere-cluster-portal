@@ -6,6 +6,7 @@ import { WishlistModule } from '../wishlist/wishlist.module';
 import { StaffModule } from '../staff/staff.module';
 import { BenefitsModule } from '../benefits/benefits.module';
 import { SiteImagesModule } from '../site-images/site-images.module';
+import { EventsModule } from '../events/events.module';
 
 @Module({
   // StaffModule needed for the Members & Users admin routes below (StaffAuthGuard
@@ -18,6 +19,7 @@ import { SiteImagesModule } from '../site-images/site-images.module';
     StaffModule,
     BenefitsModule,
     SiteImagesModule,
+    EventsModule,
   ],
   controllers: [MembersController],
   providers: [MembersService],

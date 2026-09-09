@@ -188,6 +188,7 @@ model StaffUser {
   auditLogEntries       AuditLog[]            @relation("AuditLogActor")
   createdBenefits       Benefit[]             @relation("BenefitsCreatedBy")
   uploadedSiteImages    SiteImage[]           @relation("SiteImagesUploadedBy")
+  createdEvents         Event[]               @relation("EventsCreatedBy")
 
   @@index([email])
 }
@@ -344,6 +345,65 @@ model SiteImage {
   // One image per (slot, tier) — uploading again replaces it (old file
   // deleted from disk), never adds a second row.
   @@unique([slot, tier])
+}
+
+// ---------------------------------------------------------------------------
+// Events & Invitations (Milestone 5 content curation)
+// ---------------------------------------------------------------------------
+// Replaces the two hardcoded dummy events on the member-facing Invitations &
+// Events page (client's own suggested placeholders, PROJECT_TRACKER.md
+// Section 3c — "Mongolia Evening", "Meet the Designer") with real,
+// staff-manageable rows. Fields match what the client asked for: image,
+// title, date/time, location-or-online, description, eligible tiers,
+// registration link.
+
+enum EventLocationType {
+  IN_PERSON
+  ONLINE
+}
+
+model Event {
+  id String @id @default(uuid())
+
+  title       String
+  description String?
+
+  locationType EventLocationType
+  // Free text either way — a venue address for IN_PERSON, or a platform name
+  // ("Zoom", "Instagram Live") for ONLINE. Optional: the client's own dummy
+  // events shipped with only "In person"/"Online" and no further detail.
+  location String?
+
+  // Null renders the same honest "Date to be announced" placeholder the
+  // hardcoded dummy events already used — not every event has a confirmed
+  // date the moment staff start drafting it.
+  startsAt DateTime?
+
+  // Null renders the same honest disabled "Registration opening soon" state
+  // already shipped — Phase 1 registration is just an external link (client's
+  // own words), not a booking system built here.
+  registrationUrl String?
+
+  // Uploaded photo — same disk-storage pattern as SiteImage (see its comment
+  // on the local-disk vs. object-storage tradeoff). Null renders the existing
+  // icon placeholder, same as the hardcoded events did with no real
+  // photography yet.
+  imageUrl String?
+
+  // Which tiers see this event. Empty = draft, visible to nobody — same
+  // convention as Benefit.tiers, so a half-configured event never leaks.
+  tiers MembershipTier[]
+
+  active    Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  createdById String?
+  createdBy   StaffUser? @relation("EventsCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([active])
 }
 
 // ---------------------------------------------------------------------------
