@@ -17,6 +17,7 @@ import { StaffAuthGuard } from '../staff/guards/staff-auth.guard';
 import { RolesGuard } from '../staff/guards/roles.guard';
 import { Roles } from '../staff/decorators/roles.decorator';
 import { SiteImagesService } from './site-images.service';
+import { imageOnlyFileFilter } from '../common/image-upload.util';
 import { MembershipTier, SiteImageSlot } from '@prisma/client';
 
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
@@ -46,16 +47,7 @@ export class SiteImagesController {
       // same place, rather than splitting that logic across two layers.
       storage: memoryStorage(),
       limits: { fileSize: MAX_FILE_SIZE_BYTES },
-      fileFilter: (_req, file, callback) => {
-        if (!file.mimetype.startsWith('image/')) {
-          callback(
-            new BadRequestException('Only image files are allowed'),
-            false,
-          );
-          return;
-        }
-        callback(null, true);
-      },
+      fileFilter: imageOnlyFileFilter,
     }),
   )
   async upload(

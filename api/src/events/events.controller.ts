@@ -19,6 +19,7 @@ import { StaffAuthGuard } from '../staff/guards/staff-auth.guard';
 import { RolesGuard } from '../staff/guards/roles.guard';
 import { Roles } from '../staff/decorators/roles.decorator';
 import { EventsService } from './events.service';
+import { imageOnlyFileFilter } from '../common/image-upload.util';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 
@@ -67,16 +68,7 @@ export class EventsController {
       // service owns writing/replacing the file.
       storage: memoryStorage(),
       limits: { fileSize: MAX_FILE_SIZE_BYTES },
-      fileFilter: (_req, file, callback) => {
-        if (!file.mimetype.startsWith('image/')) {
-          callback(
-            new BadRequestException('Only image files are allowed'),
-            false,
-          );
-          return;
-        }
-        callback(null, true);
-      },
+      fileFilter: imageOnlyFileFilter,
     }),
   )
   async uploadImage(

@@ -9,6 +9,7 @@ import { MembersService } from '../src/members/members.service';
 import { createTestApp } from './test-app.util';
 
 const FIXTURE_IMAGE = join(__dirname, 'fixtures', 'test-image.jpg');
+const FIXTURE_SVG = join(__dirname, 'fixtures', 'test-payload.svg');
 
 // Events & Invitations (Milestone 5): staff CRUD + image upload at
 // /event-catalog (Event Manager — see events.controller.ts's comment), and
@@ -190,6 +191,29 @@ describe('Event catalog (e2e)', () => {
       where: { id: created.body.id },
     });
     expect(finalRow!.imageUrl).toBeNull();
+  });
+
+  // Regression test for a real stored-XSS finding (2026-09-09 security
+  // review) — see the matching test in site-images.e2e-spec.ts for the full
+  // explanation. Same fileFilter util, same fix, exercised here too since
+  // this is a separate upload endpoint.
+  it('POST /event-catalog/:id/image rejects an SVG upload (stored-XSS vector) with 400', async () => {
+    const eventManagerCookie = await staffCookieFor('Event Manager');
+    const created = await request(app.getHttpServer())
+      .post('/event-catalog')
+      .set('Cookie', eventManagerCookie)
+      .send({
+        title: `SVG Upload Test ${Date.now()}`,
+        locationType: 'IN_PERSON',
+        tiers: ['FOUNDING'],
+      })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post(`/event-catalog/${created.body.id}/image`)
+      .set('Cookie', eventManagerCookie)
+      .attach('file', FIXTURE_SVG, { contentType: 'image/svg+xml' })
+      .expect(400);
   });
 
   it("GET /members/me/events only returns active events visible to the member's own tier", async () => {

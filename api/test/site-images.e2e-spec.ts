@@ -9,6 +9,7 @@ import { MembersService } from '../src/members/members.service';
 import { createTestApp } from './test-app.util';
 
 const FIXTURE_IMAGE = join(__dirname, 'fixtures', 'test-image.jpg');
+const FIXTURE_SVG = join(__dirname, 'fixtures', 'test-payload.svg');
 
 // Tier-specific hero photos (Milestone 5): staff upload/replace/remove at
 // /site-image-catalog/:slot/:tier (Club Manager or Content Manager), and the
@@ -96,6 +97,21 @@ describe('Site image catalog (e2e)', () => {
       where: { action: 'site_image.uploaded', targetId: uploaded.body.id },
     });
     expect(auditEntries).toHaveLength(1);
+  });
+
+  // Regression test for a real stored-XSS finding (2026-09-09 security review):
+  // an SVG can carry <script>/onload and a browser executes it when the file
+  // is opened directly — confirmed live before this fix, with a real
+  // Playwright navigation to a served payload. The fileFilter now allowlists
+  // only raster formats, not just anything whose declared mimetype starts
+  // with "image/".
+  it('POST /site-image-catalog/:slot/:tier rejects an SVG upload (stored-XSS vector) with 400', async () => {
+    const clubManagerCookie = await staffCookieFor('Club Manager');
+    await request(app.getHttpServer())
+      .post('/site-image-catalog/DASHBOARD_HERO/MONGOLIA')
+      .set('Cookie', clubManagerCookie)
+      .attach('file', FIXTURE_SVG, { contentType: 'image/svg+xml' })
+      .expect(400);
   });
 
   it('uploading again for the same (slot, tier) replaces the row and deletes the old file', async () => {

@@ -3,6 +3,7 @@ import { ValidationPipe } from '@nestjs/common';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 import cookieParser from 'cookie-parser';
+import type { Response } from 'express';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
@@ -23,7 +24,15 @@ async function bootstrap() {
   // sensitive personal data, matching how web/public/images is already served
   // openly. Local disk for now (see schema.prisma's SiteImage comment on
   // migrating to real object storage before a multi-instance deployment).
-  app.useStaticAssets(join(process.cwd(), 'uploads'), { prefix: '/uploads/' });
+  // X-Content-Type-Options: nosniff — defense-in-depth alongside the upload-side
+  // fileFilter (see common/image-upload.util.ts) that now rejects SVG/anything
+  // else a browser could execute as script; this stops a browser from ever
+  // re-sniffing a served file's content-type away from what's declared.
+  app.useStaticAssets(join(process.cwd(), 'uploads'), {
+    prefix: '/uploads/',
+    setHeaders: (res: Response) =>
+      res.setHeader('X-Content-Type-Options', 'nosniff'),
+  });
 
   // class-validator/class-transformer were installed but nothing was actually
   // enforcing DTO validation — every request body was accepted as-is. whitelist
