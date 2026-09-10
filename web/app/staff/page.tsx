@@ -19,6 +19,7 @@ import {
   ChevronRight,
   Heart,
   ShoppingBag,
+  Mountain,
 } from "lucide-react";
 import { useStaff, staffHasAnyRole } from "@/contexts/staff-context";
 import {
@@ -314,6 +315,13 @@ export default function StaffDashboardPage() {
           description="Plan and manage events, webinars and invitations."
           ctaLabel="Manage Events"
           href={staffHasAnyRole(staff, ["Event Manager"]) ? "/staff/events" : undefined}
+        />
+        <FeatureCard
+          icon={Mountain}
+          title="Mongolia"
+          description="Manage Stories & News for Cashmere Lovers Club Mongolia."
+          ctaLabel="Manage Mongolia"
+          href={staffHasAnyRole(staff, ["Content Manager"]) ? "/staff/mongolia" : undefined}
         />
       </div>
     </div>

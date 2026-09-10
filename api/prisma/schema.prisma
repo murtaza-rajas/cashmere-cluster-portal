@@ -193,6 +193,7 @@ model StaffUser {
   createdEvents         Event[]               @relation("EventsCreatedBy")
   updatedCareGuides     CareGuide[]           @relation("CareGuidesUpdatedBy")
   createdDesigns        Design[]              @relation("DesignsCreatedBy")
+  createdMongoliaStories MongoliaStory[]       @relation("MongoliaStoriesCreatedBy")
 
   @@index([email])
 }
@@ -504,6 +505,52 @@ model DesignVote {
   createdAt DateTime @default(now())
 
   @@unique([designId, memberId])
+}
+
+// Cashmere Lovers Club Mongolia (client emails 2026-09-07/08/09) — a
+// deliberately separate section, not a translated copy of the international
+// portal (client's own words). First real content type built for it: Stories
+// & News, the item named first in the client's confirmed content list for
+// both Mongolia levels (2026-09-09 email, "Access Structure for the Mongolia
+// Section"). Producer profiles, the photo archive (with submission +
+// moderation), voting, and Mongolia-specific offers are real, named, later
+// pieces of the same section — not built yet, tracked separately in
+// PROJECT_TRACKER.md Section 3d, not guessed at here.
+//
+// Only two Mongolia levels exist (Mongolia Newsletter / Mongolia Founding
+// Member — modeled as membershipTier NEWSLETTER/MONGOLIA with region MONGOLIA,
+// per the 2026-09-01/08 architecture decisions, no schema change needed for
+// that part). The client's content list gives Newsletter "selected stories"
+// and Founding "full" story access — modeled as foundingOnly rather than a
+// tiers array (unlike Benefit/Event's 4-tier international model) since
+// there are genuinely only two possible audiences here.
+model MongoliaStory {
+  id String @id @default(uuid())
+
+  title   String
+  excerpt String?
+  body    String?
+
+  // Freeform, staff-provided — the client's email didn't give a fixed
+  // category list for Mongolia stories, same reasoning as Design.round.
+  category String?
+
+  heroImageUrl String?
+
+  // false = visible to both Mongolia levels ("selected stories" for
+  // Newsletter). true = Founding-only ("full" story access).
+  foundingOnly Boolean @default(false)
+
+  active    Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  createdById String?
+  createdBy   StaffUser? @relation("MongoliaStoriesCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([active])
 }
 
 // ---------------------------------------------------------------------------

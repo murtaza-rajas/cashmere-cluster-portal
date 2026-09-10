@@ -33,6 +33,17 @@ export default function MemberLayout({
           router.replace("/");
           return;
         }
+        // Region-driven section split (client email 2026-09-08: "the
+        // simplest practical solution" — not full translation, just
+        // routing). Cashmere Lovers Club Mongolia is a deliberately
+        // separate section (its own nav, its own content), not a reskin of
+        // the international portal, so a Mongolia-region member never sees
+        // this layout at all — same "land in the Mongolia-themed section"
+        // behavior for every route under here, not just the dashboard.
+        if (member.region === "MONGOLIA") {
+          router.replace("/mongolia");
+          return;
+        }
         setStatus({ state: "ready", member });
       })
       .catch((err: Error) =>

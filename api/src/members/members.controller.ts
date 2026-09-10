@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   Param,
   Post,
@@ -23,6 +24,7 @@ import { SiteImagesService } from '../site-images/site-images.service';
 import { EventsService } from '../events/events.service';
 import { CareGuidesService } from '../care-guides/care-guides.service';
 import { DesignsService } from '../designs/designs.service';
+import { MongoliaService } from '../mongolia/mongolia.service';
 import { Member, BenefitType } from '@prisma/client';
 
 @Controller('members')
@@ -36,6 +38,7 @@ export class MembersController {
     private readonly events: EventsService,
     private readonly careGuides: CareGuidesService,
     private readonly designs: DesignsService,
+    private readonly mongolia: MongoliaService,
   ) {}
 
   // What the frontend calls on load to check login state — 401 if no/invalid
@@ -179,6 +182,22 @@ export class MembersController {
   @Delete('me/designs/:id/vote')
   unvoteDesign(@Param('id') id: string, @Req() req: Request) {
     return this.designs.removeVote(id, (req.user as Member).id);
+  }
+
+  // Cashmere Lovers Club Mongolia — real region gate, not just hidden UI:
+  // a non-Mongolia member hitting this directly gets a real 403, same
+  // "must be blocked even via direct URL" discipline as every other
+  // tier/region-gated route in this app.
+  @UseGuards(JwtAuthGuard)
+  @Get('me/mongolia/stories')
+  myMongoliaStories(@Req() req: Request) {
+    const member = req.user as Member;
+    if (member.region !== 'MONGOLIA') {
+      throw new ForbiddenException(
+        'Cashmere Lovers Club Mongolia is only available to Mongolia members',
+      );
+    }
+    return this.mongolia.findStoriesForMember(member.membershipTier);
   }
 
   // Members & Users admin (Milestone 5) — staff-facing directory/search.

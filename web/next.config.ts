@@ -83,6 +83,9 @@ const nextConfig: NextConfig = {
       // Founders' Design Lab staff CRUD — no frontend page at
       // /design-catalog, so a blanket rewrite here is safe.
       { source: "/design-catalog/:path*", destination: `${apiOrigin}/design-catalog/:path*` },
+      // Cashmere Lovers Club Mongolia staff CRUD — no frontend page at
+      // /mongolia-catalog, so a blanket rewrite here is safe.
+      { source: "/mongolia-catalog/:path*", destination: `${apiOrigin}/mongolia-catalog/:path*` },
       { source: "/health", destination: `${apiOrigin}/health` },
       { source: "/webhooks/:path*", destination: `${apiOrigin}/webhooks/:path*` },
     ];

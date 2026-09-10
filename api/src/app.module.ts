@@ -18,6 +18,7 @@ import { ReportsModule } from './reports/reports.module';
 import { IntegrationsModule } from './integrations/integrations.module';
 import { StaffDashboardModule } from './staff-dashboard/staff-dashboard.module';
 import { DesignsModule } from './designs/designs.module';
+import { MongoliaModule } from './mongolia/mongolia.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { DesignsModule } from './designs/designs.module';
     IntegrationsModule,
     StaffDashboardModule,
     DesignsModule,
+    MongoliaModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -260,3 +260,22 @@ export function membershipTierLabel(
   if (tier === "ANNUAL") return "Annual Member";
   return "Newsletter Subscriber";
 }
+
+// Cashmere Lovers Club Mongolia — Stories. Server-side already restricts
+// this to real Mongolia-region members (403 otherwise) and filters
+// foundingOnly stories to Mongolia Founding Members only.
+export interface MongoliaStory {
+  id: string;
+  title: string;
+  excerpt: string | null;
+  body: string | null;
+  category: string | null;
+  heroImageUrl: string | null;
+  foundingOnly: boolean;
+}
+
+export async function fetchMyMongoliaStories(): Promise<MongoliaStory[]> {
+  const res = await apiFetch("/members/me/mongolia/stories");
+  if (!res.ok) throw new Error(`Unexpected response fetching Mongolia stories: ${res.status}`);
+  return res.json();
+}

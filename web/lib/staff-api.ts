@@ -599,3 +599,79 @@ export async function deleteDesignImage(id: string, slot: DesignImageSlot): Prom
   const res = await apiFetch(`/design-catalog/${id}/image/${slot}`, { method: "DELETE" });
   if (!res.ok) throw new Error(`Unexpected response removing design image: ${res.status}`);
 }
+
+export interface StaffMongoliaStory {
+  id: string;
+  title: string;
+  excerpt: string | null;
+  body: string | null;
+  category: string | null;
+  heroImageUrl: string | null;
+  foundingOnly: boolean;
+  active: boolean;
+  sortOrder: number;
+  createdAt: string;
+}
+
+export interface MongoliaStoryInput {
+  title: string;
+  excerpt?: string;
+  body?: string;
+  category?: string;
+  foundingOnly?: boolean;
+  sortOrder?: number;
+  active?: boolean;
+}
+
+export async function fetchMongoliaStoryCatalog(): Promise<StaffMongoliaStory[]> {
+  const res = await apiFetch("/mongolia-catalog/stories");
+  if (!res.ok) throw new Error(`Unexpected response fetching Mongolia stories: ${res.status}`);
+  return res.json();
+}
+
+export async function createMongoliaStory(dto: MongoliaStoryInput): Promise<StaffMongoliaStory> {
+  const res = await apiFetch("/mongolia-catalog/stories", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(dto),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.message ?? `Unexpected response creating Mongolia story: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function updateMongoliaStory(id: string, dto: Partial<MongoliaStoryInput>): Promise<StaffMongoliaStory> {
+  const res = await apiFetch(`/mongolia-catalog/stories/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(dto),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.message ?? `Unexpected response updating Mongolia story: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function deleteMongoliaStory(id: string): Promise<void> {
+  const res = await apiFetch(`/mongolia-catalog/stories/${id}`, { method: "DELETE" });
+  if (!res.ok) throw new Error(`Unexpected response deleting Mongolia story: ${res.status}`);
+}
+
+export async function uploadMongoliaStoryImage(id: string, file: File): Promise<StaffMongoliaStory> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await apiFetch(`/mongolia-catalog/stories/${id}/image`, { method: "POST", body: formData });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.message ?? `Unexpected response uploading Mongolia story image: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function deleteMongoliaStoryImage(id: string): Promise<void> {
+  const res = await apiFetch(`/mongolia-catalog/stories/${id}/image`, { method: "DELETE" });
+  if (!res.ok) throw new Error(`Unexpected response removing Mongolia story image: ${res.status}`);
+}
