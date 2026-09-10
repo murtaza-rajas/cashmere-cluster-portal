@@ -81,7 +81,7 @@ const NEWSLETTER_NAV_ITEMS: NavItem[] = [
   { href: "/wishlist", label: "Wishlist", icon: Heart },
   { href: "/explore-membership", label: "Explore Membership", icon: Sparkles },
   { href: "/profile", label: "Profile", icon: User },
-  { href: "/newsletter-settings", label: "Newsletter Settings", icon: Mail },
+  { href: "/settings", label: "Newsletter Settings", icon: Mail },
   { href: "/help", label: "Help & Support", icon: HelpCircle },
 ];
 
