@@ -43,7 +43,7 @@ export default function MongoliaHomePage() {
   }, []);
 
   return (
-    <div className="flex max-w-4xl flex-col gap-6">
+    <div className="flex w-full flex-col gap-6">
       {/* No approved Mongolia photography exists yet (same gap noted on the
           pre-login landing page and Dashboard hero) — a navy gradient
           stands in for the mockup's steppe/herder photography rather than
@@ -110,7 +110,7 @@ export default function MongoliaHomePage() {
         )}
 
         {state.status === "loaded" && state.stories.length > 0 && (
-          <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {state.stories.map((story) => (
               <div key={story.id} className="flex flex-col gap-3 rounded-2xl border border-cashmere-border bg-white p-5">
                 <div className="relative h-40 overflow-hidden rounded-xl bg-cashmere-sidebar/60">
@@ -161,7 +161,7 @@ export default function MongoliaHomePage() {
         )}
 
         {producerState.status === "loaded" && producerState.producers.length > 0 && (
-          <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {producerState.producers.map((producer) => (
               <div key={producer.id} className="flex flex-col gap-3 rounded-2xl border border-cashmere-border bg-white p-5">
                 <div className="relative h-40 overflow-hidden rounded-xl bg-cashmere-sidebar/60">
