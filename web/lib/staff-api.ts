@@ -675,3 +675,79 @@ export async function deleteMongoliaStoryImage(id: string): Promise<void> {
   const res = await apiFetch(`/mongolia-catalog/stories/${id}/image`, { method: "DELETE" });
   if (!res.ok) throw new Error(`Unexpected response removing Mongolia story image: ${res.status}`);
 }
+
+export interface StaffMongoliaProducer {
+  id: string;
+  name: string;
+  craft: string | null;
+  location: string | null;
+  story: string | null;
+  heroImageUrl: string | null;
+  foundingOnly: boolean;
+  active: boolean;
+  sortOrder: number;
+  createdAt: string;
+}
+
+export interface MongoliaProducerInput {
+  name: string;
+  craft?: string;
+  location?: string;
+  story?: string;
+  foundingOnly?: boolean;
+  sortOrder?: number;
+  active?: boolean;
+}
+
+export async function fetchMongoliaProducerCatalog(): Promise<StaffMongoliaProducer[]> {
+  const res = await apiFetch("/mongolia-catalog/producers");
+  if (!res.ok) throw new Error(`Unexpected response fetching Mongolia producers: ${res.status}`);
+  return res.json();
+}
+
+export async function createMongoliaProducer(dto: MongoliaProducerInput): Promise<StaffMongoliaProducer> {
+  const res = await apiFetch("/mongolia-catalog/producers", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(dto),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.message ?? `Unexpected response creating Mongolia producer: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function updateMongoliaProducer(id: string, dto: Partial<MongoliaProducerInput>): Promise<StaffMongoliaProducer> {
+  const res = await apiFetch(`/mongolia-catalog/producers/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(dto),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.message ?? `Unexpected response updating Mongolia producer: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function deleteMongoliaProducer(id: string): Promise<void> {
+  const res = await apiFetch(`/mongolia-catalog/producers/${id}`, { method: "DELETE" });
+  if (!res.ok) throw new Error(`Unexpected response deleting Mongolia producer: ${res.status}`);
+}
+
+export async function uploadMongoliaProducerImage(id: string, file: File): Promise<StaffMongoliaProducer> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await apiFetch(`/mongolia-catalog/producers/${id}/image`, { method: "POST", body: formData });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.message ?? `Unexpected response uploading Mongolia producer image: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function deleteMongoliaProducerImage(id: string): Promise<void> {
+  const res = await apiFetch(`/mongolia-catalog/producers/${id}/image`, { method: "DELETE" });
+  if (!res.ok) throw new Error(`Unexpected response removing Mongolia producer image: ${res.status}`);
+}

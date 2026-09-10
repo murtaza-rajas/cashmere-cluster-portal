@@ -194,6 +194,7 @@ model StaffUser {
   updatedCareGuides     CareGuide[]           @relation("CareGuidesUpdatedBy")
   createdDesigns        Design[]              @relation("DesignsCreatedBy")
   createdMongoliaStories MongoliaStory[]       @relation("MongoliaStoriesCreatedBy")
+  createdMongoliaProducers MongoliaProducer[]  @relation("MongoliaProducersCreatedBy")
 
   @@index([email])
 }
@@ -509,11 +510,12 @@ model DesignVote {
 
 // Cashmere Lovers Club Mongolia (client emails 2026-09-07/08/09) — a
 // deliberately separate section, not a translated copy of the international
-// portal (client's own words). First real content type built for it: Stories
-// & News, the item named first in the client's confirmed content list for
-// both Mongolia levels (2026-09-09 email, "Access Structure for the Mongolia
-// Section"). Producer profiles, the photo archive (with submission +
-// moderation), voting, and Mongolia-specific offers are real, named, later
+// portal (client's own words). Content types built so far: Stories & News,
+// then Producer profiles — both named in the client's confirmed content list
+// for both Mongolia levels (2026-09-09 email, "Access Structure for the
+// Mongolia Section"). The photo archive (with submission + moderation),
+// voting (on producers/community development — depends on producers
+// existing, built now), and Mongolia-specific offers are real, named, later
 // pieces of the same section — not built yet, tracked separately in
 // PROJECT_TRACKER.md Section 3d, not guessed at here.
 //
@@ -549,6 +551,33 @@ model MongoliaStory {
 
   createdById String?
   createdBy   StaffUser? @relation("MongoliaStoriesCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([active])
+}
+
+// Second Mongolia content type (client's 2026-09-09 content list: Newsletter
+// gets "selected producer content", Founding gets "full stories/producer
+// content") — same foundingOnly split as MongoliaStory, same reasoning.
+model MongoliaProducer {
+  id String @id @default(uuid())
+
+  name     String
+  craft    String? // e.g. "Cashmere herding", "Weaving" — freeform, no fixed list given
+  location String?
+  story    String?
+
+  heroImageUrl String?
+
+  foundingOnly Boolean @default(false)
+
+  active    Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  createdById String?
+  createdBy   StaffUser? @relation("MongoliaProducersCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
 
   @@index([active])
 }

@@ -279,3 +279,20 @@ export async function fetchMyMongoliaStories(): Promise<MongoliaStory[]> {
   if (!res.ok) throw new Error(`Unexpected response fetching Mongolia stories: ${res.status}`);
   return res.json();
 }
+
+// Second Mongolia content type, same server-side gating as MongoliaStory.
+export interface MongoliaProducer {
+  id: string;
+  name: string;
+  craft: string | null;
+  location: string | null;
+  story: string | null;
+  heroImageUrl: string | null;
+  foundingOnly: boolean;
+}
+
+export async function fetchMyMongoliaProducers(): Promise<MongoliaProducer[]> {
+  const res = await apiFetch("/members/me/mongolia/producers");
+  if (!res.ok) throw new Error(`Unexpected response fetching Mongolia producers: ${res.status}`);
+  return res.json();
+}

@@ -12,11 +12,12 @@ const FIXTURE_IMAGE = join(__dirname, 'fixtures', 'test-image.jpg');
 const FIXTURE_SVG = join(__dirname, 'fixtures', 'test-payload.svg');
 
 // Cashmere Lovers Club Mongolia (Milestone 5 scope addition, client emails
-// 2026-09-07/08/09): staff CRUD for Mongolia Stories at /mongolia-catalog
-// (Content Manager — see mongolia.controller.ts's comment), and the
-// member-facing read at /members/me/mongolia/stories, gated to real
-// Mongolia-region members only (both Mongolia levels can view; Founding-only
-// stories are hidden from Mongolia Newsletter).
+// 2026-09-07/08/09): staff CRUD for Mongolia Stories and Producer profiles
+// at /mongolia-catalog (Content Manager — see mongolia.controller.ts's
+// comment), and the member-facing reads at /members/me/mongolia/stories and
+// /members/me/mongolia/producers, gated to real Mongolia-region members only
+// (both Mongolia levels can view; Founding-only content is hidden from
+// Mongolia Newsletter).
 describe('Mongolia (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
@@ -187,5 +188,134 @@ describe('Mongolia (e2e)', () => {
       .expect(200);
     expect(foundingRes.body.some((s: { id: string }) => s.id === everyoneStory.body.id)).toBe(true);
     expect(foundingRes.body.some((s: { id: string }) => s.id === foundingOnlyStory.body.id)).toBe(true);
+  });
+
+  // Second Mongolia content type, same access rules — Producer profiles.
+  it('POST /mongolia-catalog/producers: 401 with no session, 403 for a role without access, 201 + audit trail for Content Manager', async () => {
+    await request(app.getHttpServer())
+      .post('/mongolia-catalog/producers')
+      .send({ name: 'Bat-Erdene Family Herders' })
+      .expect(401);
+
+    await request(app.getHttpServer())
+      .post('/mongolia-catalog/producers')
+      .set('Cookie', await staffCookieFor('Event Manager'))
+      .send({ name: 'Bat-Erdene Family Herders' })
+      .expect(403);
+
+    const contentManagerCookie = await staffCookieFor('Content Manager');
+    const created = await request(app.getHttpServer())
+      .post('/mongolia-catalog/producers')
+      .set('Cookie', contentManagerCookie)
+      .send({
+        name: 'Bat-Erdene Family Herders',
+        craft: 'Cashmere herding',
+        location: 'Ömnögovi Province',
+      })
+      .expect(201);
+
+    expect(created.body.active).toBe(true);
+    expect(created.body.foundingOnly).toBe(false);
+
+    const auditEntries = await prisma.auditLog.findMany({
+      where: { action: 'mongolia_producer.created', targetId: created.body.id },
+    });
+    expect(auditEntries).toHaveLength(1);
+  });
+
+  it('PATCH sets foundingOnly and updates fields on a producer; DELETE removes it and its image', async () => {
+    const contentManagerCookie = await staffCookieFor('Content Manager');
+    const created = await request(app.getHttpServer())
+      .post('/mongolia-catalog/producers')
+      .set('Cookie', contentManagerCookie)
+      .send({ name: 'Oyunaa Weaving Cooperative' })
+      .expect(201);
+
+    const updated = await request(app.getHttpServer())
+      .patch(`/mongolia-catalog/producers/${created.body.id}`)
+      .set('Cookie', contentManagerCookie)
+      .send({ foundingOnly: true, craft: 'Hand weaving' })
+      .expect(200);
+    expect(updated.body.foundingOnly).toBe(true);
+
+    await request(app.getHttpServer())
+      .delete(`/mongolia-catalog/producers/${created.body.id}`)
+      .set('Cookie', contentManagerCookie)
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .patch(`/mongolia-catalog/producers/${created.body.id}`)
+      .set('Cookie', contentManagerCookie)
+      .send({ name: 'should 404' })
+      .expect(404);
+  });
+
+  it('uploads and replaces a producer hero image, and rejects an SVG upload with 400', async () => {
+    const contentManagerCookie = await staffCookieFor('Content Manager');
+    const created = await request(app.getHttpServer())
+      .post('/mongolia-catalog/producers')
+      .set('Cookie', contentManagerCookie)
+      .send({ name: 'Nomin Dairy & Fiber Co-op' })
+      .expect(201);
+    const id = created.body.id;
+
+    const uploaded = await request(app.getHttpServer())
+      .post(`/mongolia-catalog/producers/${id}/image`)
+      .set('Cookie', contentManagerCookie)
+      .attach('file', FIXTURE_IMAGE)
+      .expect(201);
+    expect(uploaded.body.heroImageUrl).toMatch(/^\/uploads\/mongolia-producers\/.+\.jpg$/);
+    const savedPath = join(process.cwd(), uploaded.body.heroImageUrl.slice(1));
+    await expect(fs.stat(savedPath)).resolves.toBeDefined();
+
+    const replaced = await request(app.getHttpServer())
+      .post(`/mongolia-catalog/producers/${id}/image`)
+      .set('Cookie', contentManagerCookie)
+      .attach('file', FIXTURE_IMAGE)
+      .expect(201);
+    expect(replaced.body.heroImageUrl).not.toBe(uploaded.body.heroImageUrl);
+    await expect(fs.stat(savedPath)).rejects.toThrow();
+
+    await request(app.getHttpServer())
+      .post(`/mongolia-catalog/producers/${id}/image`)
+      .set('Cookie', contentManagerCookie)
+      .attach('file', FIXTURE_SVG, { contentType: 'image/svg+xml' })
+      .expect(400);
+  });
+
+  it('GET /members/me/mongolia/producers: 403 for a real international member, and Founding-only producers are hidden from Mongolia Newsletter', async () => {
+    const contentManagerCookie = await staffCookieFor('Content Manager');
+    const everyoneProducer = await request(app.getHttpServer())
+      .post('/mongolia-catalog/producers')
+      .set('Cookie', contentManagerCookie)
+      .send({ name: 'Selected Producer For Everyone', foundingOnly: false })
+      .expect(201);
+    const foundingOnlyProducer = await request(app.getHttpServer())
+      .post('/mongolia-catalog/producers')
+      .set('Cookie', contentManagerCookie)
+      .send({ name: 'Full Producer For Founding Only', foundingOnly: true })
+      .expect(201);
+
+    const internationalMember = await member('NEWSLETTER', 'INTERNATIONAL');
+    await request(app.getHttpServer())
+      .get('/members/me/mongolia/producers')
+      .set('Cookie', sessionCookieFor(internationalMember.id))
+      .expect(403);
+
+    const mongoliaNewsletter = await member('NEWSLETTER', 'MONGOLIA');
+    const newsletterRes = await request(app.getHttpServer())
+      .get('/members/me/mongolia/producers')
+      .set('Cookie', sessionCookieFor(mongoliaNewsletter.id))
+      .expect(200);
+    expect(newsletterRes.body.some((p: { id: string }) => p.id === everyoneProducer.body.id)).toBe(true);
+    expect(newsletterRes.body.some((p: { id: string }) => p.id === foundingOnlyProducer.body.id)).toBe(false);
+
+    const mongoliaFounding = await member('MONGOLIA', 'MONGOLIA');
+    const foundingRes = await request(app.getHttpServer())
+      .get('/members/me/mongolia/producers')
+      .set('Cookie', sessionCookieFor(mongoliaFounding.id))
+      .expect(200);
+    expect(foundingRes.body.some((p: { id: string }) => p.id === everyoneProducer.body.id)).toBe(true);
+    expect(foundingRes.body.some((p: { id: string }) => p.id === foundingOnlyProducer.body.id)).toBe(true);
   });
 });

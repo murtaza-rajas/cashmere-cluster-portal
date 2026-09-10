@@ -22,6 +22,8 @@ import { MongoliaService } from './mongolia.service';
 import { imageOnlyFileFilter } from '../common/image-upload.util';
 import { CreateMongoliaStoryDto } from './dto/create-mongolia-story.dto';
 import { UpdateMongoliaStoryDto } from './dto/update-mongolia-story.dto';
+import { CreateMongoliaProducerDto } from './dto/create-mongolia-producer.dto';
+import { UpdateMongoliaProducerDto } from './dto/update-mongolia-producer.dto';
 
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 
@@ -83,5 +85,56 @@ export class MongoliaController {
   @Delete('stories/:id/image')
   removeStoryImage(@Param('id') id: string, @Req() req: Request) {
     return this.mongolia.removeStoryImage(id, req.staffUser!.id);
+  }
+
+  @Get('producers')
+  findAllProducers() {
+    return this.mongolia.findAllProducersForStaff();
+  }
+
+  @Post('producers')
+  createProducer(
+    @Body() dto: CreateMongoliaProducerDto,
+    @Req() req: Request,
+  ) {
+    return this.mongolia.createProducer(dto, req.staffUser!.id);
+  }
+
+  @Patch('producers/:id')
+  updateProducer(
+    @Param('id') id: string,
+    @Body() dto: UpdateMongoliaProducerDto,
+    @Req() req: Request,
+  ) {
+    return this.mongolia.updateProducer(id, dto, req.staffUser!.id);
+  }
+
+  @Delete('producers/:id')
+  removeProducer(@Param('id') id: string, @Req() req: Request) {
+    return this.mongolia.removeProducer(id, req.staffUser!.id);
+  }
+
+  @Post('producers/:id/image')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: { fileSize: MAX_FILE_SIZE_BYTES },
+      fileFilter: imageOnlyFileFilter,
+    }),
+  )
+  async uploadProducerImage(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+    @Req() req: Request,
+  ) {
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+    return this.mongolia.uploadProducerImage(id, file, req.staffUser!.id);
+  }
+
+  @Delete('producers/:id/image')
+  removeProducerImage(@Param('id') id: string, @Req() req: Request) {
+    return this.mongolia.removeProducerImage(id, req.staffUser!.id);
   }
 }

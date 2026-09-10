@@ -7,9 +7,13 @@ import { AuditLogService } from '../audit-log/audit-log.service';
 import { MembershipTier } from '@prisma/client';
 import { CreateMongoliaStoryDto } from './dto/create-mongolia-story.dto';
 import { UpdateMongoliaStoryDto } from './dto/update-mongolia-story.dto';
+import { CreateMongoliaProducerDto } from './dto/create-mongolia-producer.dto';
+import { UpdateMongoliaProducerDto } from './dto/update-mongolia-producer.dto';
 
-const UPLOAD_DIR = join(process.cwd(), 'uploads', 'mongolia-stories');
-const PUBLIC_PREFIX = '/uploads/mongolia-stories';
+const STORY_UPLOAD_DIR = join(process.cwd(), 'uploads', 'mongolia-stories');
+const STORY_PUBLIC_PREFIX = '/uploads/mongolia-stories';
+const PRODUCER_UPLOAD_DIR = join(process.cwd(), 'uploads', 'mongolia-producers');
+const PRODUCER_PUBLIC_PREFIX = '/uploads/mongolia-producers';
 
 @Injectable()
 export class MongoliaService {
@@ -107,10 +111,10 @@ export class MongoliaService {
   ) {
     const existing = await this.findStoryOrThrow(id);
 
-    await fs.mkdir(UPLOAD_DIR, { recursive: true });
+    await fs.mkdir(STORY_UPLOAD_DIR, { recursive: true });
     const filename = `${id}-${randomUUID()}${extname(file.originalname)}`;
-    await fs.writeFile(join(UPLOAD_DIR, filename), file.buffer);
-    const heroImageUrl = `${PUBLIC_PREFIX}/${filename}`;
+    await fs.writeFile(join(STORY_UPLOAD_DIR, filename), file.buffer);
+    const heroImageUrl = `${STORY_PUBLIC_PREFIX}/${filename}`;
 
     const updated = await this.prisma.mongoliaStory.update({
       where: { id },
@@ -171,12 +175,170 @@ export class MongoliaService {
     });
   }
 
+  findAllProducersForStaff() {
+    return this.prisma.mongoliaProducer.findMany({
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
+    });
+  }
+
+  async createProducer(dto: CreateMongoliaProducerDto, staffUserId: string) {
+    const created = await this.prisma.mongoliaProducer.create({
+      data: {
+        name: dto.name,
+        craft: dto.craft,
+        location: dto.location,
+        story: dto.story,
+        foundingOnly: dto.foundingOnly ?? false,
+        sortOrder: dto.sortOrder ?? 0,
+        active: dto.active ?? true,
+        createdById: staffUserId,
+      },
+    });
+
+    await this.auditLog.log({
+      actorStaffUserId: staffUserId,
+      action: 'mongolia_producer.created',
+      targetType: 'MongoliaProducer',
+      targetId: created.id,
+      metadata: { name: created.name },
+    });
+
+    return created;
+  }
+
+  async updateProducer(
+    id: string,
+    dto: UpdateMongoliaProducerDto,
+    staffUserId: string,
+  ) {
+    const existing = await this.findProducerOrThrow(id);
+
+    const updated = await this.prisma.mongoliaProducer.update({
+      where: { id },
+      data: {
+        name: dto.name,
+        craft: dto.craft,
+        location: dto.location,
+        story: dto.story,
+        foundingOnly: dto.foundingOnly,
+        sortOrder: dto.sortOrder,
+        active: dto.active,
+      },
+    });
+
+    await this.auditLog.log({
+      actorStaffUserId: staffUserId,
+      action: 'mongolia_producer.updated',
+      targetType: 'MongoliaProducer',
+      targetId: updated.id,
+      metadata: { before: existing, after: updated },
+    });
+
+    return updated;
+  }
+
+  async removeProducer(id: string, staffUserId: string) {
+    const existing = await this.findProducerOrThrow(id);
+
+    await this.prisma.mongoliaProducer.delete({ where: { id } });
+    if (existing.heroImageUrl) {
+      await this.deletePhysicalFile(existing.heroImageUrl);
+    }
+
+    await this.auditLog.log({
+      actorStaffUserId: staffUserId,
+      action: 'mongolia_producer.deleted',
+      targetType: 'MongoliaProducer',
+      targetId: id,
+      metadata: { name: existing.name },
+    });
+
+    return { id };
+  }
+
+  async uploadProducerImage(
+    id: string,
+    file: Express.Multer.File,
+    staffUserId: string,
+  ) {
+    const existing = await this.findProducerOrThrow(id);
+
+    await fs.mkdir(PRODUCER_UPLOAD_DIR, { recursive: true });
+    const filename = `${id}-${randomUUID()}${extname(file.originalname)}`;
+    await fs.writeFile(join(PRODUCER_UPLOAD_DIR, filename), file.buffer);
+    const heroImageUrl = `${PRODUCER_PUBLIC_PREFIX}/${filename}`;
+
+    const updated = await this.prisma.mongoliaProducer.update({
+      where: { id },
+      data: { heroImageUrl },
+    });
+
+    if (existing.heroImageUrl) {
+      await this.deletePhysicalFile(existing.heroImageUrl);
+    }
+
+    await this.auditLog.log({
+      actorStaffUserId: staffUserId,
+      action: existing.heroImageUrl
+        ? 'mongolia_producer.image_replaced'
+        : 'mongolia_producer.image_uploaded',
+      targetType: 'MongoliaProducer',
+      targetId: id,
+    });
+
+    return updated;
+  }
+
+  async removeProducerImage(id: string, staffUserId: string) {
+    const existing = await this.findProducerOrThrow(id);
+    if (!existing.heroImageUrl) {
+      return existing;
+    }
+
+    const updated = await this.prisma.mongoliaProducer.update({
+      where: { id },
+      data: { heroImageUrl: null },
+    });
+    await this.deletePhysicalFile(existing.heroImageUrl);
+
+    await this.auditLog.log({
+      actorStaffUserId: staffUserId,
+      action: 'mongolia_producer.image_removed',
+      targetType: 'MongoliaProducer',
+      targetId: id,
+    });
+
+    return updated;
+  }
+
+  // Same split as findStoriesForMember: Newsletter gets "selected producer
+  // content" (non-founding-only), Founding gets "full" producer content.
+  findProducersForMember(tier: MembershipTier) {
+    return this.prisma.mongoliaProducer.findMany({
+      where: {
+        active: true,
+        ...(tier === 'MONGOLIA' ? {} : { foundingOnly: false }),
+      },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
+    });
+  }
+
   private async findStoryOrThrow(id: string) {
     const existing = await this.prisma.mongoliaStory.findUnique({
       where: { id },
     });
     if (!existing) {
       throw new NotFoundException('Mongolia story not found');
+    }
+    return existing;
+  }
+
+  private async findProducerOrThrow(id: string) {
+    const existing = await this.prisma.mongoliaProducer.findUnique({
+      where: { id },
+    });
+    if (!existing) {
+      throw new NotFoundException('Mongolia producer not found');
     }
     return existing;
   }

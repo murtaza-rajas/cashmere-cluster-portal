@@ -200,6 +200,19 @@ export class MembersController {
     return this.mongolia.findStoriesForMember(member.membershipTier);
   }
 
+  // Same region gate as myMongoliaStories, second Mongolia content type.
+  @UseGuards(JwtAuthGuard)
+  @Get('me/mongolia/producers')
+  myMongoliaProducers(@Req() req: Request) {
+    const member = req.user as Member;
+    if (member.region !== 'MONGOLIA') {
+      throw new ForbiddenException(
+        'Cashmere Lovers Club Mongolia is only available to Mongolia members',
+      );
+    }
+    return this.mongolia.findProducersForMember(member.membershipTier);
+  }
+
   // Members & Users admin (Milestone 5) — staff-facing directory/search.
   // Declared after every /members/me/* route above: both routes below share the
   // same path shape as those (/members/<segment>), and Nest/Express resolve
