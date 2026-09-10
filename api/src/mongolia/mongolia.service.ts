@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { promises as fs } from 'fs';
 import { join, extname } from 'path';
 import { randomUUID } from 'crypto';
@@ -14,6 +18,13 @@ const STORY_UPLOAD_DIR = join(process.cwd(), 'uploads', 'mongolia-stories');
 const STORY_PUBLIC_PREFIX = '/uploads/mongolia-stories';
 const PRODUCER_UPLOAD_DIR = join(process.cwd(), 'uploads', 'mongolia-producers');
 const PRODUCER_PUBLIC_PREFIX = '/uploads/mongolia-producers';
+
+// Same split as DesignsService's canVote — Mongolia's "selected cases vote"
+// tier is Founding (tier MONGOLIA, since region is already the Mongolia
+// gate at the controller level — see members.controller.ts).
+function canVoteOnProducers(tier: MembershipTier): boolean {
+  return tier === 'MONGOLIA';
+}
 
 @Injectable()
 export class MongoliaService {
@@ -313,14 +324,53 @@ export class MongoliaService {
 
   // Same split as findStoriesForMember: Newsletter gets "selected producer
   // content" (non-founding-only), Founding gets "full" producer content.
-  findProducersForMember(tier: MembershipTier) {
-    return this.prisma.mongoliaProducer.findMany({
+  // Also carries real vote counts + whether this member has voted — voting
+  // is Mongolia Founding-only ("Your voice", per the client's 2026-09-09
+  // email and mockup), same canVoteOnProducers() gate enforced in
+  // addProducerVote/removeProducerVote below, not just hidden in the UI.
+  async findProducersForMember(memberId: string, tier: MembershipTier) {
+    const producers = await this.prisma.mongoliaProducer.findMany({
       where: {
         active: true,
         ...(tier === 'MONGOLIA' ? {} : { foundingOnly: false }),
       },
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
+      include: {
+        _count: { select: { votes: true } },
+        votes: { where: { memberId }, select: { id: true } },
+      },
     });
+
+    return producers.map((p) => ({
+      id: p.id,
+      name: p.name,
+      craft: p.craft,
+      location: p.location,
+      story: p.story,
+      heroImageUrl: p.heroImageUrl,
+      foundingOnly: p.foundingOnly,
+      voteCount: p._count.votes,
+      isVoted: p.votes.length > 0,
+      canVote: canVoteOnProducers(tier),
+    }));
+  }
+
+  async addProducerVote(producerId: string, memberId: string, tier: MembershipTier) {
+    if (!canVoteOnProducers(tier)) {
+      throw new ForbiddenException('Voting is available to Mongolia Founding Members only');
+    }
+    await this.findProducerOrThrow(producerId);
+    await this.prisma.mongoliaProducerVote.upsert({
+      where: { producerId_memberId: { producerId, memberId } },
+      update: {},
+      create: { producerId, memberId },
+    });
+    return { producerId, voted: true };
+  }
+
+  async removeProducerVote(producerId: string, memberId: string) {
+    await this.prisma.mongoliaProducerVote.deleteMany({ where: { producerId, memberId } });
+    return { producerId, voted: false };
   }
 
   private async findStoryOrThrow(id: string) {

@@ -4,24 +4,33 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { BookOpen, Factory, Images, Vote } from "lucide-react";
 import { useMember } from "@/contexts/member-context";
-import { fetchMyMongoliaStories, fetchMyMongoliaProducers, type MongoliaStory, type MongoliaProducer } from "@/lib/api";
+import {
+  fetchMyMongoliaStories,
+  fetchMyMongoliaProducers,
+  voteMongoliaProducer,
+  unvoteMongoliaProducer,
+  type MongoliaStory,
+  type MongoliaProducer,
+} from "@/lib/api";
 
 // Content types built so far: Stories & News, then Producer profiles — both
 // named in the client's confirmed content list for both Mongolia levels
-// (2026-09-09 email). The photo archive, voting, and Mongolia offers are
-// real, later pieces of this same section — not built yet.
+// (2026-09-09 email). The photo archive and Mongolia offers are real,
+// later pieces of this same section — not built yet.
 //
 // 2026-09-10 — hero banner + quick-link row added after cross-checking this
 // page against the client's own mockup (`2.5 CLC MN Founder Mobil.png`),
 // which showed a materially richer "basic page structure" than the first
 // pass here: a branded hero (headline/tagline/CTA) and a 4-tile quick-link
 // row (Stories/Producers/Photo archive/Your voice), not just a bare list.
-// Stories/Producers are real — the tiles scroll to the sections already
-// below. Photo archive/Your voice stay honest disabled tiles, same
-// "Coming soon" discipline used elsewhere in this app (e.g. the staff
-// Dashboard's Design Lab/Stories cards before those existed) — inventing a
-// live-looking link to a page/feature that doesn't exist yet would be
-// worse than admitting it's not built. The bottom tab bar shown in the same
+//
+// 2026-09-10, later — "Your voice" (voting on producers) built and wired
+// in as a real, active tile — same client email's "Founding Member:
+// ...voting on producers" and the mockup's own "Which producer should we
+// feature next?" widget. Founding-only, server-enforced (see
+// mongolia.service.ts's canVoteOnProducers). Photo archive stays an honest
+// disabled "Coming soon" tile — that one still has no backend at all,
+// unlike voting which now does. The bottom tab bar shown in the same
 // mockup (Home/Explore/Vote/Offers/Profile) is a bigger, separate piece —
 // still deferred, tracked in PROJECT_TRACKER.md, not attempted here.
 export default function MongoliaHomePage() {
@@ -33,14 +42,34 @@ export default function MongoliaHomePage() {
     { status: "loading" } | { status: "error"; message: string } | { status: "loaded"; producers: MongoliaProducer[] }
   >({ status: "loading" });
 
+  const [voteBusyId, setVoteBusyId] = useState<string | null>(null);
+
+  function loadProducers() {
+    fetchMyMongoliaProducers()
+      .then((producers) => setProducerState({ status: "loaded", producers }))
+      .catch((err: Error) => setProducerState({ status: "error", message: err.message }));
+  }
+
   useEffect(() => {
     fetchMyMongoliaStories()
       .then((stories) => setState({ status: "loaded", stories }))
       .catch((err: Error) => setState({ status: "error", message: err.message }));
-    fetchMyMongoliaProducers()
-      .then((producers) => setProducerState({ status: "loaded", producers }))
-      .catch((err: Error) => setProducerState({ status: "error", message: err.message }));
+    loadProducers();
   }, []);
+
+  async function toggleVote(producer: MongoliaProducer) {
+    setVoteBusyId(producer.id);
+    try {
+      if (producer.isVoted) {
+        await unvoteMongoliaProducer(producer.id);
+      } else {
+        await voteMongoliaProducer(producer.id);
+      }
+      loadProducers();
+    } finally {
+      setVoteBusyId(null);
+    }
+  }
 
   return (
     <div className="flex w-full flex-col gap-6">
@@ -84,11 +113,13 @@ export default function MongoliaHomePage() {
           <span className="text-sm font-medium text-cashmere-text-muted">Photo archive</span>
           <span className="text-[10px] uppercase tracking-wide text-cashmere-text-muted">Coming soon</span>
         </div>
-        <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-cashmere-border px-3 py-5 text-center opacity-60">
-          <Vote size={22} strokeWidth={1.5} className="text-cashmere-text-muted" />
-          <span className="text-sm font-medium text-cashmere-text-muted">Your voice</span>
-          <span className="text-[10px] uppercase tracking-wide text-cashmere-text-muted">Coming soon</span>
-        </div>
+        <a
+          href="#producers"
+          className="flex flex-col items-center gap-2 rounded-2xl border border-cashmere-border bg-white px-3 py-5 text-center transition-colors hover:border-cashmere-accent"
+        >
+          <Vote size={22} strokeWidth={1.5} className="text-cashmere-accent-dark" />
+          <span className="text-sm font-medium text-cashmere-text">Your voice</span>
+        </a>
       </div>
 
       <div id="stories">
@@ -188,6 +219,27 @@ export default function MongoliaHomePage() {
                 <p className="font-medium text-cashmere-text">{producer.name}</p>
                 {producer.location && <p className="text-xs text-cashmere-text-muted">{producer.location}</p>}
                 {producer.story && <p className="text-sm text-cashmere-text-muted">{producer.story}</p>}
+
+                <div className="mt-auto pt-2">
+                  {producer.canVote ? (
+                    <button
+                      type="button"
+                      disabled={voteBusyId === producer.id}
+                      onClick={() => toggleVote(producer)}
+                      className={`flex w-full items-center justify-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium text-white transition-colors disabled:opacity-60 ${
+                        producer.isVoted ? "bg-cashmere-accent-dark" : "bg-cashmere-accent hover:bg-cashmere-accent-dark"
+                      }`}
+                    >
+                      <Vote size={14} strokeWidth={2} />
+                      {producer.isVoted ? "Voted" : "Vote"} · {producer.voteCount}
+                    </button>
+                  ) : (
+                    <span className="flex w-full items-center justify-center gap-1.5 rounded-full border border-dashed border-cashmere-border px-3 py-1.5 text-[11px] text-cashmere-text-muted">
+                      <Vote size={12} strokeWidth={1.75} />
+                      {producer.voteCount} votes
+                    </span>
+                  )}
+                </div>
               </div>
             ))}
           </div>

@@ -281,6 +281,8 @@ export async function fetchMyMongoliaStories(): Promise<MongoliaStory[]> {
 }
 
 // Second Mongolia content type, same server-side gating as MongoliaStory.
+// voteCount/isVoted/canVote mirror MemberDesign's shape exactly — same
+// "server decides who can vote, frontend just reads it" reasoning.
 export interface MongoliaProducer {
   id: string;
   name: string;
@@ -289,10 +291,23 @@ export interface MongoliaProducer {
   story: string | null;
   heroImageUrl: string | null;
   foundingOnly: boolean;
+  voteCount: number;
+  isVoted: boolean;
+  canVote: boolean;
 }
 
 export async function fetchMyMongoliaProducers(): Promise<MongoliaProducer[]> {
   const res = await apiFetch("/members/me/mongolia/producers");
   if (!res.ok) throw new Error(`Unexpected response fetching Mongolia producers: ${res.status}`);
   return res.json();
+}
+
+export async function voteMongoliaProducer(id: string): Promise<void> {
+  const res = await apiFetch(`/members/me/mongolia/producers/${id}/vote`, { method: "POST" });
+  if (!res.ok) throw new Error(`Unexpected response voting for producer: ${res.status}`);
+}
+
+export async function unvoteMongoliaProducer(id: string): Promise<void> {
+  const res = await apiFetch(`/members/me/mongolia/producers/${id}/vote`, { method: "DELETE" });
+  if (!res.ok) throw new Error(`Unexpected response removing vote: ${res.status}`);
 }

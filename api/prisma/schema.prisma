@@ -102,6 +102,7 @@ model Member {
   auditLogEntries      AuditLog[]           @relation("AuditLogTargetMember")
   designFavorites      DesignFavorite[]
   designVotes          DesignVote[]
+  mongoliaProducerVotes MongoliaProducerVote[]
 
   @@index([membershipTier])
   @@index([region])
@@ -579,7 +580,29 @@ model MongoliaProducer {
   createdById String?
   createdBy   StaffUser? @relation("MongoliaProducersCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
 
+  votes MongoliaProducerVote[]
+
   @@index([active])
+}
+
+// "Your voice" — voting on producers, per the client's 2026-09-09 email
+// ("Founding Member: ...voting on producers and community development") and
+// the client's own mockup (2.5 CLC MN Founder Mobil.png's "Which producer
+// should we feature next?" widget). Founding-only, same split and same
+// upsert-based one-vote-per-member shape as DesignVote above — Mongolia
+// Founding is the section's "selected cases vote" tier, same reasoning.
+model MongoliaProducerVote {
+  id String @id @default(uuid())
+
+  producerId String
+  producer   MongoliaProducer @relation(fields: [producerId], references: [id], onDelete: Cascade)
+
+  memberId String
+  member   Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([producerId, memberId])
 }
 
 // ---------------------------------------------------------------------------

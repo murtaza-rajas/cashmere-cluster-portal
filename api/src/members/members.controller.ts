@@ -210,7 +210,34 @@ export class MembersController {
         'Cashmere Lovers Club Mongolia is only available to Mongolia members',
       );
     }
-    return this.mongolia.findProducersForMember(member.membershipTier);
+    return this.mongolia.findProducersForMember(member.id, member.membershipTier);
+  }
+
+  // "Your voice" — voting on producers, Mongolia Founding-only (enforced in
+  // MongoliaService.addProducerVote, not just here) — same region gate as
+  // every other Mongolia route above.
+  @UseGuards(JwtAuthGuard)
+  @Post('me/mongolia/producers/:id/vote')
+  voteMongoliaProducer(@Param('id') id: string, @Req() req: Request) {
+    const member = req.user as Member;
+    if (member.region !== 'MONGOLIA') {
+      throw new ForbiddenException(
+        'Cashmere Lovers Club Mongolia is only available to Mongolia members',
+      );
+    }
+    return this.mongolia.addProducerVote(id, member.id, member.membershipTier);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete('me/mongolia/producers/:id/vote')
+  unvoteMongoliaProducer(@Param('id') id: string, @Req() req: Request) {
+    const member = req.user as Member;
+    if (member.region !== 'MONGOLIA') {
+      throw new ForbiddenException(
+        'Cashmere Lovers Club Mongolia is only available to Mongolia members',
+      );
+    }
+    return this.mongolia.removeProducerVote(id, member.id);
   }
 
   // Members & Users admin (Milestone 5) — staff-facing directory/search.

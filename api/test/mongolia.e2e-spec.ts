@@ -318,4 +318,63 @@ describe('Mongolia (e2e)', () => {
     expect(foundingRes.body.some((p: { id: string }) => p.id === everyoneProducer.body.id)).toBe(true);
     expect(foundingRes.body.some((p: { id: string }) => p.id === foundingOnlyProducer.body.id)).toBe(true);
   });
+
+  // "Your voice" — voting on producers, Mongolia Founding-only per the
+  // client's 2026-09-09 email and mockup. Mirrors designs.e2e-spec.ts's
+  // vote coverage exactly.
+  it('POST/DELETE /members/me/mongolia/producers/:id/vote: Mongolia Newsletter cannot vote, Mongolia Founding can, and counts/isVoted reflect it', async () => {
+    const contentManagerCookie = await staffCookieFor('Content Manager');
+    const producer = await request(app.getHttpServer())
+      .post('/mongolia-catalog/producers')
+      .set('Cookie', contentManagerCookie)
+      .send({ name: 'Voteable Producer' })
+      .expect(201);
+    const producerId = producer.body.id;
+
+    // International member: blocked by the region gate before voting logic.
+    const internationalMember = await member('NEWSLETTER', 'INTERNATIONAL');
+    await request(app.getHttpServer())
+      .post(`/members/me/mongolia/producers/${producerId}/vote`)
+      .set('Cookie', sessionCookieFor(internationalMember.id))
+      .expect(403);
+
+    // Mongolia Newsletter: real region, wrong tier — blocked server-side,
+    // not just hidden in the UI.
+    const mongoliaNewsletter = await member('NEWSLETTER', 'MONGOLIA');
+    await request(app.getHttpServer())
+      .post(`/members/me/mongolia/producers/${producerId}/vote`)
+      .set('Cookie', sessionCookieFor(mongoliaNewsletter.id))
+      .expect(403);
+
+    // Mongolia Founding: can vote, and unvoting actually removes the row.
+    const mongoliaFounding = await member('MONGOLIA', 'MONGOLIA');
+    await request(app.getHttpServer())
+      .post(`/members/me/mongolia/producers/${producerId}/vote`)
+      .set('Cookie', sessionCookieFor(mongoliaFounding.id))
+      .expect(201);
+
+    let vote = await prisma.mongoliaProducerVote.findUnique({
+      where: { producerId_memberId: { producerId, memberId: mongoliaFounding.id } },
+    });
+    expect(vote).toBeDefined();
+
+    const withVote = await request(app.getHttpServer())
+      .get('/members/me/mongolia/producers')
+      .set('Cookie', sessionCookieFor(mongoliaFounding.id))
+      .expect(200);
+    const row = withVote.body.find((p: { id: string }) => p.id === producerId);
+    expect(row.voteCount).toBe(1);
+    expect(row.isVoted).toBe(true);
+    expect(row.canVote).toBe(true);
+
+    await request(app.getHttpServer())
+      .delete(`/members/me/mongolia/producers/${producerId}/vote`)
+      .set('Cookie', sessionCookieFor(mongoliaFounding.id))
+      .expect(200);
+
+    vote = await prisma.mongoliaProducerVote.findUnique({
+      where: { producerId_memberId: { producerId, memberId: mongoliaFounding.id } },
+    });
+    expect(vote).toBeNull();
+  });
 });
