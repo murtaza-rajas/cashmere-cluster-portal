@@ -17,7 +17,7 @@ const TABS = ["PENDING", "APPROVED", "REJECTED"] as const;
 export default function MongoliaPhotoArchivePage() {
   const staff = useStaff();
   const router = useRouter();
-  const canManage = staffHasAnyRole(staff, ["Content Manager"]);
+  const canManage = staffHasAnyRole(staff, ["Content Manager", "Mongolia Editor"]);
 
   const [tab, setTab] = useState<(typeof TABS)[number]>("PENDING");
   const [state, setState] = useState<

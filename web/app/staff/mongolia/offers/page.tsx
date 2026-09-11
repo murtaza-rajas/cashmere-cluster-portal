@@ -37,7 +37,7 @@ const EMPTY_FORM: BenefitInput = {
 export default function MongoliaOffersAdminPage() {
   const staff = useStaff();
   const router = useRouter();
-  const canManage = staffHasAnyRole(staff, ["Club Manager"]);
+  const canManage = staffHasAnyRole(staff, ["Club Manager", "Mongolia Editor"]);
 
   const [state, setState] = useState<
     { status: "loading" } | { status: "error"; message: string } | { status: "loaded"; rows: StaffBenefit[] }

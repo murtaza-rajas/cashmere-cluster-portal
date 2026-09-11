@@ -31,7 +31,7 @@ const EMPTY_PRODUCER_FORM: MongoliaProducerInput = {
 export default function MongoliaProducersAdminPage() {
   const staff = useStaff();
   const router = useRouter();
-  const canManage = staffHasAnyRole(staff, ["Content Manager"]);
+  const canManage = staffHasAnyRole(staff, ["Content Manager", "Mongolia Editor"]);
 
   const [state, setState] = useState<
     { status: "loading" } | { status: "error"; message: string } | { status: "loaded"; rows: StaffMongoliaProducer[] }

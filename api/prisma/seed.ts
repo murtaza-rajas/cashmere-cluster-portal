@@ -80,6 +80,15 @@ const ROLES: { name: string; description: string }[] = [
     name: 'Investor Relations Manager',
     description: 'Investor communication and controlled document access: profiles, updates, reporting.',
   },
+  {
+    // First regional/community role (client's 2026-09-11 email) — scoped to
+    // Mongolia content, members, events and offers only, never international
+    // ones. See src/staff/region-scope.util.ts for how the scoping is
+    // enforced and how a future regional role (e.g. for another country)
+    // would be added without touching that enforcement logic.
+    name: 'Mongolia Editor',
+    description: 'Mongolia community: stories, producers, photo archive, voting, events, offers and members — Mongolia only.',
+  },
 ];
 
 // The client's own confirmed five Care & Repair topics (PROJECT_TRACKER.md

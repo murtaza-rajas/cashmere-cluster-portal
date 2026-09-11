@@ -1,6 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { MembershipTier, Prisma } from '@prisma/client';
+import { MembershipTier, Prisma, Region } from '@prisma/client';
 import { ExternalIdentity } from '../auth/interfaces/identity-provider.interface';
 import { AuditLogService } from '../audit-log/audit-log.service';
 
@@ -69,10 +73,19 @@ export class MembersService {
   // is a normal, expected case there (a clean 404), not a 500. findById() above
   // is left alone: every existing caller passes a trusted id from a validated
   // session, where a miss really would be an unexpected error.
-  async findByIdForStaff(id: string) {
+  // `scopedRegion` (set for a regional role like Mongolia Editor — see
+  // region-scope.util.ts) confines this to only members in that region —
+  // a real Forbidden for a member outside scope, not a disguised 404,
+  // matching EventsService/BenefitsService's own findOrThrow.
+  async findByIdForStaff(id: string, scopedRegion: Region | null = null) {
     const member = await this.prisma.member.findUnique({ where: { id } });
     if (!member) {
       throw new NotFoundException('Member not found');
+    }
+    if (scopedRegion && member.region !== scopedRegion) {
+      throw new ForbiddenException(
+        'This member is outside your regional scope',
+      );
     }
     return member;
   }
@@ -81,16 +94,19 @@ export class MembersService {
   // across email/first/last name. No pagination yet (matches the simplicity
   // level of the rest of the admin backend so far — findAll() on StaffService
   // has none either); worth adding once real member volume makes that matter.
-  findAllForStaff(search?: string) {
-    const where: Prisma.MemberWhereInput = search
-      ? {
-          OR: [
-            { email: { contains: search, mode: 'insensitive' } },
-            { firstName: { contains: search, mode: 'insensitive' } },
-            { lastName: { contains: search, mode: 'insensitive' } },
-          ],
-        }
-      : {};
+  findAllForStaff(search: string | undefined, scopedRegion: Region | null) {
+    const where: Prisma.MemberWhereInput = {
+      ...(search
+        ? {
+            OR: [
+              { email: { contains: search, mode: 'insensitive' } },
+              { firstName: { contains: search, mode: 'insensitive' } },
+              { lastName: { contains: search, mode: 'insensitive' } },
+            ],
+          }
+        : {}),
+      ...(scopedRegion ? { region: scopedRegion } : {}),
+    };
 
     return this.prisma.member.findMany({
       where,

@@ -22,11 +22,13 @@ interface NavItem {
 const DASHBOARD_ITEM: NavItem = { href: "/staff", label: "Dashboard", icon: LayoutDashboard, allowedRoles: [] };
 
 // 2026-09-11 — Mongolia restructured from one tabbed page into a nested
-// section (client's own mockup, `mongolia-admin-interface.png`), so a
-// future "Mongolia Editor" role can eventually be scoped to just these
-// sub-items without touching the rest of CLC admin. Current gate is still
-// Content Manager on every child — the role split itself is real, later,
-// separately-decided work (see PROJECT_TRACKER.md), not guessed at here.
+// section (client's own mockup, `mongolia-admin-interface.png`), so the
+// Mongolia Editor role (added same day — the first regional/community
+// role, see api/src/staff/region-scope.util.ts) can be scoped to just
+// these sub-items without touching the rest of CLC admin. Every child page
+// below checks for "Content Manager"/"Event Manager"/"Club Manager"/
+// "Member Support" OR "Mongolia Editor" — same backend role gates as their
+// international counterparts, just with the regional role added.
 const MONGOLIA_CHILDREN = [
   { href: "/staff/mongolia", label: "Dashboard", icon: LayoutDashboard },
   { href: "/staff/mongolia/stories", label: "Stories & News", icon: BookOpen },
@@ -47,7 +49,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/staff/events", label: "Events & Invitations", icon: CalendarHeart, allowedRoles: ["Event Manager"] },
   { href: "/staff/care-repair", label: "Care & Repair", icon: Wrench, allowedRoles: ["Content Manager"] },
   { href: "/staff/design-lab", label: "Design Lab", icon: Palette, allowedRoles: ["Content Manager"] },
-  { href: "/staff/mongolia", label: "Mongolia", icon: Mountain, allowedRoles: ["Content Manager"], children: MONGOLIA_CHILDREN },
+  { href: "/staff/mongolia", label: "Mongolia", icon: Mountain, allowedRoles: ["Content Manager", "Mongolia Editor"], children: MONGOLIA_CHILDREN },
   { href: "/staff/data-requests", label: "GDPR Requests", icon: ClipboardList, allowedRoles: ["Super Administrator", "Member Support"] },
   { href: "/staff/audit-log", label: "Audit Log", icon: ScrollText, allowedRoles: ["Super Administrator"] },
   { href: "/staff/reports", label: "Reports & Analytics", icon: BarChart3, allowedRoles: ["Analytics Viewer"] },

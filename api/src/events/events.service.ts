@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { promises as fs } from 'fs';
 import { join, extname } from 'path';
 import { randomUUID } from 'crypto';
@@ -20,14 +24,33 @@ export class EventsService {
 
   // Staff-facing: every event regardless of active/tier, same reasoning as
   // BenefitsService.findAllForStaff — a draft or currently-inactive event is
-  // still visible to edit.
-  findAllForStaff() {
+  // still visible to edit. `scopedRegion` (set for a regional role like
+  // Mongolia Editor — see region-scope.util.ts) narrows this to rows
+  // confined EXACTLY to that region — not merely visible there (a default
+  // [INTERNATIONAL, MONGOLIA] row is also "visible" to Mongolia, but it's
+  // not Mongolia's to manage). Deliberately the same exact-match condition
+  // findOrThrow uses to decide write access, so the list a Mongolia Editor
+  // sees always matches what they can actually touch — no "I can see it
+  // but not edit it" rows. null means full, region-unscoped access.
+  findAllForStaff(scopedRegion: Region | null) {
     return this.prisma.event.findMany({
+      where: scopedRegion ? { regions: { equals: [scopedRegion] } } : undefined,
       orderBy: [{ sortOrder: 'asc' }, { startsAt: 'asc' }],
     });
   }
 
-  async create(dto: CreateEventDto, staffUserId: string) {
+  async create(
+    dto: CreateEventDto,
+    staffUserId: string,
+    scopedRegion: Region | null,
+  ) {
+    // A regionally-scoped staffer (e.g. Mongolia Editor) can only ever
+    // create rows confined to their own region — whatever `regions` they
+    // submitted is overridden, not merely validated, so there's no way to
+    // accidentally (or deliberately) create an event visible outside their
+    // scope.
+    const regions = scopedRegion ? [scopedRegion] : dto.regions;
+
     const created = await this.prisma.event.create({
       data: {
         title: dto.title,
@@ -37,7 +60,7 @@ export class EventsService {
         startsAt: dto.startsAt ? new Date(dto.startsAt) : undefined,
         registrationUrl: dto.registrationUrl,
         tiers: dto.tiers,
-        regions: dto.regions,
+        regions,
         sortOrder: dto.sortOrder ?? 0,
         active: dto.active ?? true,
         createdById: staffUserId,
@@ -55,8 +78,13 @@ export class EventsService {
     return created;
   }
 
-  async update(id: string, dto: UpdateEventDto, staffUserId: string) {
-    const existing = await this.findOrThrow(id);
+  async update(
+    id: string,
+    dto: UpdateEventDto,
+    staffUserId: string,
+    scopedRegion: Region | null,
+  ) {
+    const existing = await this.findOrThrow(id, scopedRegion);
 
     const updated = await this.prisma.event.update({
       where: { id },
@@ -68,7 +96,9 @@ export class EventsService {
         startsAt: dto.startsAt ? new Date(dto.startsAt) : undefined,
         registrationUrl: dto.registrationUrl,
         tiers: dto.tiers,
-        regions: dto.regions,
+        // Same override-not-validate reasoning as create() — a scoped
+        // staffer can never widen a row's regions beyond their own.
+        regions: scopedRegion ? [scopedRegion] : dto.regions,
         sortOrder: dto.sortOrder,
         active: dto.active,
       },
@@ -85,8 +115,8 @@ export class EventsService {
     return updated;
   }
 
-  async remove(id: string, staffUserId: string) {
-    const existing = await this.findOrThrow(id);
+  async remove(id: string, staffUserId: string, scopedRegion: Region | null) {
+    const existing = await this.findOrThrow(id, scopedRegion);
 
     await this.prisma.event.delete({ where: { id } });
     if (existing.imageUrl) {
@@ -112,8 +142,9 @@ export class EventsService {
     id: string,
     file: Express.Multer.File,
     staffUserId: string,
+    scopedRegion: Region | null,
   ) {
-    const existing = await this.findOrThrow(id);
+    const existing = await this.findOrThrow(id, scopedRegion);
 
     await fs.mkdir(UPLOAD_DIR, { recursive: true });
     const filename = `${id}-${randomUUID()}${extname(file.originalname)}`;
@@ -141,8 +172,12 @@ export class EventsService {
     return updated;
   }
 
-  async removeImage(id: string, staffUserId: string) {
-    const existing = await this.findOrThrow(id);
+  async removeImage(
+    id: string,
+    staffUserId: string,
+    scopedRegion: Region | null,
+  ) {
+    const existing = await this.findOrThrow(id, scopedRegion);
     if (!existing.imageUrl) {
       return existing;
     }
@@ -175,10 +210,25 @@ export class EventsService {
     });
   }
 
-  private async findOrThrow(id: string) {
+  // `scopedRegion` set means the caller (e.g. Mongolia Editor) may only
+  // touch rows confined exactly to that one region — a row also visible
+  // internationally (or to some other region) is out of scope even to
+  // read for editing, since editing it would affect members outside the
+  // caller's remit. A regular NotFoundException would leak whether the id
+  // exists at all to someone with no business knowing that, so this is a
+  // real Forbidden, not a disguised 404.
+  private async findOrThrow(id: string, scopedRegion: Region | null = null) {
     const existing = await this.prisma.event.findUnique({ where: { id } });
     if (!existing) {
       throw new NotFoundException('Event not found');
+    }
+    if (
+      scopedRegion &&
+      (existing.regions.length !== 1 || existing.regions[0] !== scopedRegion)
+    ) {
+      throw new ForbiddenException(
+        'This event is outside your regional scope',
+      );
     }
     return existing;
   }

@@ -11,11 +11,13 @@ import { useStaff, staffHasAnyRole } from "@/contexts/staff-context";
 // same role gates too (Event Manager, Club Manager), not a watered-down
 // Content-Manager-only version. Each sub-page still enforces its own
 // precise role below, matching its international counterpart exactly;
-// this layout only stops someone with none of these roles at all. A
-// narrower "Mongolia Editor" role (scoped only to Mongolia areas) is real,
-// separately-decided future work (see PROJECT_TRACKER.md), not guessed at
-// here.
-const MONGOLIA_SECTION_ROLES = ["Content Manager", "Event Manager", "Club Manager", "Member Support"];
+// this layout only stops someone with none of these roles at all.
+// Mongolia Editor (added the same day — the first regional/community
+// role, see api/src/staff/region-scope.util.ts) can reach every child, but
+// the backend confines what they can actually see/touch to Mongolia-only
+// rows — the frontend gate here is deliberately coarse, real enforcement
+// lives server-side, same discipline as every other role in this app.
+const MONGOLIA_SECTION_ROLES = ["Content Manager", "Event Manager", "Club Manager", "Member Support", "Mongolia Editor"];
 
 export default function MongoliaSectionLayout({ children }: { children: React.ReactNode }) {
   const staff = useStaff();

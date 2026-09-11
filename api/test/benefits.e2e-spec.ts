@@ -248,4 +248,55 @@ describe('Benefit catalog (e2e)', () => {
       internationalRes.body.map((o: { id: string }) => o.id),
     ).not.toContain(mongoliaOnlyOffer.body.id);
   });
+
+  // Mongolia Editor (2026-09-11) — same regional-scoping model as Events,
+  // see region-scope.util.ts and the equivalent Events test.
+  it('Mongolia Editor can only create/see Mongolia-only offers, and gets 403 touching an international one', async () => {
+    const clubManagerCookie = await staffCookieFor('Club Manager');
+    const mongoliaEditorCookie = await staffCookieFor('Mongolia Editor');
+
+    const created = await request(app.getHttpServer())
+      .post('/benefit-catalog')
+      .set('Cookie', mongoliaEditorCookie)
+      .send({ type: 'OFFER', tiers: ['MONGOLIA'], title: 'Mongolia-only welcome offer' })
+      .expect(201);
+    expect(created.body.regions).toEqual(['MONGOLIA']);
+
+    const internationalOffer = await request(app.getHttpServer())
+      .post('/benefit-catalog')
+      .set('Cookie', clubManagerCookie)
+      .send({ type: 'OFFER', tiers: ['FOUNDING'], title: 'International Founding offer' })
+      .expect(201);
+
+    const editorList = await request(app.getHttpServer())
+      .get('/benefit-catalog')
+      .set('Cookie', mongoliaEditorCookie)
+      .expect(200);
+    const editorIds = editorList.body.map((b: { id: string }) => b.id);
+    expect(editorIds).toContain(created.body.id);
+    expect(editorIds).not.toContain(internationalOffer.body.id);
+
+    await request(app.getHttpServer())
+      .patch(`/benefit-catalog/${internationalOffer.body.id}`)
+      .set('Cookie', mongoliaEditorCookie)
+      .send({ title: 'Hijacked' })
+      .expect(403);
+
+    await request(app.getHttpServer())
+      .delete(`/benefit-catalog/${internationalOffer.body.id}`)
+      .set('Cookie', mongoliaEditorCookie)
+      .expect(403);
+
+    const updated = await request(app.getHttpServer())
+      .patch(`/benefit-catalog/${created.body.id}`)
+      .set('Cookie', mongoliaEditorCookie)
+      .send({ title: 'Mongolia-only welcome offer (updated)' })
+      .expect(200);
+    expect(updated.body.title).toBe('Mongolia-only welcome offer (updated)');
+
+    await request(app.getHttpServer())
+      .delete(`/benefit-catalog/${created.body.id}`)
+      .set('Cookie', mongoliaEditorCookie)
+      .expect(200);
+  });
 });

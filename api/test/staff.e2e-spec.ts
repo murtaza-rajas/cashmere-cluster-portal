@@ -113,7 +113,7 @@ describe('GET/POST /staff (e2e)', () => {
 
   // GET /staff/roles — feeds the admin UI's role-grant dropdown with the real
   // seeded roles rather than a hardcoded, driftable copy of the same list.
-  it('GET /staff/roles: 401 with no session, 403 for non-Super-Administrator, 200 with all 10 seeded roles for Super Administrator', async () => {
+  it('GET /staff/roles: 401 with no session, 403 for non-Super-Administrator, 200 with all 11 seeded roles for Super Administrator', async () => {
     await request(app.getHttpServer()).get('/staff/roles').expect(401);
 
     const nonAdmin = await createStaffWithRole('Analytics Viewer', `staff-e2e-roles-nonadmin-${Date.now()}@example.com`);
@@ -121,8 +121,11 @@ describe('GET/POST /staff (e2e)', () => {
 
     const admin = await createStaffWithRole('Super Administrator', `staff-e2e-roles-admin-${Date.now()}@example.com`);
     const res = await request(app.getHttpServer()).get('/staff/roles').set('Cookie', staffCookieFor(admin.id)).expect(200);
-    expect(res.body).toHaveLength(10);
+    // 11 fixed presets: the original 10 plus Mongolia Editor (2026-09-11,
+    // the first regional/community role — see region-scope.util.ts).
+    expect(res.body).toHaveLength(11);
     expect(res.body.some((r: { name: string }) => r.name === 'Super Administrator')).toBe(true);
+    expect(res.body.some((r: { name: string }) => r.name === 'Mongolia Editor')).toBe(true);
     expect(res.body.some((r: { name: string }) => r.name === 'Member Support')).toBe(true);
   });
 });

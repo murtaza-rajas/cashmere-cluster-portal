@@ -326,4 +326,66 @@ describe('Event catalog (e2e)', () => {
       internationalRes.body.map((e: { id: string }) => e.id),
     ).not.toContain(mongoliaOnlyEvent.body.id);
   });
+
+  // Mongolia Editor (2026-09-11) — the first regional/community role, see
+  // region-scope.util.ts. A Mongolia Editor can reach /event-catalog (same
+  // backend as Event Manager, per the client's "reuse the existing CLC
+  // admin components" instruction), but only ever create Mongolia-only
+  // rows, and can never read/edit/delete a row that isn't confined exactly
+  // to Mongolia — an international-visible event is genuinely out of
+  // their scope, not just hidden by the frontend.
+  it('Mongolia Editor can only create/see Mongolia-only events, and gets 403 touching an international one', async () => {
+    const eventManagerCookie = await staffCookieFor('Event Manager');
+    const mongoliaEditorCookie = await staffCookieFor('Mongolia Editor');
+
+    // Mongolia Editor's own create is forced into Mongolia scope even if
+    // they never set `regions` at all.
+    const created = await request(app.getHttpServer())
+      .post('/event-catalog')
+      .set('Cookie', mongoliaEditorCookie)
+      .send({ title: 'Naadam Gathering', locationType: 'IN_PERSON', tiers: ['MONGOLIA'] })
+      .expect(201);
+    expect(created.body.regions).toEqual(['MONGOLIA']);
+
+    // A pre-existing international event (Event Manager's own default
+    // scope, [INTERNATIONAL, MONGOLIA]) is invisible to Mongolia Editor's
+    // list view and forbidden to touch directly.
+    const internationalEvent = await request(app.getHttpServer())
+      .post('/event-catalog')
+      .set('Cookie', eventManagerCookie)
+      .send({ title: 'International Founders Dinner', locationType: 'IN_PERSON', tiers: ['FOUNDING'] })
+      .expect(201);
+
+    const editorList = await request(app.getHttpServer())
+      .get('/event-catalog')
+      .set('Cookie', mongoliaEditorCookie)
+      .expect(200);
+    const editorIds = editorList.body.map((e: { id: string }) => e.id);
+    expect(editorIds).toContain(created.body.id);
+    expect(editorIds).not.toContain(internationalEvent.body.id);
+
+    await request(app.getHttpServer())
+      .patch(`/event-catalog/${internationalEvent.body.id}`)
+      .set('Cookie', mongoliaEditorCookie)
+      .send({ title: 'Hijacked' })
+      .expect(403);
+
+    await request(app.getHttpServer())
+      .delete(`/event-catalog/${internationalEvent.body.id}`)
+      .set('Cookie', mongoliaEditorCookie)
+      .expect(403);
+
+    // Mongolia Editor can freely manage their own Mongolia-only row.
+    const updated = await request(app.getHttpServer())
+      .patch(`/event-catalog/${created.body.id}`)
+      .set('Cookie', mongoliaEditorCookie)
+      .send({ title: 'Naadam Gathering — Ulaanbaatar' })
+      .expect(200);
+    expect(updated.body.title).toBe('Naadam Gathering — Ulaanbaatar');
+
+    await request(app.getHttpServer())
+      .delete(`/event-catalog/${created.body.id}`)
+      .set('Cookie', mongoliaEditorCookie)
+      .expect(200);
+  });
 });

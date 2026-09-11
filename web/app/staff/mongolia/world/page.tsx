@@ -30,7 +30,7 @@ const EMPTY_FORM: MongoliaStoryInput = {
 export default function MongoliaWorldPage() {
   const staff = useStaff();
   const router = useRouter();
-  const canManage = staffHasAnyRole(staff, ["Content Manager"]);
+  const canManage = staffHasAnyRole(staff, ["Content Manager", "Mongolia Editor"]);
 
   const [state, setState] = useState<
     { status: "loading" } | { status: "error"; message: string } | { status: "loaded"; rows: StaffMongoliaStory[] }

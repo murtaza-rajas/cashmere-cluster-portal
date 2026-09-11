@@ -28,15 +28,18 @@ import { ReviewMongoliaPhotoDto } from './dto/review-mongolia-photo.dto';
 
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 
-// Staff CRUD for Cashmere Lovers Club Mongolia content — Content Manager,
-// same role as Care & Repair/Design Lab ("Editorial content: stories, news,
-// videos, Care & Repair guides"). Deliberately /mongolia-catalog, not
-// /mongolia — the member-facing Mongolia section lives at that exact bare
-// path (see app/(mongolia)/page.tsx), same collision-avoidance reasoning as
-// every other *-catalog route in this app.
+// Staff CRUD for Cashmere Lovers Club Mongolia content — Content Manager
+// (same role as Care & Repair/Design Lab), or Mongolia Editor (2026-09-11
+// — the first regional/community role, scoped to Mongolia only; nothing
+// here needs row-level region scoping the way Events/Benefits/Members do,
+// since every row this controller touches is already Mongolia-only by
+// construction). Deliberately /mongolia-catalog, not /mongolia — the
+// member-facing Mongolia section lives at that exact bare path (see
+// app/(mongolia)/page.tsx), same collision-avoidance reasoning as every
+// other *-catalog route in this app.
 @Controller('mongolia-catalog')
 @UseGuards(StaffAuthGuard, RolesGuard)
-@Roles('Content Manager')
+@Roles('Content Manager', 'Mongolia Editor')
 export class MongoliaController {
   constructor(private readonly mongolia: MongoliaService) {}
 

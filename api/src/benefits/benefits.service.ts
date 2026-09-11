@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { BenefitType, MembershipTier, Region } from '@prisma/client';
@@ -14,23 +18,41 @@ export class BenefitsService {
 
   // Staff-facing: every row regardless of active/tier, so a draft or
   // currently-inactive row is still visible to edit — only the member-facing
-  // side below filters those out.
-  findAllForStaff(type?: BenefitType) {
+  // side below filters those out. `scopedRegion` (set for a regional role
+  // like Mongolia Editor — see region-scope.util.ts) narrows this to rows
+  // confined EXACTLY to that region — same exact-match reasoning as
+  // EventsService.findAllForStaff, kept consistent with findOrThrow's write
+  // check below so the list always matches what's actually editable. null
+  // means full, region-unscoped access.
+  findAllForStaff(type: BenefitType | undefined, scopedRegion: Region | null) {
     return this.prisma.benefit.findMany({
-      where: type ? { type } : undefined,
+      where: {
+        type,
+        ...(scopedRegion ? { regions: { equals: [scopedRegion] } } : {}),
+      },
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
     });
   }
 
-  async create(dto: CreateBenefitDto, staffUserId: string) {
+  async create(
+    dto: CreateBenefitDto,
+    staffUserId: string,
+    scopedRegion: Region | null,
+  ) {
+    // A regionally-scoped staffer (e.g. Mongolia Editor) can only ever
+    // create rows confined to their own region — overridden, not merely
+    // validated, same reasoning as EventsService.create.
+    const regions = scopedRegion ? [scopedRegion] : dto.regions;
+
     const created = await this.prisma.benefit.create({
       data: {
         type: dto.type,
         tiers: dto.tiers,
-        // Undefined omits the field entirely, so Prisma's schema default
-        // ([INTERNATIONAL, MONGOLIA]) applies — matches every row created
-        // before this field existed.
-        regions: dto.regions,
+        // Undefined (the unscoped case with nothing submitted) omits the
+        // field entirely, so Prisma's schema default ([INTERNATIONAL,
+        // MONGOLIA]) applies — matches every row created before this field
+        // existed.
+        regions,
         icon: dto.icon,
         title: dto.title,
         description: dto.description,
@@ -51,18 +73,20 @@ export class BenefitsService {
     return created;
   }
 
-  async update(id: string, dto: UpdateBenefitDto, staffUserId: string) {
-    const existing = await this.prisma.benefit.findUnique({ where: { id } });
-    if (!existing) {
-      throw new NotFoundException('Benefit not found');
-    }
+  async update(
+    id: string,
+    dto: UpdateBenefitDto,
+    staffUserId: string,
+    scopedRegion: Region | null,
+  ) {
+    const existing = await this.findOrThrow(id, scopedRegion);
 
     const updated = await this.prisma.benefit.update({
       where: { id },
       data: {
         type: dto.type,
         tiers: dto.tiers,
-        regions: dto.regions,
+        regions: scopedRegion ? [scopedRegion] : dto.regions,
         icon: dto.icon,
         title: dto.title,
         description: dto.description,
@@ -82,11 +106,12 @@ export class BenefitsService {
     return updated;
   }
 
-  async remove(id: string, staffUserId: string) {
-    const existing = await this.prisma.benefit.findUnique({ where: { id } });
-    if (!existing) {
-      throw new NotFoundException('Benefit not found');
-    }
+  async remove(
+    id: string,
+    staffUserId: string,
+    scopedRegion: Region | null,
+  ) {
+    const existing = await this.findOrThrow(id, scopedRegion);
 
     await this.prisma.benefit.delete({ where: { id } });
 
@@ -99,6 +124,25 @@ export class BenefitsService {
     });
 
     return { id };
+  }
+
+  // Same reasoning as EventsService's own findOrThrow — a row visible
+  // outside the caller's regional scope is out of bounds even to read for
+  // editing, and a real Forbidden rather than a disguised 404.
+  private async findOrThrow(id: string, scopedRegion: Region | null) {
+    const existing = await this.prisma.benefit.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundException('Benefit not found');
+    }
+    if (
+      scopedRegion &&
+      (existing.regions.length !== 1 || existing.regions[0] !== scopedRegion)
+    ) {
+      throw new ForbiddenException(
+        'This row is outside your regional scope',
+      );
+    }
+    return existing;
   }
 
   // Member-facing: only active rows visible to the member's own tier AND

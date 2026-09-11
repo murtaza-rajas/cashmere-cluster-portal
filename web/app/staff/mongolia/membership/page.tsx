@@ -17,7 +17,7 @@ import { membershipTierLabel } from "@/lib/api";
 export default function MongoliaMembershipAccessPage() {
   const staff = useStaff();
   const router = useRouter();
-  const allowed = staffHasAnyRole(staff, ["Club Manager", "Member Support"]);
+  const allowed = staffHasAnyRole(staff, ["Club Manager", "Member Support", "Mongolia Editor"]);
 
   const [search, setSearch] = useState("");
   const [state, setState] = useState<

@@ -536,4 +536,49 @@ describe('GET /members, GET /members/:id (e2e, staff-facing)', () => {
     expect(res.body.collection).toEqual([]);
     expect(res.body.wishlist).toEqual([]);
   });
+
+  // Mongolia Editor (2026-09-11) — same regional-scoping model as Events/
+  // Benefits, see region-scope.util.ts. Reaches GET /members and
+  // GET /members/:id (same backend as Club Manager/Member Support), but
+  // only ever sees Mongolia-region members, and a real 403 — not a
+  // disguised 404 — for an international member's detail page.
+  it('Mongolia Editor only sees Mongolia-region members in the list, and gets 403 on an international member detail', async () => {
+    const mongoliaEditorCookie = await staffCookieFor('Mongolia Editor');
+
+    const mongoliaExternalId = `members-admin-e2e-mn-${Date.now()}`;
+    const mongoliaMember = await members.findOrCreateFromIdentity({
+      providerId: 'shopify',
+      externalId: mongoliaExternalId,
+      email: `${mongoliaExternalId}@example.com`,
+    });
+    await prisma.member.update({
+      where: { id: mongoliaMember.id },
+      data: { region: 'MONGOLIA' },
+    });
+
+    const internationalExternalId = `members-admin-e2e-intl-${Date.now()}`;
+    const internationalMember = await members.findOrCreateFromIdentity({
+      providerId: 'shopify',
+      externalId: internationalExternalId,
+      email: `${internationalExternalId}@example.com`,
+    });
+
+    const list = await request(app.getHttpServer())
+      .get('/members')
+      .set('Cookie', mongoliaEditorCookie)
+      .expect(200);
+    const listedIds = list.body.map((m: { id: string }) => m.id);
+    expect(listedIds).toContain(mongoliaMember.id);
+    expect(listedIds).not.toContain(internationalMember.id);
+
+    await request(app.getHttpServer())
+      .get(`/members/${mongoliaMember.id}`)
+      .set('Cookie', mongoliaEditorCookie)
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .get(`/members/${internationalMember.id}`)
+      .set('Cookie', mongoliaEditorCookie)
+      .expect(403);
+  });
 });

@@ -30,6 +30,7 @@ import { EventsService } from '../events/events.service';
 import { CareGuidesService } from '../care-guides/care-guides.service';
 import { DesignsService } from '../designs/designs.service';
 import { MongoliaService } from '../mongolia/mongolia.service';
+import { getScopedRegion } from '../staff/region-scope.util';
 import { imageOnlyFileFilter } from '../common/image-upload.util';
 import { SubmitMongoliaPhotoDto } from '../mongolia/dto/submit-mongolia-photo.dto';
 import { Member, BenefitType } from '@prisma/client';
@@ -318,20 +319,29 @@ export class MembersController {
   // ambiguous routes in registration order, so the literal "me" routes must stay
   // registered first or a request for /members/me would incorrectly match
   // memberDetail's :id param instead.
+  // Mongolia Editor (2026-09-11) also reaches these two routes, confined to
+  // Mongolia-region members only (see region-scope.util.ts) — same backend,
+  // same admin logic as Club Manager/Member Support, just narrower.
   @UseGuards(StaffAuthGuard, RolesGuard)
-  @Roles('Club Manager', 'Member Support')
+  @Roles('Club Manager', 'Member Support', 'Mongolia Editor')
   @Get()
-  findAllMembers(@Query('search') search?: string) {
-    return this.members.findAllForStaff(search);
+  findAllMembers(@Query('search') search: string | undefined, @Req() req: Request) {
+    return this.members.findAllForStaff(
+      search,
+      getScopedRegion(req.staffUser!.roles, ['Club Manager', 'Member Support']),
+    );
   }
 
   // Combined read-only snapshot (profile + orders + collection + wishlist) so
   // Member Support can look someone up in one call instead of four.
   @UseGuards(StaffAuthGuard, RolesGuard)
-  @Roles('Club Manager', 'Member Support')
+  @Roles('Club Manager', 'Member Support', 'Mongolia Editor')
   @Get(':id')
-  async memberDetail(@Param('id') id: string) {
-    const member = await this.members.findByIdForStaff(id);
+  async memberDetail(@Param('id') id: string, @Req() req: Request) {
+    const member = await this.members.findByIdForStaff(
+      id,
+      getScopedRegion(req.staffUser!.roles, ['Club Manager', 'Member Support']),
+    );
     const [orders, collection, wishlistItems] = await Promise.all([
       this.members.findOrdersForMember(id),
       this.members.findCollectionForMember(id),
