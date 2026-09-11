@@ -47,10 +47,16 @@ export interface MemberDetail {
 // Full staff-facing shape of a Benefit row — includes tiers/active/sortOrder,
 // which the member-facing Benefit type (lib/api.ts) deliberately omits since
 // members only ever see the filtered, already-scoped result.
+export type RegionValue = "INTERNATIONAL" | "MONGOLIA";
+
 export interface StaffBenefit {
   id: string;
   type: "BENEFIT" | "OFFER";
   tiers: ("FOUNDING" | "ANNUAL" | "MONGOLIA" | "NEWSLETTER")[];
+  // Which regions see this row — added 2026-09-11 alongside Mongolia's
+  // "Current Offers" reuse: tier alone can't tell a Mongolia Newsletter
+  // member apart from an international one (both carry tier NEWSLETTER).
+  regions: RegionValue[];
   icon: string | null;
   title: string;
   description: string | null;
@@ -198,6 +204,9 @@ export async function fetchBenefitCatalog(type?: "BENEFIT" | "OFFER"): Promise<S
 export interface BenefitInput {
   type: "BENEFIT" | "OFFER";
   tiers: ("FOUNDING" | "ANNUAL" | "MONGOLIA" | "NEWSLETTER")[];
+  // Omitted means "both regions" server-side — see schema.prisma's comment
+  // on Benefit.regions.
+  regions?: RegionValue[];
   icon?: string;
   title: string;
   description?: string;
@@ -277,6 +286,8 @@ export interface StaffEvent {
   registrationUrl: string | null;
   imageUrl: string | null;
   tiers: MembershipTierValue[];
+  // Same reasoning as StaffBenefit.regions.
+  regions: RegionValue[];
   active: boolean;
   sortOrder: number;
   createdAt: string;
@@ -290,6 +301,8 @@ export interface EventInput {
   startsAt?: string;
   registrationUrl?: string;
   tiers: MembershipTierValue[];
+  // Omitted means "both regions" server-side.
+  regions?: RegionValue[];
   sortOrder?: number;
   active?: boolean;
 }
@@ -687,6 +700,7 @@ export interface StaffMongoliaProducer {
   active: boolean;
   sortOrder: number;
   createdAt: string;
+  voteCount: number;
 }
 
 export interface MongoliaProducerInput {

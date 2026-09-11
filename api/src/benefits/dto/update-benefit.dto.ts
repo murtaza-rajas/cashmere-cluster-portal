@@ -7,7 +7,7 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
-import { BenefitType, MembershipTier } from '@prisma/client';
+import { BenefitType, MembershipTier, Region } from '@prisma/client';
 
 // Every field optional — a staff member editing one row shouldn't have to
 // resubmit the whole thing, and partial updates are the normal shape here
@@ -21,6 +21,11 @@ export class UpdateBenefitDto {
   @IsArray()
   @IsEnum(MembershipTier, { each: true })
   tiers?: MembershipTier[];
+
+  @IsOptional()
+  @IsArray()
+  @IsEnum(Region, { each: true })
+  regions?: Region[];
 
   @IsOptional()
   @IsString()

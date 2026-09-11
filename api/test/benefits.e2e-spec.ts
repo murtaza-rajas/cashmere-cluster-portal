@@ -186,4 +186,66 @@ describe('Benefit catalog (e2e)', () => {
       annualOffer.body.id,
     );
   });
+
+  // Regression test (2026-09-11): MembershipTier alone can't tell a Mongolia
+  // Newsletter member apart from an international one — both carry tier
+  // NEWSLETTER. Found and fixed while reusing Benefit for Mongolia's
+  // "Current Offers" (client's own instruction) — without the `regions`
+  // field, a Mongolia-only offer would have either been invisible to
+  // Mongolia Newsletter (if scoped to tiers:['MONGOLIA'], which only
+  // Founding carries) or leaked to every international Newsletter
+  // Subscriber (if scoped to tiers:['NEWSLETTER']).
+  it("a Mongolia-only offer is visible to Mongolia Newsletter but not to an international Newsletter Subscriber", async () => {
+    const clubManagerCookie = await staffCookieFor('Club Manager');
+
+    const mongoliaOnlyOffer = await request(app.getHttpServer())
+      .post('/benefit-catalog')
+      .set('Cookie', clubManagerCookie)
+      .send({
+        type: 'OFFER',
+        tiers: ['NEWSLETTER'],
+        regions: ['MONGOLIA'],
+        title: 'Mongolia Newsletter welcome offer',
+      })
+      .expect(201);
+    expect(mongoliaOnlyOffer.body.regions).toEqual(['MONGOLIA']);
+
+    const mongoliaNewsletterId = `benefits-e2e-mn-newsletter-${Date.now()}`;
+    const mongoliaNewsletter = await members.findOrCreateFromIdentity({
+      providerId: 'shopify',
+      externalId: mongoliaNewsletterId,
+      email: `${mongoliaNewsletterId}@example.com`,
+    });
+    await prisma.member.update({
+      where: { id: mongoliaNewsletter.id },
+      data: { membershipTier: 'NEWSLETTER', region: 'MONGOLIA' },
+    });
+
+    const internationalNewsletterId = `benefits-e2e-intl-newsletter-${Date.now()}`;
+    const internationalNewsletter = await members.findOrCreateFromIdentity({
+      providerId: 'shopify',
+      externalId: internationalNewsletterId,
+      email: `${internationalNewsletterId}@example.com`,
+    });
+    await prisma.member.update({
+      where: { id: internationalNewsletter.id },
+      data: { membershipTier: 'NEWSLETTER', region: 'INTERNATIONAL' },
+    });
+
+    const mongoliaRes = await request(app.getHttpServer())
+      .get('/members/me/offers')
+      .set('Cookie', sessionCookieFor(mongoliaNewsletter.id))
+      .expect(200);
+    expect(mongoliaRes.body.map((o: { id: string }) => o.id)).toContain(
+      mongoliaOnlyOffer.body.id,
+    );
+
+    const internationalRes = await request(app.getHttpServer())
+      .get('/members/me/offers')
+      .set('Cookie', sessionCookieFor(internationalNewsletter.id))
+      .expect(200);
+    expect(
+      internationalRes.body.map((o: { id: string }) => o.id),
+    ).not.toContain(mongoliaOnlyOffer.body.id);
+  });
 });

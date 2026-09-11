@@ -9,7 +9,7 @@ import {
   IsString,
   IsUrl,
 } from 'class-validator';
-import { EventLocationType, MembershipTier } from '@prisma/client';
+import { EventLocationType, MembershipTier, Region } from '@prisma/client';
 
 export class CreateEventDto {
   @IsString()
@@ -40,6 +40,13 @@ export class CreateEventDto {
   @IsArray()
   @IsEnum(MembershipTier, { each: true })
   tiers: MembershipTier[];
+
+  // Optional — undefined means "both regions" server-side, same reasoning
+  // as CreateBenefitDto.regions.
+  @IsOptional()
+  @IsArray()
+  @IsEnum(Region, { each: true })
+  regions?: Region[];
 
   @IsOptional()
   @IsInt()

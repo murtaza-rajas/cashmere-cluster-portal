@@ -9,7 +9,7 @@ import {
   IsString,
   IsUrl,
 } from 'class-validator';
-import { EventLocationType, MembershipTier } from '@prisma/client';
+import { EventLocationType, MembershipTier, Region } from '@prisma/client';
 
 // Every field optional — same reasoning as UpdateBenefitDto: a staff member
 // editing one field (e.g. just confirming a date, or toggling active)
@@ -44,6 +44,11 @@ export class UpdateEventDto {
   @IsArray()
   @IsEnum(MembershipTier, { each: true })
   tiers?: MembershipTier[];
+
+  @IsOptional()
+  @IsArray()
+  @IsEnum(Region, { each: true })
+  regions?: Region[];
 
   @IsOptional()
   @IsInt()

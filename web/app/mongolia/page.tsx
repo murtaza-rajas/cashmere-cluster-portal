@@ -2,15 +2,19 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { BookOpen, Factory, Images, Vote } from "lucide-react";
+import { BookOpen, Factory, Images, Vote, Gift, CalendarHeart } from "lucide-react";
 import { useMember } from "@/contexts/member-context";
 import {
   fetchMyMongoliaStories,
   fetchMyMongoliaProducers,
   voteMongoliaProducer,
   unvoteMongoliaProducer,
+  fetchMyEvents,
+  fetchMyOffers,
   type MongoliaStory,
   type MongoliaProducer,
+  type MemberEvent,
+  type Benefit,
 } from "@/lib/api";
 
 // Content types built so far: Stories & News, then Producer profiles — both
@@ -33,6 +37,14 @@ import {
 // unlike voting which now does. The bottom tab bar shown in the same
 // mockup (Home/Explore/Vote/Offers/Profile) is a bigger, separate piece —
 // still deferred, tracked in PROJECT_TRACKER.md, not attempted here.
+//
+// 2026-09-11 — Events & Current Offers added. Client's instruction on
+// the admin side ("same underlying admin logic as the international CLC
+// sections") turned out to already be true on this side too, once
+// Event/Benefit gained a real `regions` field (see events.service.ts's
+// comment) — this page just calls the exact same fetchMyEvents/
+// fetchMyOffers already used by the international portal; the backend
+// naturally returns only Mongolia-scoped rows for a Mongolia member.
 export default function MongoliaHomePage() {
   const member = useMember();
   const [state, setState] = useState<
@@ -40,6 +52,12 @@ export default function MongoliaHomePage() {
   >({ status: "loading" });
   const [producerState, setProducerState] = useState<
     { status: "loading" } | { status: "error"; message: string } | { status: "loaded"; producers: MongoliaProducer[] }
+  >({ status: "loading" });
+  const [eventState, setEventState] = useState<
+    { status: "loading" } | { status: "error"; message: string } | { status: "loaded"; events: MemberEvent[] }
+  >({ status: "loading" });
+  const [offerState, setOfferState] = useState<
+    { status: "loading" } | { status: "error"; message: string } | { status: "loaded"; offers: Benefit[] }
   >({ status: "loading" });
 
   const [voteBusyId, setVoteBusyId] = useState<string | null>(null);
@@ -55,6 +73,12 @@ export default function MongoliaHomePage() {
       .then((stories) => setState({ status: "loaded", stories }))
       .catch((err: Error) => setState({ status: "error", message: err.message }));
     loadProducers();
+    fetchMyEvents()
+      .then((events) => setEventState({ status: "loaded", events }))
+      .catch((err: Error) => setEventState({ status: "error", message: err.message }));
+    fetchMyOffers()
+      .then((offers) => setOfferState({ status: "loaded", offers }))
+      .catch((err: Error) => setOfferState({ status: "error", message: err.message }));
   }, []);
 
   async function toggleVote(producer: MongoliaProducer) {
@@ -240,6 +264,92 @@ export default function MongoliaHomePage() {
                     </span>
                   )}
                 </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div id="events">
+        <h2 className="font-serif text-xl tracking-tight text-cashmere-text">Events</h2>
+
+        {eventState.status === "loading" && <p className="mt-3 text-cashmere-text-muted">Loading…</p>}
+        {eventState.status === "error" && (
+          <p className="mt-3 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+            Could not load events ({eventState.message}).
+          </p>
+        )}
+
+        {eventState.status === "loaded" && eventState.events.length === 0 && (
+          <div className="mt-3 flex flex-col items-center gap-3 rounded-2xl border border-cashmere-border bg-white px-6 py-16 text-center">
+            <CalendarHeart size={28} strokeWidth={1.5} className="text-cashmere-text-muted" />
+            <p className="font-medium text-cashmere-text">No events yet</p>
+            <p className="max-w-sm text-sm text-cashmere-text-muted">Check back soon for events happening in Mongolia.</p>
+          </div>
+        )}
+
+        {eventState.status === "loaded" && eventState.events.length > 0 && (
+          <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {eventState.events.map((event) => (
+              <div key={event.id} className="flex flex-col gap-3 rounded-2xl border border-cashmere-border bg-white p-5">
+                <div className="relative h-32 overflow-hidden rounded-xl bg-cashmere-sidebar/60">
+                  {event.imageUrl ? (
+                    <Image src={event.imageUrl} alt="" fill className="object-cover" />
+                  ) : (
+                    <div className="flex h-full items-center justify-center">
+                      <CalendarHeart size={24} strokeWidth={1.5} className="text-cashmere-text-muted" />
+                    </div>
+                  )}
+                </div>
+                <p className="font-medium text-cashmere-text">{event.title}</p>
+                {event.description && <p className="text-sm text-cashmere-text-muted">{event.description}</p>}
+                <p className="text-xs text-cashmere-text-muted">
+                  {event.locationType === "IN_PERSON" ? event.location || "In person" : event.location || "Online"} ·{" "}
+                  {event.startsAt ? new Date(event.startsAt).toLocaleString() : "Date to be announced"}
+                </p>
+                {event.registrationUrl ? (
+                  <a
+                    href={event.registrationUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-sm font-medium text-cashmere-accent-dark hover:underline"
+                  >
+                    Register →
+                  </a>
+                ) : (
+                  <span className="text-sm text-cashmere-text-muted">Registration opening soon</span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div id="offers">
+        <h2 className="font-serif text-xl tracking-tight text-cashmere-text">Current Offers</h2>
+
+        {offerState.status === "loading" && <p className="mt-3 text-cashmere-text-muted">Loading…</p>}
+        {offerState.status === "error" && (
+          <p className="mt-3 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+            Could not load offers ({offerState.message}).
+          </p>
+        )}
+
+        {offerState.status === "loaded" && offerState.offers.length === 0 && (
+          <div className="mt-3 flex flex-col items-center gap-3 rounded-2xl border border-cashmere-border bg-white px-6 py-16 text-center">
+            <Gift size={28} strokeWidth={1.5} className="text-cashmere-text-muted" />
+            <p className="font-medium text-cashmere-text">No offers yet</p>
+            <p className="max-w-sm text-sm text-cashmere-text-muted">Check back soon for Mongolia member offers.</p>
+          </div>
+        )}
+
+        {offerState.status === "loaded" && offerState.offers.length > 0 && (
+          <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {offerState.offers.map((offer) => (
+              <div key={offer.id} className="flex flex-col gap-2 rounded-2xl border border-cashmere-border bg-white p-5">
+                <Gift size={20} strokeWidth={1.75} className="text-cashmere-accent-dark" />
+                <p className="font-medium text-cashmere-text">{offer.title}</p>
+                {offer.description && <p className="text-sm text-cashmere-text-muted">{offer.description}</p>}
               </div>
             ))}
           </div>

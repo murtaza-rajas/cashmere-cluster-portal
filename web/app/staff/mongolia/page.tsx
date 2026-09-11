@@ -1,674 +1,112 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
-import Image from "next/image";
-import { Plus, Pencil, Trash2, Upload } from "lucide-react";
-import { useStaff, staffHasAnyRole } from "@/contexts/staff-context";
-import {
-  fetchMongoliaStoryCatalog,
-  createMongoliaStory,
-  updateMongoliaStory,
-  deleteMongoliaStory,
-  uploadMongoliaStoryImage,
-  deleteMongoliaStoryImage,
-  StaffMongoliaStory,
-  MongoliaStoryInput,
-  fetchMongoliaProducerCatalog,
-  createMongoliaProducer,
-  updateMongoliaProducer,
-  deleteMongoliaProducer,
-  uploadMongoliaProducerImage,
-  deleteMongoliaProducerImage,
-  StaffMongoliaProducer,
-  MongoliaProducerInput,
-} from "@/lib/staff-api";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { Users, BookOpen, Factory, Images, Vote, Gift, Globe2, CalendarHeart, UserCog } from "lucide-react";
+import { fetchMembers, fetchMongoliaStoryCatalog, fetchMongoliaProducerCatalog } from "@/lib/staff-api";
 
-const EMPTY_STORY_FORM: MongoliaStoryInput = {
-  title: "",
-  excerpt: "",
-  body: "",
-  category: "",
-  foundingOnly: false,
-  sortOrder: 0,
-  active: true,
-};
-
-const EMPTY_PRODUCER_FORM: MongoliaProducerInput = {
-  name: "",
-  craft: "",
-  location: "",
-  story: "",
-  foundingOnly: false,
-  sortOrder: 0,
-  active: true,
-};
-
-// Content Manager — same role as Care & Repair/Design Lab ("Editorial
-// content: stories, news, videos, Care & Repair guides"). Two content types
-// built so far for Cashmere Lovers Club Mongolia (Stories & News, Producer
-// profiles) — see mongolia.controller.ts's comment for the rest of this
-// section's scope. A simple tab switcher rather than two separate staff nav
-// items, since both are the same "content type CRUD" shape and staff
-// navigation already has one Mongolia entry.
-export default function MongoliaAdminPage() {
-  const staff = useStaff();
-  const router = useRouter();
-  const canManage = staffHasAnyRole(staff, ["Content Manager"]);
-  const [tab, setTab] = useState<"stories" | "producers">("stories");
-
-  useEffect(() => {
-    if (!canManage) {
-      router.replace("/staff");
-    }
-  }, [canManage, router]);
-
-  if (!canManage) return null;
-
-  return (
-    <div className="flex w-full flex-col gap-6">
-      <div>
-        <h1 className="font-serif text-3xl tracking-tight text-cashmere-text">Cashmere Lovers Club Mongolia</h1>
-        <p className="mt-1 text-cashmere-text-muted">
-          Content shown to Mongolia members. Founding-only content is hidden from Mongolia Newsletter.
-        </p>
-      </div>
-
-      <div className="flex gap-2 border-b border-cashmere-border">
-        {(["stories", "producers"] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`px-4 py-2 text-sm font-medium capitalize transition-colors ${
-              tab === t
-                ? "border-b-2 border-cashmere-accent text-cashmere-text"
-                : "text-cashmere-text-muted hover:text-cashmere-text"
-            }`}
-          >
-            {t === "stories" ? "Stories & News" : "Producers"}
-          </button>
-        ))}
-      </div>
-
-      {tab === "stories" ? <StoriesAdmin /> : <ProducersAdmin />}
-    </div>
-  );
+interface ModuleCard {
+  href: string;
+  label: string;
+  description: string;
+  icon: typeof Users;
 }
 
-function StoriesAdmin() {
-  const [state, setState] = useState<
-    { status: "loading" } | { status: "error"; message: string } | { status: "loaded"; rows: StaffMongoliaStory[] }
-  >({ status: "loading" });
-  const [form, setForm] = useState<MongoliaStoryInput>(EMPTY_STORY_FORM);
-  const [saving, setSaving] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [imageBusyId, setImageBusyId] = useState<string | null>(null);
-  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+const MODULES: ModuleCard[] = [
+  { href: "/staff/mongolia/stories", label: "Stories & News", description: "Create and manage stories from Mongolia.", icon: BookOpen },
+  { href: "/staff/mongolia/producers", label: "Producers", description: "Manage producer profiles.", icon: Factory },
+  { href: "/staff/mongolia/photos", label: "Photo Archive", description: "Member-submitted photos (coming soon).", icon: Images },
+  { href: "/staff/mongolia/voting", label: "Your Voice / Voting", description: "See how members are voting on producers.", icon: Vote },
+  { href: "/staff/mongolia/offers", label: "Current Offers", description: "Manage offers for Mongolia members.", icon: Gift },
+  { href: "/staff/mongolia/world", label: "Mongolia and the World", description: "Diaspora and global-community stories.", icon: Globe2 },
+  { href: "/staff/mongolia/events", label: "Events", description: "Create and manage events in Mongolia.", icon: CalendarHeart },
+  { href: "/staff/mongolia/membership", label: "Membership Access", description: "Look up Mongolia members.", icon: UserCog },
+];
 
-  function load() {
+// Mongolia Dashboard — client's mockup (mongolia-admin-interface.png,
+// 2026-09-11) shows a real landing page, not just a bare module list. Stat
+// cards use real, already-available data (member/story/producer/vote
+// counts) rather than inventing new report endpoints just to match the
+// mockup's exact figures — the client's own note says the design is "only
+// a concept illustration... no need to copy the exact visual design or
+// dashboard figures."
+export default function MongoliaDashboardPage() {
+  const [memberCounts, setMemberCounts] = useState<{ founding: number; newsletter: number } | null>(null);
+  const [storyCount, setStoryCount] = useState<number | null>(null);
+  const [producerStats, setProducerStats] = useState<{ count: number; votes: number } | null>(null);
+
+  useEffect(() => {
+    fetchMembers()
+      .then((members) => {
+        const mongolia = members.filter((m) => m.region === "MONGOLIA");
+        setMemberCounts({
+          founding: mongolia.filter((m) => m.membershipTier === "MONGOLIA").length,
+          newsletter: mongolia.filter((m) => m.membershipTier === "NEWSLETTER").length,
+        });
+      })
+      .catch(() => setMemberCounts(null));
+
     fetchMongoliaStoryCatalog()
-      .then((rows) => setState({ status: "loaded", rows }))
-      .catch((err: Error) => setState({ status: "error", message: err.message }));
-  }
+      .then((rows) => setStoryCount(rows.length))
+      .catch(() => setStoryCount(null));
 
-  useEffect(() => {
-    load();
-  }, []);
-
-  function startCreate() {
-    setEditingId(null);
-    setForm(EMPTY_STORY_FORM);
-    setFormError(null);
-  }
-
-  function startEdit(row: StaffMongoliaStory) {
-    setEditingId(row.id);
-    setForm({
-      title: row.title,
-      excerpt: row.excerpt ?? "",
-      body: row.body ?? "",
-      category: row.category ?? "",
-      foundingOnly: row.foundingOnly,
-      sortOrder: row.sortOrder,
-      active: row.active,
-    });
-    setFormError(null);
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setSaving(true);
-    setFormError(null);
-    try {
-      const payload: MongoliaStoryInput = {
-        ...form,
-        excerpt: form.excerpt || undefined,
-        body: form.body || undefined,
-        category: form.category || undefined,
-      };
-      if (editingId) {
-        await updateMongoliaStory(editingId, payload);
-      } else {
-        await createMongoliaStory(payload);
-      }
-      startCreate();
-      load();
-    } catch (err) {
-      setFormError((err as Error).message);
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function handleDelete(id: string) {
-    await deleteMongoliaStory(id);
-    if (editingId === id) startCreate();
-    load();
-  }
-
-  async function handleImageUpload(id: string, file: File) {
-    setImageBusyId(id);
-    try {
-      await uploadMongoliaStoryImage(id, file);
-      load();
-    } finally {
-      setImageBusyId(null);
-    }
-  }
-
-  async function handleImageRemove(id: string) {
-    setImageBusyId(id);
-    try {
-      await deleteMongoliaStoryImage(id);
-      load();
-    } finally {
-      setImageBusyId(null);
-    }
-  }
-
-  return (
-    <div className="flex flex-col gap-6">
-      <section className="rounded-2xl border border-cashmere-border bg-white p-6">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-cashmere-text-muted">
-          {editingId ? "Edit story" : "Add story"}
-        </h2>
-        <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-4">
-          <div>
-            <label className="text-xs uppercase tracking-wide text-cashmere-text-muted">Title</label>
-            <input
-              required
-              value={form.title}
-              onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-              className="mt-1 w-full rounded-lg border border-cashmere-border px-3 py-2 text-sm"
-            />
-          </div>
-
-          <div>
-            <label className="text-xs uppercase tracking-wide text-cashmere-text-muted">Excerpt</label>
-            <input
-              value={form.excerpt}
-              onChange={(e) => setForm((f) => ({ ...f, excerpt: e.target.value }))}
-              placeholder="Short summary shown in the story list"
-              className="mt-1 w-full rounded-lg border border-cashmere-border px-3 py-2 text-sm"
-            />
-          </div>
-
-          <div>
-            <label className="text-xs uppercase tracking-wide text-cashmere-text-muted">Body</label>
-            <textarea
-              value={form.body}
-              onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))}
-              rows={4}
-              className="mt-1 w-full rounded-lg border border-cashmere-border px-3 py-2 text-sm"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <div>
-              <label className="text-xs uppercase tracking-wide text-cashmere-text-muted">Category</label>
-              <input
-                value={form.category}
-                onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-                placeholder="e.g. Community, Designer Spotlight"
-                className="mt-1 w-full rounded-lg border border-cashmere-border px-3 py-2 text-sm"
-              />
-            </div>
-            <div>
-              <label className="text-xs uppercase tracking-wide text-cashmere-text-muted">Sort order</label>
-              <input
-                type="number"
-                value={form.sortOrder}
-                onChange={(e) => setForm((f) => ({ ...f, sortOrder: Number(e.target.value) }))}
-                className="mt-1 w-full rounded-lg border border-cashmere-border px-3 py-2 text-sm"
-              />
-            </div>
-            <div className="flex flex-col justify-end gap-2 pb-2">
-              <label className="flex items-center gap-1.5 text-sm text-cashmere-text">
-                <input
-                  type="checkbox"
-                  checked={form.foundingOnly}
-                  onChange={(e) => setForm((f) => ({ ...f, foundingOnly: e.target.checked }))}
-                />
-                Founding Member only
-              </label>
-              <label className="flex items-center gap-1.5 text-sm text-cashmere-text">
-                <input
-                  type="checkbox"
-                  checked={form.active}
-                  onChange={(e) => setForm((f) => ({ ...f, active: e.target.checked }))}
-                />
-                Active
-              </label>
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-2">
-            {editingId && (
-              <button
-                type="button"
-                onClick={startCreate}
-                className="rounded-full border border-cashmere-border px-5 py-2.5 text-sm font-medium text-cashmere-text transition-colors hover:border-cashmere-accent"
-              >
-                Cancel
-              </button>
-            )}
-            <button
-              type="submit"
-              disabled={saving}
-              className="flex items-center justify-center gap-1 rounded-full bg-cashmere-accent px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-cashmere-accent-dark disabled:opacity-60"
-            >
-              {!editingId && <Plus size={16} strokeWidth={2} />}
-              {saving ? "Saving…" : editingId ? "Save changes" : "Add"}
-            </button>
-          </div>
-        </form>
-        {formError && <p className="mt-2 text-sm text-red-600">{formError}</p>}
-      </section>
-
-      {state.status === "loading" && <p className="text-cashmere-text-muted">Loading…</p>}
-      {state.status === "error" && (
-        <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">Could not load stories ({state.message}).</p>
-      )}
-
-      {state.status === "loaded" && (
-        <section className="flex flex-col gap-3">
-          {state.rows.length === 0 && (
-            <p className="rounded-2xl border border-cashmere-border bg-white p-6 text-center text-sm text-cashmere-text-muted">
-              No stories yet — add one above.
-            </p>
-          )}
-          {state.rows.map((row) => (
-            <div key={row.id} className="flex flex-wrap gap-4 rounded-2xl border border-cashmere-border bg-white p-5">
-              <div className="relative h-24 w-36 shrink-0 overflow-hidden rounded-lg bg-cashmere-sidebar/60">
-                {row.heroImageUrl ? (
-                  <Image src={row.heroImageUrl} alt="" fill className="object-cover" />
-                ) : (
-                  <div className="flex h-full items-center justify-center text-[10px] text-cashmere-text-muted">
-                    No photo
-                  </div>
-                )}
-              </div>
-
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <p className="font-medium text-cashmere-text">{row.title}</p>
-                  {!row.active && <span className="text-xs text-red-600">(inactive)</span>}
-                  {row.foundingOnly && (
-                    <span className="rounded-full bg-cashmere-navy/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-cashmere-navy">
-                      Founding only
-                    </span>
-                  )}
-                </div>
-                {row.excerpt && <p className="mt-1 text-sm text-cashmere-text-muted">{row.excerpt}</p>}
-                {row.category && <p className="mt-1 text-xs text-cashmere-text-muted">{row.category}</p>}
-
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <input
-                    ref={(el) => {
-                      fileInputRefs.current[row.id] = el;
-                    }}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) handleImageUpload(row.id, file);
-                      e.target.value = "";
-                    }}
-                  />
-                  <button
-                    type="button"
-                    disabled={imageBusyId === row.id}
-                    onClick={() => fileInputRefs.current[row.id]?.click()}
-                    className="flex items-center gap-1 rounded-full border border-cashmere-border px-3 py-1.5 text-xs font-medium text-cashmere-text transition-colors hover:border-cashmere-accent disabled:opacity-60"
-                  >
-                    <Upload size={12} strokeWidth={2} />
-                    {imageBusyId === row.id ? "Working…" : row.heroImageUrl ? "Replace photo" : "Upload photo"}
-                  </button>
-                  {row.heroImageUrl && (
-                    <button
-                      type="button"
-                      disabled={imageBusyId === row.id}
-                      onClick={() => handleImageRemove(row.id)}
-                      className="text-xs font-medium text-cashmere-text-muted hover:text-red-600 disabled:opacity-60"
-                    >
-                      Remove photo
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex shrink-0 gap-2">
-                <button
-                  onClick={() => startEdit(row)}
-                  aria-label={`Edit ${row.title}`}
-                  className="rounded-full border border-cashmere-border p-2 text-cashmere-text transition-colors hover:border-cashmere-accent"
-                >
-                  <Pencil size={14} strokeWidth={1.75} />
-                </button>
-                <button
-                  onClick={() => handleDelete(row.id)}
-                  aria-label={`Delete ${row.title}`}
-                  className="rounded-full border border-cashmere-border p-2 text-cashmere-text transition-colors hover:border-red-400 hover:text-red-600"
-                >
-                  <Trash2 size={14} strokeWidth={1.75} />
-                </button>
-              </div>
-            </div>
-          ))}
-        </section>
-      )}
-    </div>
-  );
-}
-
-function ProducersAdmin() {
-  const [state, setState] = useState<
-    { status: "loading" } | { status: "error"; message: string } | { status: "loaded"; rows: StaffMongoliaProducer[] }
-  >({ status: "loading" });
-  const [form, setForm] = useState<MongoliaProducerInput>(EMPTY_PRODUCER_FORM);
-  const [saving, setSaving] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [imageBusyId, setImageBusyId] = useState<string | null>(null);
-  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
-
-  function load() {
     fetchMongoliaProducerCatalog()
-      .then((rows) => setState({ status: "loaded", rows }))
-      .catch((err: Error) => setState({ status: "error", message: err.message }));
-  }
-
-  useEffect(() => {
-    load();
+      .then((rows) => setProducerStats({ count: rows.length, votes: rows.reduce((sum, p) => sum + p.voteCount, 0) }))
+      .catch(() => setProducerStats(null));
   }, []);
-
-  function startCreate() {
-    setEditingId(null);
-    setForm(EMPTY_PRODUCER_FORM);
-    setFormError(null);
-  }
-
-  function startEdit(row: StaffMongoliaProducer) {
-    setEditingId(row.id);
-    setForm({
-      name: row.name,
-      craft: row.craft ?? "",
-      location: row.location ?? "",
-      story: row.story ?? "",
-      foundingOnly: row.foundingOnly,
-      sortOrder: row.sortOrder,
-      active: row.active,
-    });
-    setFormError(null);
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setSaving(true);
-    setFormError(null);
-    try {
-      const payload: MongoliaProducerInput = {
-        ...form,
-        craft: form.craft || undefined,
-        location: form.location || undefined,
-        story: form.story || undefined,
-      };
-      if (editingId) {
-        await updateMongoliaProducer(editingId, payload);
-      } else {
-        await createMongoliaProducer(payload);
-      }
-      startCreate();
-      load();
-    } catch (err) {
-      setFormError((err as Error).message);
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function handleDelete(id: string) {
-    await deleteMongoliaProducer(id);
-    if (editingId === id) startCreate();
-    load();
-  }
-
-  async function handleImageUpload(id: string, file: File) {
-    setImageBusyId(id);
-    try {
-      await uploadMongoliaProducerImage(id, file);
-      load();
-    } finally {
-      setImageBusyId(null);
-    }
-  }
-
-  async function handleImageRemove(id: string) {
-    setImageBusyId(id);
-    try {
-      await deleteMongoliaProducerImage(id);
-      load();
-    } finally {
-      setImageBusyId(null);
-    }
-  }
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="rounded-2xl border border-cashmere-border bg-white p-6">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-cashmere-text-muted">
-          {editingId ? "Edit producer" : "Add producer"}
-        </h2>
-        <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-4">
-          <div>
-            <label className="text-xs uppercase tracking-wide text-cashmere-text-muted">Name</label>
-            <input
-              required
-              value={form.name}
-              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              className="mt-1 w-full rounded-lg border border-cashmere-border px-3 py-2 text-sm"
-            />
-          </div>
+      <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-cashmere-navy to-cashmere-navy-dark px-6 py-10 text-white sm:px-10">
+        <p className="text-xs font-semibold uppercase tracking-wide text-white/60">Mongolia Admin</p>
+        <h1 className="mt-2 font-serif text-3xl tracking-tight">Stories. People. Opportunities.</h1>
+        <p className="mt-2 max-w-lg text-white/80">Manage Mongolia-specific content, members and community for Cashmere Lovers Club.</p>
+      </div>
 
-          <div>
-            <label className="text-xs uppercase tracking-wide text-cashmere-text-muted">Story</label>
-            <textarea
-              value={form.story}
-              onChange={(e) => setForm((f) => ({ ...f, story: e.target.value }))}
-              rows={4}
-              className="mt-1 w-full rounded-lg border border-cashmere-border px-3 py-2 text-sm"
-            />
-          </div>
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="rounded-2xl border border-cashmere-border bg-white p-4">
+          <Users size={18} strokeWidth={1.75} className="text-cashmere-accent-dark" />
+          <p className="mt-2 text-2xl font-semibold text-cashmere-text">
+            {memberCounts ? memberCounts.founding + memberCounts.newsletter : "—"}
+          </p>
+          <p className="text-xs text-cashmere-text-muted">
+            Mongolia members {memberCounts && `(${memberCounts.founding} Founding, ${memberCounts.newsletter} Newsletter)`}
+          </p>
+        </div>
+        <div className="rounded-2xl border border-cashmere-border bg-white p-4">
+          <BookOpen size={18} strokeWidth={1.75} className="text-cashmere-accent-dark" />
+          <p className="mt-2 text-2xl font-semibold text-cashmere-text">{storyCount ?? "—"}</p>
+          <p className="text-xs text-cashmere-text-muted">Stories published</p>
+        </div>
+        <div className="rounded-2xl border border-cashmere-border bg-white p-4">
+          <Factory size={18} strokeWidth={1.75} className="text-cashmere-accent-dark" />
+          <p className="mt-2 text-2xl font-semibold text-cashmere-text">{producerStats?.count ?? "—"}</p>
+          <p className="text-xs text-cashmere-text-muted">Producers</p>
+        </div>
+        <div className="rounded-2xl border border-cashmere-border bg-white p-4">
+          <Vote size={18} strokeWidth={1.75} className="text-cashmere-accent-dark" />
+          <p className="mt-2 text-2xl font-semibold text-cashmere-text">{producerStats?.votes ?? "—"}</p>
+          <p className="text-xs text-cashmere-text-muted">Votes cast</p>
+        </div>
+      </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div>
-              <label className="text-xs uppercase tracking-wide text-cashmere-text-muted">Craft</label>
-              <input
-                value={form.craft}
-                onChange={(e) => setForm((f) => ({ ...f, craft: e.target.value }))}
-                placeholder="e.g. Cashmere herding, Weaving"
-                className="mt-1 w-full rounded-lg border border-cashmere-border px-3 py-2 text-sm"
-              />
-            </div>
-            <div>
-              <label className="text-xs uppercase tracking-wide text-cashmere-text-muted">Location</label>
-              <input
-                value={form.location}
-                onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
-                placeholder="e.g. Ömnögovi Province"
-                className="mt-1 w-full rounded-lg border border-cashmere-border px-3 py-2 text-sm"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <div>
-              <label className="text-xs uppercase tracking-wide text-cashmere-text-muted">Sort order</label>
-              <input
-                type="number"
-                value={form.sortOrder}
-                onChange={(e) => setForm((f) => ({ ...f, sortOrder: Number(e.target.value) }))}
-                className="mt-1 w-full rounded-lg border border-cashmere-border px-3 py-2 text-sm"
-              />
-            </div>
-            <div className="flex flex-col justify-end gap-2 pb-2 sm:col-span-2">
-              <label className="flex items-center gap-1.5 text-sm text-cashmere-text">
-                <input
-                  type="checkbox"
-                  checked={form.foundingOnly}
-                  onChange={(e) => setForm((f) => ({ ...f, foundingOnly: e.target.checked }))}
-                />
-                Founding Member only
-              </label>
-              <label className="flex items-center gap-1.5 text-sm text-cashmere-text">
-                <input
-                  type="checkbox"
-                  checked={form.active}
-                  onChange={(e) => setForm((f) => ({ ...f, active: e.target.checked }))}
-                />
-                Active
-              </label>
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-2">
-            {editingId && (
-              <button
-                type="button"
-                onClick={startCreate}
-                className="rounded-full border border-cashmere-border px-5 py-2.5 text-sm font-medium text-cashmere-text transition-colors hover:border-cashmere-accent"
-              >
-                Cancel
-              </button>
-            )}
-            <button
-              type="submit"
-              disabled={saving}
-              className="flex items-center justify-center gap-1 rounded-full bg-cashmere-accent px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-cashmere-accent-dark disabled:opacity-60"
+      <div>
+        <h2 className="font-serif text-xl tracking-tight text-cashmere-text">Mongolia Admin Modules</h2>
+        <p className="mt-1 text-sm text-cashmere-text-muted">Quick access to all Mongolia-specific content and community features.</p>
+        <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {MODULES.map((mod) => (
+            <Link
+              key={mod.href}
+              href={mod.href}
+              className="flex flex-col gap-2 rounded-2xl border border-cashmere-border bg-white p-5 transition-colors hover:border-cashmere-accent"
             >
-              {!editingId && <Plus size={16} strokeWidth={2} />}
-              {saving ? "Saving…" : editingId ? "Save changes" : "Add"}
-            </button>
-          </div>
-        </form>
-        {formError && <p className="mt-2 text-sm text-red-600">{formError}</p>}
-      </section>
-
-      {state.status === "loading" && <p className="text-cashmere-text-muted">Loading…</p>}
-      {state.status === "error" && (
-        <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">Could not load producers ({state.message}).</p>
-      )}
-
-      {state.status === "loaded" && (
-        <section className="flex flex-col gap-3">
-          {state.rows.length === 0 && (
-            <p className="rounded-2xl border border-cashmere-border bg-white p-6 text-center text-sm text-cashmere-text-muted">
-              No producers yet — add one above.
-            </p>
-          )}
-          {state.rows.map((row) => (
-            <div key={row.id} className="flex flex-wrap gap-4 rounded-2xl border border-cashmere-border bg-white p-5">
-              <div className="relative h-24 w-36 shrink-0 overflow-hidden rounded-lg bg-cashmere-sidebar/60">
-                {row.heroImageUrl ? (
-                  <Image src={row.heroImageUrl} alt="" fill className="object-cover" />
-                ) : (
-                  <div className="flex h-full items-center justify-center text-[10px] text-cashmere-text-muted">
-                    No photo
-                  </div>
-                )}
-              </div>
-
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <p className="font-medium text-cashmere-text">{row.name}</p>
-                  {!row.active && <span className="text-xs text-red-600">(inactive)</span>}
-                  {row.foundingOnly && (
-                    <span className="rounded-full bg-cashmere-navy/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-cashmere-navy">
-                      Founding only
-                    </span>
-                  )}
-                </div>
-                {row.craft && <p className="mt-1 text-sm text-cashmere-text-muted">{row.craft}</p>}
-                {row.location && <p className="mt-1 text-xs text-cashmere-text-muted">{row.location}</p>}
-
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <input
-                    ref={(el) => {
-                      fileInputRefs.current[row.id] = el;
-                    }}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) handleImageUpload(row.id, file);
-                      e.target.value = "";
-                    }}
-                  />
-                  <button
-                    type="button"
-                    disabled={imageBusyId === row.id}
-                    onClick={() => fileInputRefs.current[row.id]?.click()}
-                    className="flex items-center gap-1 rounded-full border border-cashmere-border px-3 py-1.5 text-xs font-medium text-cashmere-text transition-colors hover:border-cashmere-accent disabled:opacity-60"
-                  >
-                    <Upload size={12} strokeWidth={2} />
-                    {imageBusyId === row.id ? "Working…" : row.heroImageUrl ? "Replace photo" : "Upload photo"}
-                  </button>
-                  {row.heroImageUrl && (
-                    <button
-                      type="button"
-                      disabled={imageBusyId === row.id}
-                      onClick={() => handleImageRemove(row.id)}
-                      className="text-xs font-medium text-cashmere-text-muted hover:text-red-600 disabled:opacity-60"
-                    >
-                      Remove photo
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex shrink-0 gap-2">
-                <button
-                  onClick={() => startEdit(row)}
-                  aria-label={`Edit ${row.name}`}
-                  className="rounded-full border border-cashmere-border p-2 text-cashmere-text transition-colors hover:border-cashmere-accent"
-                >
-                  <Pencil size={14} strokeWidth={1.75} />
-                </button>
-                <button
-                  onClick={() => handleDelete(row.id)}
-                  aria-label={`Delete ${row.name}`}
-                  className="rounded-full border border-cashmere-border p-2 text-cashmere-text transition-colors hover:border-red-400 hover:text-red-600"
-                >
-                  <Trash2 size={14} strokeWidth={1.75} />
-                </button>
-              </div>
-            </div>
+              <mod.icon size={20} strokeWidth={1.75} className="text-cashmere-accent-dark" />
+              <p className="font-medium text-cashmere-text">{mod.label}</p>
+              <p className="text-sm text-cashmere-text-muted">{mod.description}</p>
+            </Link>
           ))}
-        </section>
-      )}
+        </div>
+      </div>
     </div>
   );
 }

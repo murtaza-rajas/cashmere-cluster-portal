@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
-import { BenefitType, MembershipTier } from '@prisma/client';
+import { BenefitType, MembershipTier, Region } from '@prisma/client';
 import { CreateBenefitDto } from './dto/create-benefit.dto';
 import { UpdateBenefitDto } from './dto/update-benefit.dto';
 
@@ -27,6 +27,10 @@ export class BenefitsService {
       data: {
         type: dto.type,
         tiers: dto.tiers,
+        // Undefined omits the field entirely, so Prisma's schema default
+        // ([INTERNATIONAL, MONGOLIA]) applies — matches every row created
+        // before this field existed.
+        regions: dto.regions,
         icon: dto.icon,
         title: dto.title,
         description: dto.description,
@@ -58,6 +62,7 @@ export class BenefitsService {
       data: {
         type: dto.type,
         tiers: dto.tiers,
+        regions: dto.regions,
         icon: dto.icon,
         title: dto.title,
         description: dto.description,
@@ -96,13 +101,17 @@ export class BenefitsService {
     return { id };
   }
 
-  // Member-facing: only active rows visible to the member's own tier. Takes
-  // the tier directly rather than a memberId — callers (MembersController)
-  // already have the authenticated Member row from the session, so this
-  // avoids a redundant lookup and keeps this service decoupled from auth.
-  findForMember(tier: MembershipTier, type: BenefitType) {
+  // Member-facing: only active rows visible to the member's own tier AND
+  // region. Takes tier/region directly rather than a memberId — callers
+  // (MembersController) already have the authenticated Member row from the
+  // session, so this avoids a redundant lookup and keeps this service
+  // decoupled from auth. The region check exists specifically because tier
+  // alone can't tell a Mongolia Newsletter member apart from an
+  // international one — both carry tier NEWSLETTER (see schema.prisma's
+  // comment on Benefit.regions).
+  findForMember(tier: MembershipTier, region: Region, type: BenefitType) {
     return this.prisma.benefit.findMany({
-      where: { type, active: true, tiers: { has: tier } },
+      where: { type, active: true, tiers: { has: tier }, regions: { has: region } },
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
     });
   }

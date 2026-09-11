@@ -7,7 +7,7 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
-import { BenefitType, MembershipTier } from '@prisma/client';
+import { BenefitType, MembershipTier, Region } from '@prisma/client';
 
 export class CreateBenefitDto {
   @IsEnum(BenefitType)
@@ -19,6 +19,15 @@ export class CreateBenefitDto {
   @IsArray()
   @IsEnum(MembershipTier, { each: true })
   tiers: MembershipTier[];
+
+  // Optional — undefined means "both regions" server-side (see
+  // BenefitsService.createBenefit), matching every existing row's actual
+  // behavior before this field existed, so untouched international admin
+  // usage needs no change.
+  @IsOptional()
+  @IsArray()
+  @IsEnum(Region, { each: true })
+  regions?: Region[];
 
   @IsOptional()
   @IsString()

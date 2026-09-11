@@ -1,8 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, ShieldCheck, ClipboardList, Gift, Image as ImageIcon, ScrollText, CalendarHeart, Wrench, BarChart3, Plug, Palette, Mountain, LogOut, X } from "lucide-react";
+import { LayoutDashboard, Users, ShieldCheck, ClipboardList, Gift, Image as ImageIcon, ScrollText, CalendarHeart, Wrench, BarChart3, Plug, Palette, Mountain, LogOut, X, ChevronDown, BookOpen, Factory, Images as ImagesIcon, Vote, Globe2 } from "lucide-react";
 import { useStaff, staffHasAnyRole } from "@/contexts/staff-context";
 import { API_URL } from "@/lib/api";
 
@@ -11,13 +12,32 @@ interface NavItem {
   label: string;
   icon: typeof Users;
   allowedRoles: string[];
+  children?: { href: string; label: string; icon: typeof Users }[];
 }
 
 // Not run through the role filter below — /staff itself has no @Roles()
 // gate (any authenticated staff member can view their own overview), so
 // this always shows, unlike every other item here which is gated to
 // whichever role(s) its destination actually requires.
-const DASHBOARD_ITEM = { href: "/staff", label: "Dashboard", icon: LayoutDashboard };
+const DASHBOARD_ITEM: NavItem = { href: "/staff", label: "Dashboard", icon: LayoutDashboard, allowedRoles: [] };
+
+// 2026-09-11 — Mongolia restructured from one tabbed page into a nested
+// section (client's own mockup, `mongolia-admin-interface.png`), so a
+// future "Mongolia Editor" role can eventually be scoped to just these
+// sub-items without touching the rest of CLC admin. Current gate is still
+// Content Manager on every child — the role split itself is real, later,
+// separately-decided work (see PROJECT_TRACKER.md), not guessed at here.
+const MONGOLIA_CHILDREN = [
+  { href: "/staff/mongolia", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/staff/mongolia/stories", label: "Stories & News", icon: BookOpen },
+  { href: "/staff/mongolia/producers", label: "Producers", icon: Factory },
+  { href: "/staff/mongolia/photos", label: "Photo Archive", icon: ImagesIcon },
+  { href: "/staff/mongolia/voting", label: "Your Voice / Voting", icon: Vote },
+  { href: "/staff/mongolia/offers", label: "Current Offers", icon: Gift },
+  { href: "/staff/mongolia/world", label: "Mongolia and the World", icon: Globe2 },
+  { href: "/staff/mongolia/events", label: "Events", icon: CalendarHeart },
+  { href: "/staff/mongolia/membership", label: "Membership Access", icon: Users },
+];
 
 const NAV_ITEMS: NavItem[] = [
   { href: "/staff/directory", label: "Staff & Roles", icon: ShieldCheck, allowedRoles: ["Super Administrator"] },
@@ -27,7 +47,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/staff/events", label: "Events & Invitations", icon: CalendarHeart, allowedRoles: ["Event Manager"] },
   { href: "/staff/care-repair", label: "Care & Repair", icon: Wrench, allowedRoles: ["Content Manager"] },
   { href: "/staff/design-lab", label: "Design Lab", icon: Palette, allowedRoles: ["Content Manager"] },
-  { href: "/staff/mongolia", label: "Mongolia", icon: Mountain, allowedRoles: ["Content Manager"] },
+  { href: "/staff/mongolia", label: "Mongolia", icon: Mountain, allowedRoles: ["Content Manager"], children: MONGOLIA_CHILDREN },
   { href: "/staff/data-requests", label: "GDPR Requests", icon: ClipboardList, allowedRoles: ["Super Administrator", "Member Support"] },
   { href: "/staff/audit-log", label: "Audit Log", icon: ScrollText, allowedRoles: ["Super Administrator"] },
   { href: "/staff/reports", label: "Reports & Analytics", icon: BarChart3, allowedRoles: ["Analytics Viewer"] },
@@ -38,6 +58,11 @@ export default function StaffSidebar({ open, onClose }: { open: boolean; onClose
   const pathname = usePathname();
   const staff = useStaff();
   const navItems = NAV_ITEMS.filter((item) => staffHasAnyRole(staff, item.allowedRoles));
+  // Auto-expand a group whenever the current page is inside it, so landing
+  // directly on e.g. /staff/mongolia/stories doesn't hide its own nav.
+  const [expanded, setExpanded] = useState<string | null>(
+    navItems.find((item) => item.children && pathname.startsWith(item.href))?.href ?? null,
+  );
 
   return (
     <>
@@ -65,20 +90,67 @@ export default function StaffSidebar({ open, onClose }: { open: boolean; onClose
             {navItems.length === 0 && (
               <p className="px-3 py-2 text-sm text-white/50">No admin areas available for your role.</p>
             )}
-            {[DASHBOARD_ITEM, ...navItems].map(({ href, label, icon: Icon }) => {
+            {[DASHBOARD_ITEM, ...navItems].map((item) => {
+              const { href, label, icon: Icon } = item;
+              const children = item.children;
               const active = pathname === href;
+
+              if (!children) {
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    onClick={onClose}
+                    className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
+                      active ? "bg-white/10 font-medium text-white" : "text-white/80 hover:bg-white/5"
+                    }`}
+                  >
+                    <Icon size={18} strokeWidth={1.75} />
+                    {label}
+                  </Link>
+                );
+              }
+
+              const isExpanded = expanded === href;
+              const childActive = pathname.startsWith(href);
               return (
-                <Link
-                  key={href}
-                  href={href}
-                  onClick={onClose}
-                  className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
-                    active ? "bg-white/10 font-medium text-white" : "text-white/80 hover:bg-white/5"
-                  }`}
-                >
-                  <Icon size={18} strokeWidth={1.75} />
-                  {label}
-                </Link>
+                <div key={href}>
+                  <button
+                    type="button"
+                    onClick={() => setExpanded(isExpanded ? null : href)}
+                    className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
+                      childActive ? "bg-white/10 font-medium text-white" : "text-white/80 hover:bg-white/5"
+                    }`}
+                  >
+                    <Icon size={18} strokeWidth={1.75} />
+                    <span className="flex-1 text-left">{label}</span>
+                    <ChevronDown
+                      size={14}
+                      strokeWidth={1.75}
+                      className={`transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                    />
+                  </button>
+                  {isExpanded && (
+                    <div className="ml-4 mt-1 flex flex-col gap-0.5 border-l border-white/10 pl-3">
+                      {children.map((child) => {
+                        const childIsActive = pathname === child.href;
+                        return (
+                          <Link
+                            key={child.href}
+                            href={child.href}
+                            onClick={onClose}
+                            className={`flex items-center gap-2.5 rounded-lg px-3 py-1.5 text-sm transition-colors ${
+                              childIsActive ? "bg-white/10 font-medium text-white" : "text-white/70 hover:bg-white/5"
+                            }`}
+                          >
+                            <child.icon size={15} strokeWidth={1.75} />
+                            {child.label}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               );
             })}
 

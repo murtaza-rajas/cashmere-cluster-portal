@@ -186,10 +186,15 @@ export class MongoliaService {
     });
   }
 
-  findAllProducersForStaff() {
-    return this.prisma.mongoliaProducer.findMany({
+  // Carries real vote counts so the staff "Your Voice / Voting" page can
+  // show results — same _count pattern as findProducersForMember, just
+  // without the per-member isVoted/canVote fields staff don't need.
+  async findAllProducersForStaff() {
+    const producers = await this.prisma.mongoliaProducer.findMany({
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
+      include: { _count: { select: { votes: true } } },
     });
+    return producers.map((p) => ({ ...p, voteCount: p._count.votes, _count: undefined }));
   }
 
   async createProducer(dto: CreateMongoliaProducerDto, staffUserId: string) {

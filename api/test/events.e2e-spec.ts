@@ -268,4 +268,62 @@ describe('Event catalog (e2e)', () => {
     expect(ids).not.toContain(annualOnlyEvent.body.id);
     expect(ids).not.toContain(inactiveFoundingEvent.body.id);
   });
+
+  // Regression test (2026-09-11) — same fix and reasoning as the equivalent
+  // Benefit test: tier alone can't tell a Mongolia Newsletter member apart
+  // from an international one (both carry tier NEWSLETTER), found while
+  // reusing Event for Mongolia's own Events section.
+  it("a Mongolia-only event is visible to Mongolia Newsletter but not to an international Newsletter Subscriber", async () => {
+    const eventManagerCookie = await staffCookieFor('Event Manager');
+
+    const mongoliaOnlyEvent = await request(app.getHttpServer())
+      .post('/event-catalog')
+      .set('Cookie', eventManagerCookie)
+      .send({
+        title: 'Ulaanbaatar Cashmere Festival',
+        locationType: 'IN_PERSON',
+        tiers: ['NEWSLETTER'],
+        regions: ['MONGOLIA'],
+      })
+      .expect(201);
+    expect(mongoliaOnlyEvent.body.regions).toEqual(['MONGOLIA']);
+
+    const mongoliaNewsletterId = `events-e2e-mn-newsletter-${Date.now()}`;
+    const mongoliaNewsletter = await members.findOrCreateFromIdentity({
+      providerId: 'shopify',
+      externalId: mongoliaNewsletterId,
+      email: `${mongoliaNewsletterId}@example.com`,
+    });
+    await prisma.member.update({
+      where: { id: mongoliaNewsletter.id },
+      data: { membershipTier: 'NEWSLETTER', region: 'MONGOLIA' },
+    });
+
+    const internationalNewsletterId = `events-e2e-intl-newsletter-${Date.now()}`;
+    const internationalNewsletter = await members.findOrCreateFromIdentity({
+      providerId: 'shopify',
+      externalId: internationalNewsletterId,
+      email: `${internationalNewsletterId}@example.com`,
+    });
+    await prisma.member.update({
+      where: { id: internationalNewsletter.id },
+      data: { membershipTier: 'NEWSLETTER', region: 'INTERNATIONAL' },
+    });
+
+    const mongoliaRes = await request(app.getHttpServer())
+      .get('/members/me/events')
+      .set('Cookie', sessionCookieFor(mongoliaNewsletter.id))
+      .expect(200);
+    expect(mongoliaRes.body.map((e: { id: string }) => e.id)).toContain(
+      mongoliaOnlyEvent.body.id,
+    );
+
+    const internationalRes = await request(app.getHttpServer())
+      .get('/members/me/events')
+      .set('Cookie', sessionCookieFor(internationalNewsletter.id))
+      .expect(200);
+    expect(
+      internationalRes.body.map((e: { id: string }) => e.id),
+    ).not.toContain(mongoliaOnlyEvent.body.id);
+  });
 });

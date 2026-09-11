@@ -4,7 +4,7 @@ import { join, extname } from 'path';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
-import { MembershipTier } from '@prisma/client';
+import { MembershipTier, Region } from '@prisma/client';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 
@@ -37,6 +37,7 @@ export class EventsService {
         startsAt: dto.startsAt ? new Date(dto.startsAt) : undefined,
         registrationUrl: dto.registrationUrl,
         tiers: dto.tiers,
+        regions: dto.regions,
         sortOrder: dto.sortOrder ?? 0,
         active: dto.active ?? true,
         createdById: staffUserId,
@@ -67,6 +68,7 @@ export class EventsService {
         startsAt: dto.startsAt ? new Date(dto.startsAt) : undefined,
         registrationUrl: dto.registrationUrl,
         tiers: dto.tiers,
+        regions: dto.regions,
         sortOrder: dto.sortOrder,
         active: dto.active,
       },
@@ -161,13 +163,14 @@ export class EventsService {
     return updated;
   }
 
-  // Member-facing: only active events visible to the member's own tier,
-  // soonest first — same convention as BenefitsService.findForMember for the
-  // tier scoping, but ordered by start date since "what's coming up next" is
-  // what a member actually wants from this page.
-  findForMember(tier: MembershipTier) {
+  // Member-facing: only active events visible to the member's own tier AND
+  // region — same reasoning as BenefitsService.findForMember (tier alone
+  // can't tell a Mongolia Newsletter member apart from an international
+  // one), ordered by start date since "what's coming up next" is what a
+  // member actually wants from this page.
+  findForMember(tier: MembershipTier, region: Region) {
     return this.prisma.event.findMany({
-      where: { active: true, tiers: { has: tier } },
+      where: { active: true, tiers: { has: tier }, regions: { has: region } },
       orderBy: [{ sortOrder: 'asc' }, { startsAt: 'asc' }],
     });
   }

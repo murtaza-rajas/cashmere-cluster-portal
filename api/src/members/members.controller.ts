@@ -104,8 +104,10 @@ export class MembersController {
   @UseGuards(JwtAuthGuard)
   @Get('me/benefits')
   myBenefits(@Req() req: Request) {
+    const member = req.user as Member;
     return this.benefits.findForMember(
-      (req.user as Member).membershipTier,
+      member.membershipTier,
+      member.region,
       BenefitType.BENEFIT,
     );
   }
@@ -113,8 +115,10 @@ export class MembersController {
   @UseGuards(JwtAuthGuard)
   @Get('me/offers')
   myOffers(@Req() req: Request) {
+    const member = req.user as Member;
     return this.benefits.findForMember(
-      (req.user as Member).membershipTier,
+      member.membershipTier,
+      member.region,
       BenefitType.OFFER,
     );
   }
@@ -134,7 +138,8 @@ export class MembersController {
   @UseGuards(JwtAuthGuard)
   @Get('me/events')
   myEvents(@Req() req: Request) {
-    return this.events.findForMember((req.user as Member).membershipTier);
+    const member = req.user as Member;
+    return this.events.findForMember(member.membershipTier, member.region);
   }
 
   // Care & Repair guide bodies — not tier-scoped (unlike the above), since

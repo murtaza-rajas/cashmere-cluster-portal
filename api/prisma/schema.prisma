@@ -294,6 +294,16 @@ model Benefit {
   // tier it wasn't meant for.
   tiers MembershipTier[]
 
+  // 2026-09-11 — added when reusing this model for Mongolia's "Current
+  // Offers" surfaced a real gap: MembershipTier alone can't distinguish
+  // "Mongolia Newsletter" from an international Newsletter Subscriber —
+  // both carry tier NEWSLETTER, region is the only thing that tells them
+  // apart (see Member.region's own comment). Defaults to both regions so
+  // every existing row (all international, created before Mongolia had any
+  // content of its own) keeps working exactly as before — nobody has to
+  // backfill anything. A Mongolia-scoped row explicitly sets [MONGOLIA].
+  regions Region[] @default([INTERNATIONAL, MONGOLIA])
+
   // lucide-react icon name (see web/lib/benefit-icons.ts for the fixed set staff
   // can choose from); null renders a sensible default icon client-side.
   icon        String?
@@ -400,6 +410,10 @@ model Event {
   // Which tiers see this event. Empty = draft, visible to nobody — same
   // convention as Benefit.tiers, so a half-configured event never leaks.
   tiers MembershipTier[]
+
+  // Same reasoning and default as Benefit.regions — tier alone can't tell
+  // Mongolia Newsletter apart from an international Newsletter Subscriber.
+  regions Region[] @default([INTERNATIONAL, MONGOLIA])
 
   active    Boolean @default(true)
   sortOrder Int     @default(0)
