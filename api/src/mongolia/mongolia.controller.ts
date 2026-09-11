@@ -24,6 +24,7 @@ import { CreateMongoliaStoryDto } from './dto/create-mongolia-story.dto';
 import { UpdateMongoliaStoryDto } from './dto/update-mongolia-story.dto';
 import { CreateMongoliaProducerDto } from './dto/create-mongolia-producer.dto';
 import { UpdateMongoliaProducerDto } from './dto/update-mongolia-producer.dto';
+import { ReviewMongoliaPhotoDto } from './dto/review-mongolia-photo.dto';
 
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 
@@ -136,5 +137,27 @@ export class MongoliaController {
   @Delete('producers/:id/image')
   removeProducerImage(@Param('id') id: string, @Req() req: Request) {
     return this.mongolia.removeProducerImage(id, req.staffUser!.id);
+  }
+
+  // Photo Archive moderation — approve/reject/delete member submissions.
+  // No POST here: photos are only ever member-submitted (see
+  // MembersController's mongoliaSubmitPhoto), not staff-created.
+  @Get('photos')
+  findAllPhotos() {
+    return this.mongolia.findAllPhotosForStaff();
+  }
+
+  @Patch('photos/:id')
+  reviewPhoto(
+    @Param('id') id: string,
+    @Body() dto: ReviewMongoliaPhotoDto,
+    @Req() req: Request,
+  ) {
+    return this.mongolia.reviewPhoto(id, dto, req.staffUser!.id);
+  }
+
+  @Delete('photos/:id')
+  removePhoto(@Param('id') id: string, @Req() req: Request) {
+    return this.mongolia.removePhoto(id, req.staffUser!.id);
   }
 }

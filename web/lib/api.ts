@@ -311,3 +311,42 @@ export async function unvoteMongoliaProducer(id: string): Promise<void> {
   const res = await apiFetch(`/members/me/mongolia/producers/${id}/vote`, { method: "DELETE" });
   if (!res.ok) throw new Error(`Unexpected response removing vote: ${res.status}`);
 }
+
+// Photo Archive — the real, published archive (approved only). Submitting
+// is Mongolia Founding-only, enforced server-side (see mongolia.service.ts).
+export interface MongoliaPhoto {
+  id: string;
+  imageUrl: string;
+  caption: string | null;
+  foundingOnly: boolean;
+}
+
+export interface MyMongoliaPhotoSubmission extends MongoliaPhoto {
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  reviewNote: string | null;
+  createdAt: string;
+}
+
+export async function fetchMyMongoliaPhotos(): Promise<MongoliaPhoto[]> {
+  const res = await apiFetch("/members/me/mongolia/photos");
+  if (!res.ok) throw new Error(`Unexpected response fetching photos: ${res.status}`);
+  return res.json();
+}
+
+export async function fetchMyMongoliaPhotoSubmissions(): Promise<MyMongoliaPhotoSubmission[]> {
+  const res = await apiFetch("/members/me/mongolia/photos/mine");
+  if (!res.ok) throw new Error(`Unexpected response fetching your submissions: ${res.status}`);
+  return res.json();
+}
+
+export async function submitMongoliaPhoto(file: File, caption?: string): Promise<MyMongoliaPhotoSubmission> {
+  const formData = new FormData();
+  formData.append("file", file);
+  if (caption) formData.append("caption", caption);
+  const res = await apiFetch("/members/me/mongolia/photos", { method: "POST", body: formData });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.message ?? `Unexpected response submitting photo: ${res.status}`);
+  }
+  return res.json();
+}

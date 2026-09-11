@@ -13,16 +13,27 @@ import { CreateMongoliaStoryDto } from './dto/create-mongolia-story.dto';
 import { UpdateMongoliaStoryDto } from './dto/update-mongolia-story.dto';
 import { CreateMongoliaProducerDto } from './dto/create-mongolia-producer.dto';
 import { UpdateMongoliaProducerDto } from './dto/update-mongolia-producer.dto';
+import { SubmitMongoliaPhotoDto } from './dto/submit-mongolia-photo.dto';
+import { ReviewMongoliaPhotoDto } from './dto/review-mongolia-photo.dto';
 
 const STORY_UPLOAD_DIR = join(process.cwd(), 'uploads', 'mongolia-stories');
 const STORY_PUBLIC_PREFIX = '/uploads/mongolia-stories';
 const PRODUCER_UPLOAD_DIR = join(process.cwd(), 'uploads', 'mongolia-producers');
 const PRODUCER_PUBLIC_PREFIX = '/uploads/mongolia-producers';
+const PHOTO_UPLOAD_DIR = join(process.cwd(), 'uploads', 'mongolia-photos');
+const PHOTO_PUBLIC_PREFIX = '/uploads/mongolia-photos';
 
 // Same split as DesignsService's canVote — Mongolia's "selected cases vote"
 // tier is Founding (tier MONGOLIA, since region is already the Mongolia
 // gate at the controller level — see members.controller.ts).
 function canVoteOnProducers(tier: MembershipTier): boolean {
+  return tier === 'MONGOLIA';
+}
+
+// Submitting photos is a Founding-only capability per the client's
+// 2026-09-09 email ("the ability to submit photos/content" is listed
+// under Founding Member's full access, not Newsletter's).
+function canSubmitPhotos(tier: MembershipTier): boolean {
   return tier === 'MONGOLIA';
 }
 
@@ -376,6 +387,131 @@ export class MongoliaService {
   async removeProducerVote(producerId: string, memberId: string) {
     await this.prisma.mongoliaProducerVote.deleteMany({ where: { producerId, memberId } });
     return { producerId, voted: false };
+  }
+
+  // Photo Archive — member submits (Founding-only, enforced here not just
+  // hidden in the UI), staff review before anything goes public. Same
+  // write pattern as other image uploads (memoryStorage buffer already
+  // filtered to real raster images by imageOnlyFileFilter in the
+  // controller), but member-initiated instead of staff-initiated — a first
+  // for this app.
+  async submitPhoto(
+    dto: SubmitMongoliaPhotoDto,
+    file: Express.Multer.File,
+    memberId: string,
+    tier: MembershipTier,
+  ) {
+    if (!canSubmitPhotos(tier)) {
+      throw new ForbiddenException(
+        'Submitting photos is available to Mongolia Founding Members only',
+      );
+    }
+
+    await fs.mkdir(PHOTO_UPLOAD_DIR, { recursive: true });
+    const filename = `${randomUUID()}${extname(file.originalname)}`;
+    await fs.writeFile(join(PHOTO_UPLOAD_DIR, filename), file.buffer);
+    const imageUrl = `${PHOTO_PUBLIC_PREFIX}/${filename}`;
+
+    const created = await this.prisma.mongoliaPhoto.create({
+      data: { imageUrl, caption: dto.caption, submittedById: memberId },
+    });
+
+    await this.auditLog.log({
+      action: 'mongolia_photo.submitted',
+      targetType: 'MongoliaPhoto',
+      targetId: created.id,
+      metadata: { submittedById: memberId },
+    });
+
+    return created;
+  }
+
+  // Member-facing: only this member's own submissions, any status — so
+  // they can see a pending/rejected photo they sent in, same "I can see my
+  // own request's state" principle as DataSubjectRequest.
+  findMySubmissions(memberId: string) {
+    return this.prisma.mongoliaPhoto.findMany({
+      where: { submittedById: memberId },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  // Member-facing: the real, published archive — approved only, split by
+  // foundingOnly same as Stories/Producers ("full photo archive" for
+  // Founding vs. "selected... images" for Newsletter).
+  findApprovedPhotosForMember(tier: MembershipTier) {
+    return this.prisma.mongoliaPhoto.findMany({
+      where: {
+        status: 'APPROVED',
+        ...(tier === 'MONGOLIA' ? {} : { foundingOnly: false }),
+      },
+      orderBy: { reviewedAt: 'desc' },
+    });
+  }
+
+  // Staff-facing: every submission regardless of status, newest-first so
+  // pending ones needing a decision surface naturally — same convention as
+  // DataSubjectRequestsService's pending queue.
+  findAllPhotosForStaff() {
+    return this.prisma.mongoliaPhoto.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: { submittedBy: { select: { firstName: true, lastName: true, email: true } } },
+    });
+  }
+
+  async reviewPhoto(
+    id: string,
+    dto: ReviewMongoliaPhotoDto,
+    staffUserId: string,
+  ) {
+    const existing = await this.prisma.mongoliaPhoto.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundException('Photo not found');
+    }
+
+    const updated = await this.prisma.mongoliaPhoto.update({
+      where: { id },
+      data: {
+        status: dto.status,
+        foundingOnly: dto.status === 'APPROVED' ? (dto.foundingOnly ?? false) : existing.foundingOnly,
+        reviewNote: dto.reviewNote,
+        reviewedById: staffUserId,
+        reviewedAt: new Date(),
+      },
+    });
+
+    await this.auditLog.log({
+      actorStaffUserId: staffUserId,
+      action:
+        dto.status === 'APPROVED'
+          ? 'mongolia_photo.approved'
+          : dto.status === 'REJECTED'
+            ? 'mongolia_photo.rejected'
+            : 'mongolia_photo.reviewed',
+      targetType: 'MongoliaPhoto',
+      targetId: id,
+    });
+
+    return updated;
+  }
+
+  async removePhoto(id: string, staffUserId: string) {
+    const existing = await this.prisma.mongoliaPhoto.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundException('Photo not found');
+    }
+
+    await this.prisma.mongoliaPhoto.delete({ where: { id } });
+    await this.deletePhysicalFile(existing.imageUrl);
+
+    await this.auditLog.log({
+      actorStaffUserId: staffUserId,
+      action: 'mongolia_photo.deleted',
+      targetType: 'MongoliaPhoto',
+      targetId: id,
+    });
+
+    return { id };
   }
 
   private async findStoryOrThrow(id: string) {

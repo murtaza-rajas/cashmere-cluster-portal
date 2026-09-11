@@ -103,6 +103,7 @@ model Member {
   designFavorites      DesignFavorite[]
   designVotes          DesignVote[]
   mongoliaProducerVotes MongoliaProducerVote[]
+  mongoliaPhotos        MongoliaPhoto[]
 
   @@index([membershipTier])
   @@index([region])
@@ -196,6 +197,7 @@ model StaffUser {
   createdDesigns        Design[]              @relation("DesignsCreatedBy")
   createdMongoliaStories MongoliaStory[]       @relation("MongoliaStoriesCreatedBy")
   createdMongoliaProducers MongoliaProducer[]  @relation("MongoliaProducersCreatedBy")
+  reviewedMongoliaPhotos   MongoliaPhoto[]     @relation("MongoliaPhotosReviewedBy")
 
   @@index([email])
 }
@@ -617,6 +619,46 @@ model MongoliaProducerVote {
   createdAt DateTime @default(now())
 
   @@unique([producerId, memberId])
+}
+
+enum MongoliaPhotoStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// Photo Archive — the last named Mongolia content type (2026-09-09 email:
+// submitting photos/content is a Founding-only capability; "full photo
+// archive" for Founding vs. "selected photo-archive images" for
+// Newsletter, same foundingOnly split as Stories/Producers, but only
+// meaningful once a photo is APPROVED). Real submission + moderation, not
+// just an upload — "submitted images are not published automatically...
+// full admin control" (2026-09-09 email) — structurally the same
+// pending/approved/rejected review shape as DataSubjectRequest, not a new
+// pattern invented for this.
+model MongoliaPhoto {
+  id String @id @default(uuid())
+
+  imageUrl String
+  caption  String?
+
+  status MongoliaPhotoStatus @default(PENDING)
+
+  // Only set (and only meaningful) once approved — a still-pending photo
+  // isn't visible to anyone but staff regardless of this value.
+  foundingOnly Boolean @default(false)
+
+  submittedById String
+  submittedBy   Member @relation(fields: [submittedById], references: [id], onDelete: Cascade)
+
+  reviewedById String?
+  reviewedBy   StaffUser? @relation("MongoliaPhotosReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedAt   DateTime?
+  reviewNote   String?
+
+  createdAt DateTime @default(now())
+
+  @@index([status])
 }
 
 // ---------------------------------------------------------------------------

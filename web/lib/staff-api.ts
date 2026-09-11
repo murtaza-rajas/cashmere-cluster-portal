@@ -765,3 +765,47 @@ export async function deleteMongoliaProducerImage(id: string): Promise<void> {
   const res = await apiFetch(`/mongolia-catalog/producers/${id}/image`, { method: "DELETE" });
   if (!res.ok) throw new Error(`Unexpected response removing Mongolia producer image: ${res.status}`);
 }
+
+// Photo Archive moderation — no create/upload here, photos are only ever
+// member-submitted (see lib/api.ts's submitMongoliaPhoto).
+export interface StaffMongoliaPhoto {
+  id: string;
+  imageUrl: string;
+  caption: string | null;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  foundingOnly: boolean;
+  reviewNote: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+  submittedBy: { firstName: string | null; lastName: string | null; email: string };
+}
+
+export interface ReviewMongoliaPhotoInput {
+  status: "APPROVED" | "REJECTED";
+  foundingOnly?: boolean;
+  reviewNote?: string;
+}
+
+export async function fetchMongoliaPhotoCatalog(): Promise<StaffMongoliaPhoto[]> {
+  const res = await apiFetch("/mongolia-catalog/photos");
+  if (!res.ok) throw new Error(`Unexpected response fetching photos: ${res.status}`);
+  return res.json();
+}
+
+export async function reviewMongoliaPhoto(id: string, dto: ReviewMongoliaPhotoInput): Promise<StaffMongoliaPhoto> {
+  const res = await apiFetch(`/mongolia-catalog/photos/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(dto),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.message ?? `Unexpected response reviewing photo: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function deleteMongoliaPhoto(id: string): Promise<void> {
+  const res = await apiFetch(`/mongolia-catalog/photos/${id}`, { method: "DELETE" });
+  if (!res.ok) throw new Error(`Unexpected response deleting photo: ${res.status}`);
+}

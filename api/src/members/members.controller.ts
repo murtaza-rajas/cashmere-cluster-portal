@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -8,8 +9,12 @@ import {
   Post,
   Query,
   Req,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { StaffAuthGuard } from '../staff/guards/staff-auth.guard';
@@ -25,7 +30,11 @@ import { EventsService } from '../events/events.service';
 import { CareGuidesService } from '../care-guides/care-guides.service';
 import { DesignsService } from '../designs/designs.service';
 import { MongoliaService } from '../mongolia/mongolia.service';
+import { imageOnlyFileFilter } from '../common/image-upload.util';
+import { SubmitMongoliaPhotoDto } from '../mongolia/dto/submit-mongolia-photo.dto';
 import { Member, BenefitType } from '@prisma/client';
+
+const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 
 @Controller('members')
 export class MembersController {
@@ -243,6 +252,64 @@ export class MembersController {
       );
     }
     return this.mongolia.removeProducerVote(id, member.id);
+  }
+
+  // Photo Archive — the real, published archive (approved only, split by
+  // foundingOnly same as Stories/Producers). Same region gate as every
+  // other Mongolia route.
+  @UseGuards(JwtAuthGuard)
+  @Get('me/mongolia/photos')
+  myMongoliaPhotos(@Req() req: Request) {
+    const member = req.user as Member;
+    if (member.region !== 'MONGOLIA') {
+      throw new ForbiddenException(
+        'Cashmere Lovers Club Mongolia is only available to Mongolia members',
+      );
+    }
+    return this.mongolia.findApprovedPhotosForMember(member.membershipTier);
+  }
+
+  // A member's own submissions, any status, so they can see something
+  // they sent in is still pending (or was rejected) rather than it just
+  // silently never appearing.
+  @UseGuards(JwtAuthGuard)
+  @Get('me/mongolia/photos/mine')
+  myMongoliaPhotoSubmissions(@Req() req: Request) {
+    const member = req.user as Member;
+    if (member.region !== 'MONGOLIA') {
+      throw new ForbiddenException(
+        'Cashmere Lovers Club Mongolia is only available to Mongolia members',
+      );
+    }
+    return this.mongolia.findMySubmissions(member.id);
+  }
+
+  // Submitting is Founding-only, enforced in MongoliaService.submitPhoto —
+  // real 403 for Mongolia Newsletter, not just a hidden upload button.
+  @UseGuards(JwtAuthGuard)
+  @Post('me/mongolia/photos')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: { fileSize: MAX_FILE_SIZE_BYTES },
+      fileFilter: imageOnlyFileFilter,
+    }),
+  )
+  async submitMongoliaPhoto(
+    @Body() dto: SubmitMongoliaPhotoDto,
+    @UploadedFile() file: Express.Multer.File,
+    @Req() req: Request,
+  ) {
+    const member = req.user as Member;
+    if (member.region !== 'MONGOLIA') {
+      throw new ForbiddenException(
+        'Cashmere Lovers Club Mongolia is only available to Mongolia members',
+      );
+    }
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+    return this.mongolia.submitPhoto(dto, file, member.id, member.membershipTier);
   }
 
   // Members & Users admin (Milestone 5) — staff-facing directory/search.

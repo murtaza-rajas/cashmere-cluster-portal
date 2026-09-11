@@ -377,4 +377,123 @@ describe('Mongolia (e2e)', () => {
     });
     expect(vote).toBeNull();
   });
+
+  // Photo Archive — real submission + moderation. Submitting is
+  // Founding-only (2026-09-09 email); the approved/foundingOnly split
+  // mirrors Stories/Producers exactly.
+  it('POST /members/me/mongolia/photos: 403 for international members and Mongolia Newsletter, 201 for Mongolia Founding, rejects SVG with 400', async () => {
+    const internationalMember = await member('NEWSLETTER', 'INTERNATIONAL');
+    await request(app.getHttpServer())
+      .post('/members/me/mongolia/photos')
+      .set('Cookie', sessionCookieFor(internationalMember.id))
+      .attach('file', FIXTURE_IMAGE)
+      .expect(403);
+
+    const mongoliaNewsletter = await member('NEWSLETTER', 'MONGOLIA');
+    await request(app.getHttpServer())
+      .post('/members/me/mongolia/photos')
+      .set('Cookie', sessionCookieFor(mongoliaNewsletter.id))
+      .attach('file', FIXTURE_IMAGE)
+      .expect(403);
+
+    const mongoliaFounding = await member('MONGOLIA', 'MONGOLIA');
+    const submitted = await request(app.getHttpServer())
+      .post('/members/me/mongolia/photos')
+      .set('Cookie', sessionCookieFor(mongoliaFounding.id))
+      .field('caption', 'Sunset over the steppe')
+      .attach('file', FIXTURE_IMAGE)
+      .expect(201);
+    expect(submitted.body.status).toBe('PENDING');
+    expect(submitted.body.caption).toBe('Sunset over the steppe');
+
+    await request(app.getHttpServer())
+      .post('/members/me/mongolia/photos')
+      .set('Cookie', sessionCookieFor(mongoliaFounding.id))
+      .attach('file', FIXTURE_SVG, { contentType: 'image/svg+xml' })
+      .expect(400);
+  });
+
+  it('a pending photo is invisible to everyone until staff approve it; GET .../photos/mine shows the submitter their own pending row', async () => {
+    const mongoliaFounding = await member('MONGOLIA', 'MONGOLIA');
+    const submitted = await request(app.getHttpServer())
+      .post('/members/me/mongolia/photos')
+      .set('Cookie', sessionCookieFor(mongoliaFounding.id))
+      .attach('file', FIXTURE_IMAGE)
+      .expect(201);
+    const photoId = submitted.body.id;
+
+    const publicView = await request(app.getHttpServer())
+      .get('/members/me/mongolia/photos')
+      .set('Cookie', sessionCookieFor(mongoliaFounding.id))
+      .expect(200);
+    expect(publicView.body.some((p: { id: string }) => p.id === photoId)).toBe(false);
+
+    const mineView = await request(app.getHttpServer())
+      .get('/members/me/mongolia/photos/mine')
+      .set('Cookie', sessionCookieFor(mongoliaFounding.id))
+      .expect(200);
+    expect(mineView.body.some((p: { id: string }) => p.id === photoId)).toBe(true);
+
+    const contentManagerCookie = await staffCookieFor('Content Manager');
+    await request(app.getHttpServer())
+      .patch(`/mongolia-catalog/photos/${photoId}`)
+      .set('Cookie', contentManagerCookie)
+      .send({ status: 'APPROVED', foundingOnly: false })
+      .expect(200);
+
+    const afterApproval = await request(app.getHttpServer())
+      .get('/members/me/mongolia/photos')
+      .set('Cookie', sessionCookieFor(mongoliaFounding.id))
+      .expect(200);
+    expect(afterApproval.body.some((p: { id: string }) => p.id === photoId)).toBe(true);
+  });
+
+  it('GET /mongolia-catalog/photos: 401/403 for non-Content-Managers; PATCH rejecting a photo keeps it out of the public archive; DELETE removes it and its file', async () => {
+    await request(app.getHttpServer()).get('/mongolia-catalog/photos').expect(401);
+    await request(app.getHttpServer())
+      .get('/mongolia-catalog/photos')
+      .set('Cookie', await staffCookieFor('Event Manager'))
+      .expect(403);
+
+    const mongoliaFounding = await member('MONGOLIA', 'MONGOLIA');
+    const submitted = await request(app.getHttpServer())
+      .post('/members/me/mongolia/photos')
+      .set('Cookie', sessionCookieFor(mongoliaFounding.id))
+      .attach('file', FIXTURE_IMAGE)
+      .expect(201);
+    const photoId = submitted.body.id;
+    const savedPath = join(process.cwd(), submitted.body.imageUrl.slice(1));
+    await expect(fs.stat(savedPath)).resolves.toBeDefined();
+
+    const contentManagerCookie = await staffCookieFor('Content Manager');
+    const staffList = await request(app.getHttpServer())
+      .get('/mongolia-catalog/photos')
+      .set('Cookie', contentManagerCookie)
+      .expect(200);
+    expect(staffList.body.some((p: { id: string }) => p.id === photoId)).toBe(true);
+
+    const rejected = await request(app.getHttpServer())
+      .patch(`/mongolia-catalog/photos/${photoId}`)
+      .set('Cookie', contentManagerCookie)
+      .send({ status: 'REJECTED', reviewNote: 'Not cashmere-related' })
+      .expect(200);
+    expect(rejected.body.status).toBe('REJECTED');
+
+    const publicView = await request(app.getHttpServer())
+      .get('/members/me/mongolia/photos')
+      .set('Cookie', sessionCookieFor(mongoliaFounding.id))
+      .expect(200);
+    expect(publicView.body.some((p: { id: string }) => p.id === photoId)).toBe(false);
+
+    const auditEntries = await prisma.auditLog.findMany({
+      where: { action: 'mongolia_photo.rejected', targetId: photoId },
+    });
+    expect(auditEntries).toHaveLength(1);
+
+    await request(app.getHttpServer())
+      .delete(`/mongolia-catalog/photos/${photoId}`)
+      .set('Cookie', contentManagerCookie)
+      .expect(200);
+    await expect(fs.stat(savedPath)).rejects.toThrow();
+  });
 });

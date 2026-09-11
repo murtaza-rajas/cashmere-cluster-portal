@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { BookOpen, Factory, Images, Vote, Gift, CalendarHeart } from "lucide-react";
+import { BookOpen, Factory, Images, Vote, Gift, CalendarHeart, Upload } from "lucide-react";
 import { useMember } from "@/contexts/member-context";
 import {
   fetchMyMongoliaStories,
@@ -11,10 +11,15 @@ import {
   unvoteMongoliaProducer,
   fetchMyEvents,
   fetchMyOffers,
+  fetchMyMongoliaPhotos,
+  fetchMyMongoliaPhotoSubmissions,
+  submitMongoliaPhoto,
   type MongoliaStory,
   type MongoliaProducer,
   type MemberEvent,
   type Benefit,
+  type MongoliaPhoto,
+  type MyMongoliaPhotoSubmission,
 } from "@/lib/api";
 
 // Content types built so far: Stories & News, then Producer profiles — both
@@ -32,11 +37,7 @@ import {
 // in as a real, active tile — same client email's "Founding Member:
 // ...voting on producers" and the mockup's own "Which producer should we
 // feature next?" widget. Founding-only, server-enforced (see
-// mongolia.service.ts's canVoteOnProducers). Photo archive stays an honest
-// disabled "Coming soon" tile — that one still has no backend at all,
-// unlike voting which now does. The bottom tab bar shown in the same
-// mockup (Home/Explore/Vote/Offers/Profile) is a bigger, separate piece —
-// still deferred, tracked in PROJECT_TRACKER.md, not attempted here.
+// mongolia.service.ts's canVoteOnProducers).
 //
 // 2026-09-11 — Events & Current Offers added. Client's instruction on
 // the admin side ("same underlying admin logic as the international CLC
@@ -45,6 +46,16 @@ import {
 // comment) — this page just calls the exact same fetchMyEvents/
 // fetchMyOffers already used by the international portal; the backend
 // naturally returns only Mongolia-scoped rows for a Mongolia member.
+//
+// 2026-09-11, later — Photo Archive built (submission + moderation),
+// turning the last "Coming soon" tile real. Submitting is Founding-only
+// (2026-09-09 email), enforced server-side — the upload form only renders
+// for a Founding member; a Newsletter member gets the read-only archive
+// grid with no upload affordance. Founding members also see their own
+// pending/rejected submissions, so a photo doesn't just silently vanish
+// while awaiting review. The bottom tab bar shown in the client's mockup
+// (Home/Explore/Vote/Offers/Profile) is a bigger, separate piece — still
+// deferred, tracked in PROJECT_TRACKER.md, not attempted here.
 export default function MongoliaHomePage() {
   const member = useMember();
   const [state, setState] = useState<
@@ -59,6 +70,15 @@ export default function MongoliaHomePage() {
   const [offerState, setOfferState] = useState<
     { status: "loading" } | { status: "error"; message: string } | { status: "loaded"; offers: Benefit[] }
   >({ status: "loading" });
+  const [photoState, setPhotoState] = useState<
+    { status: "loading" } | { status: "error"; message: string } | { status: "loaded"; photos: MongoliaPhoto[] }
+  >({ status: "loading" });
+  const [mySubmissions, setMySubmissions] = useState<MyMongoliaPhotoSubmission[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const canSubmitPhotos = member.membershipTier === "MONGOLIA";
 
   const [voteBusyId, setVoteBusyId] = useState<string | null>(null);
 
@@ -66,6 +86,17 @@ export default function MongoliaHomePage() {
     fetchMyMongoliaProducers()
       .then((producers) => setProducerState({ status: "loaded", producers }))
       .catch((err: Error) => setProducerState({ status: "error", message: err.message }));
+  }
+
+  function loadPhotos() {
+    fetchMyMongoliaPhotos()
+      .then((photos) => setPhotoState({ status: "loaded", photos }))
+      .catch((err: Error) => setPhotoState({ status: "error", message: err.message }));
+    if (canSubmitPhotos) {
+      fetchMyMongoliaPhotoSubmissions()
+        .then(setMySubmissions)
+        .catch(() => setMySubmissions([]));
+    }
   }
 
   useEffect(() => {
@@ -79,7 +110,22 @@ export default function MongoliaHomePage() {
     fetchMyOffers()
       .then((offers) => setOfferState({ status: "loaded", offers }))
       .catch((err: Error) => setOfferState({ status: "error", message: err.message }));
+    loadPhotos();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  async function handlePhotoSubmit(file: File) {
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      await submitMongoliaPhoto(file);
+      loadPhotos();
+    } catch (err) {
+      setSubmitError((err as Error).message);
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   async function toggleVote(producer: MongoliaProducer) {
     setVoteBusyId(producer.id);
@@ -132,11 +178,13 @@ export default function MongoliaHomePage() {
           <Factory size={22} strokeWidth={1.5} className="text-cashmere-accent-dark" />
           <span className="text-sm font-medium text-cashmere-text">Our producers</span>
         </a>
-        <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-cashmere-border px-3 py-5 text-center opacity-60">
-          <Images size={22} strokeWidth={1.5} className="text-cashmere-text-muted" />
-          <span className="text-sm font-medium text-cashmere-text-muted">Photo archive</span>
-          <span className="text-[10px] uppercase tracking-wide text-cashmere-text-muted">Coming soon</span>
-        </div>
+        <a
+          href="#photos"
+          className="flex flex-col items-center gap-2 rounded-2xl border border-cashmere-border bg-white px-3 py-5 text-center transition-colors hover:border-cashmere-accent"
+        >
+          <Images size={22} strokeWidth={1.5} className="text-cashmere-accent-dark" />
+          <span className="text-sm font-medium text-cashmere-text">Photo archive</span>
+        </a>
         <a
           href="#producers"
           className="flex flex-col items-center gap-2 rounded-2xl border border-cashmere-border bg-white px-3 py-5 text-center transition-colors hover:border-cashmere-accent"
@@ -350,6 +398,88 @@ export default function MongoliaHomePage() {
                 <Gift size={20} strokeWidth={1.75} className="text-cashmere-accent-dark" />
                 <p className="font-medium text-cashmere-text">{offer.title}</p>
                 {offer.description && <p className="text-sm text-cashmere-text-muted">{offer.description}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div id="photos">
+        <h2 className="font-serif text-xl tracking-tight text-cashmere-text">Photo Archive</h2>
+
+        {canSubmitPhotos && (
+          <div className="mt-3 rounded-2xl border border-cashmere-border bg-white p-5">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handlePhotoSubmit(file);
+                e.target.value = "";
+              }}
+            />
+            <button
+              type="button"
+              disabled={submitting}
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center gap-1.5 rounded-full bg-cashmere-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-cashmere-accent-dark disabled:opacity-60"
+            >
+              <Upload size={14} strokeWidth={2} />
+              {submitting ? "Submitting…" : "Submit a photo"}
+            </button>
+            <p className="mt-2 text-xs text-cashmere-text-muted">
+              Submitted photos are reviewed by our team before they appear in the archive.
+            </p>
+            {submitError && <p className="mt-2 text-sm text-red-600">{submitError}</p>}
+
+            {mySubmissions.filter((s) => s.status !== "APPROVED").length > 0 && (
+              <div className="mt-4 flex flex-wrap gap-2 border-t border-cashmere-border pt-4">
+                {mySubmissions
+                  .filter((s) => s.status !== "APPROVED")
+                  .map((s) => (
+                    <span
+                      key={s.id}
+                      className={`rounded-full px-3 py-1 text-xs font-medium ${
+                        s.status === "PENDING" ? "bg-cashmere-sidebar text-cashmere-text-muted" : "bg-red-50 text-red-700"
+                      }`}
+                    >
+                      {s.status === "PENDING" ? "Pending review" : "Not approved"}
+                    </span>
+                  ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {photoState.status === "loading" && <p className="mt-3 text-cashmere-text-muted">Loading…</p>}
+        {photoState.status === "error" && (
+          <p className="mt-3 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+            Could not load photos ({photoState.message}).
+          </p>
+        )}
+
+        {photoState.status === "loaded" && photoState.photos.length === 0 && (
+          <div className="mt-3 flex flex-col items-center gap-3 rounded-2xl border border-cashmere-border bg-white px-6 py-16 text-center">
+            <Images size={28} strokeWidth={1.5} className="text-cashmere-text-muted" />
+            <p className="font-medium text-cashmere-text">No photos yet</p>
+            <p className="max-w-sm text-sm text-cashmere-text-muted">
+              {canSubmitPhotos ? "Be the first to share a photo from Mongolia." : "Check back soon for photos from across Mongolia."}
+            </p>
+          </div>
+        )}
+
+        {photoState.status === "loaded" && photoState.photos.length > 0 && (
+          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+            {photoState.photos.map((photo) => (
+              <div key={photo.id} className="relative aspect-square overflow-hidden rounded-xl bg-cashmere-sidebar/60">
+                <Image src={photo.imageUrl} alt={photo.caption ?? ""} fill className="object-cover" />
+                {photo.foundingOnly && (
+                  <span className="absolute top-2 right-2 rounded-full bg-cashmere-navy/80 px-2 py-0.5 text-[9px] font-semibold uppercase text-white">
+                    Founding
+                  </span>
+                )}
               </div>
             ))}
           </div>
