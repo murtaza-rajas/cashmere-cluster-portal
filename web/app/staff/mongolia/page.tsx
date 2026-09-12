@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Users, BookOpen, Factory, Images, Vote, Gift, Globe2, CalendarHeart, UserCog } from "lucide-react";
+import { Users, BookOpen, Factory, Vote, Gift, Globe2, CalendarHeart, UserCog } from "lucide-react";
 import { fetchMembers, fetchMongoliaStoryCatalog, fetchMongoliaProducerCatalog } from "@/lib/staff-api";
 
 interface ModuleCard {
@@ -15,7 +15,6 @@ interface ModuleCard {
 const MODULES: ModuleCard[] = [
   { href: "/staff/mongolia/stories", label: "Stories & News", description: "Create and manage stories from Mongolia.", icon: BookOpen },
   { href: "/staff/mongolia/producers", label: "Producers", description: "Manage producer profiles.", icon: Factory },
-  { href: "/staff/mongolia/photos", label: "Photo Archive", description: "Member-submitted photos (coming soon).", icon: Images },
   { href: "/staff/mongolia/voting", label: "Your Voice / Voting", description: "See how members are voting on producers.", icon: Vote },
   { href: "/staff/mongolia/offers", label: "Current Offers", description: "Manage offers for Mongolia members.", icon: Gift },
   { href: "/staff/mongolia/world", label: "Mongolia and the World", description: "Diaspora and global-community stories.", icon: Globe2 },

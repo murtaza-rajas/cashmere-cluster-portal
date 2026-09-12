@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, ShieldCheck, ClipboardList, Gift, Image as ImageIcon, ScrollText, CalendarHeart, Wrench, BarChart3, Plug, Palette, Mountain, LogOut, X, ChevronDown, BookOpen, Factory, Images as ImagesIcon, Vote, Globe2, ShoppingBag } from "lucide-react";
+import { LayoutDashboard, Users, ShieldCheck, ClipboardList, Gift, Image as ImageIcon, ScrollText, CalendarHeart, Wrench, BarChart3, Plug, Palette, Mountain, LogOut, X, ChevronDown, BookOpen, Factory, Vote, Globe2, ShoppingBag } from "lucide-react";
 import { useStaff, staffHasAnyRole } from "@/contexts/staff-context";
 import { API_URL } from "@/lib/api";
 
@@ -33,7 +33,6 @@ const MONGOLIA_CHILDREN = [
   { href: "/staff/mongolia", label: "Dashboard", icon: LayoutDashboard },
   { href: "/staff/mongolia/stories", label: "Stories & News", icon: BookOpen },
   { href: "/staff/mongolia/producers", label: "Producers", icon: Factory },
-  { href: "/staff/mongolia/photos", label: "Photo Archive", icon: ImagesIcon },
   { href: "/staff/mongolia/voting", label: "Your Voice / Voting", icon: Vote },
   { href: "/staff/mongolia/offers", label: "Current Offers", icon: Gift },
   { href: "/staff/mongolia/world", label: "Mongolia and the World", icon: Globe2 },
