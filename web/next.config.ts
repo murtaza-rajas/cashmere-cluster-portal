@@ -86,6 +86,9 @@ const nextConfig: NextConfig = {
       // Cashmere Lovers Club Mongolia staff CRUD — no frontend page at
       // /mongolia-catalog, so a blanket rewrite here is safe.
       { source: "/mongolia-catalog/:path*", destination: `${apiOrigin}/mongolia-catalog/:path*` },
+      // Shopify & Orders admin view — no frontend page at /order-catalog,
+      // so a blanket rewrite here is safe (same reasoning as /benefit-catalog).
+      { source: "/order-catalog/:path*", destination: `${apiOrigin}/order-catalog/:path*` },
       { source: "/health", destination: `${apiOrigin}/health` },
       { source: "/webhooks/:path*", destination: `${apiOrigin}/webhooks/:path*` },
     ];

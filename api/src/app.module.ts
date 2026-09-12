@@ -19,6 +19,7 @@ import { IntegrationsModule } from './integrations/integrations.module';
 import { StaffDashboardModule } from './staff-dashboard/staff-dashboard.module';
 import { DesignsModule } from './designs/designs.module';
 import { MongoliaModule } from './mongolia/mongolia.module';
+import { OrdersModule } from './orders/orders.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { MongoliaModule } from './mongolia/mongolia.module';
     StaffDashboardModule,
     DesignsModule,
     MongoliaModule,
+    OrdersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -809,3 +809,41 @@ export async function deleteMongoliaPhoto(id: string): Promise<void> {
   const res = await apiFetch(`/mongolia-catalog/photos/${id}`, { method: "DELETE" });
   if (!res.ok) throw new Error(`Unexpected response deleting photo: ${res.status}`);
 }
+
+// Shopify & Orders admin view (Milestone 5) — Commerce Manager, matching
+// its own seeded description ("Shopify and commercial content: products,
+// collections, discounts, order view"). Read-only — real order data comes
+// from the order-sync webhooks, never written back here.
+export interface StaffOrderLineItem {
+  productId: string | null;
+  title: string;
+  variantTitle: string | null;
+  quantity: number;
+  price: string;
+}
+
+export interface StaffOrder {
+  id: string;
+  orderNumber: string;
+  totalAmount: string;
+  currency: string;
+  status: string;
+  orderDate: string;
+  lineItems: StaffOrderLineItem[] | null;
+  member: {
+    id: string;
+    firstName: string | null;
+    lastName: string | null;
+    email: string;
+    membershipTier: MembershipTierValue;
+    region: RegionValue;
+    isFoundingMember: boolean;
+  };
+}
+
+export async function fetchOrderCatalog(search?: string): Promise<StaffOrder[]> {
+  const query = search ? `?search=${encodeURIComponent(search)}` : "";
+  const res = await apiFetch(`/order-catalog${query}`);
+  if (!res.ok) throw new Error(`Unexpected response fetching orders: ${res.status}`);
+  return res.json();
+}
