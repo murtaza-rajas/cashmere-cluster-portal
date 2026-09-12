@@ -145,6 +145,26 @@ export async function fetchMyEvents(): Promise<MemberEvent[]> {
   return res.json();
 }
 
+// A single story as shown to a member — already filtered server-side to
+// active rows visible to the member's own tier (see web/lib/access.ts's
+// storiesKnowledge comment: a story visible to all four tiers is the
+// "public story" a preview-tier member sees; a Founding/Annual-only story
+// is members-only content, invisible to a preview-tier member entirely).
+export interface MemberStory {
+  id: string;
+  title: string;
+  heroImageUrl: string | null;
+  body: string | null;
+  quote: string | null;
+  category: string | null;
+}
+
+export async function fetchMyStories(): Promise<MemberStory[]> {
+  const res = await apiFetch("/members/me/stories");
+  if (!res.ok) throw new Error(`Unexpected response fetching stories: ${res.status}`);
+  return res.json();
+}
+
 export interface CareGuide {
   topic: "WASHING" | "STORAGE" | "PILLING" | "REPAIRS" | "LONGEVITY";
   body: string | null;

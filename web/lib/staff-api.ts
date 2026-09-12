@@ -847,3 +847,79 @@ export async function fetchOrderCatalog(search?: string): Promise<StaffOrder[]> 
   if (!res.ok) throw new Error(`Unexpected response fetching orders: ${res.status}`);
   return res.json();
 }
+
+export interface StaffStory {
+  id: string;
+  title: string;
+  heroImageUrl: string | null;
+  body: string | null;
+  quote: string | null;
+  category: string | null;
+  tiers: MembershipTierValue[];
+  active: boolean;
+  sortOrder: number;
+  createdAt: string;
+}
+
+export interface StoryInput {
+  title: string;
+  body?: string;
+  quote?: string;
+  category?: string;
+  tiers: MembershipTierValue[];
+  sortOrder?: number;
+  active?: boolean;
+}
+
+export async function fetchStoryCatalog(): Promise<StaffStory[]> {
+  const res = await apiFetch("/story-catalog");
+  if (!res.ok) throw new Error(`Unexpected response fetching stories: ${res.status}`);
+  return res.json();
+}
+
+export async function createStory(dto: StoryInput): Promise<StaffStory> {
+  const res = await apiFetch("/story-catalog", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(dto),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.message ?? `Unexpected response creating story: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function updateStory(id: string, dto: Partial<StoryInput>): Promise<StaffStory> {
+  const res = await apiFetch(`/story-catalog/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(dto),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.message ?? `Unexpected response updating story: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function deleteStory(id: string): Promise<void> {
+  const res = await apiFetch(`/story-catalog/${id}`, { method: "DELETE" });
+  if (!res.ok) throw new Error(`Unexpected response deleting story: ${res.status}`);
+}
+
+export async function uploadStoryImage(id: string, file: File): Promise<StaffStory> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await apiFetch(`/story-catalog/${id}/image`, { method: "POST", body: formData });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.message ?? `Unexpected response uploading story image: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function deleteStoryImage(id: string): Promise<void> {
+  const res = await apiFetch(`/story-catalog/${id}/image`, { method: "DELETE" });
+  if (!res.ok) throw new Error(`Unexpected response removing story image: ${res.status}`);
+}

@@ -30,6 +30,7 @@ import { EventsService } from '../events/events.service';
 import { CareGuidesService } from '../care-guides/care-guides.service';
 import { DesignsService } from '../designs/designs.service';
 import { MongoliaService } from '../mongolia/mongolia.service';
+import { StoriesService } from '../stories/stories.service';
 import { getScopedRegion } from '../staff/region-scope.util';
 import { imageOnlyFileFilter } from '../common/image-upload.util';
 import { SubmitMongoliaPhotoDto } from '../mongolia/dto/submit-mongolia-photo.dto';
@@ -49,6 +50,7 @@ export class MembersController {
     private readonly careGuides: CareGuidesService,
     private readonly designs: DesignsService,
     private readonly mongolia: MongoliaService,
+    private readonly stories: StoriesService,
   ) {}
 
   // What the frontend calls on load to check login state — 401 if no/invalid
@@ -152,6 +154,16 @@ export class MembersController {
     return this.events.findForMember(member.membershipTier, member.region);
   }
 
+  // Stories & Knowledge — real, staff-curated content (see StoriesService),
+  // replacing the honest "coming soon" placeholder at /news. No region
+  // filter (unlike Events/Benefits) — this is the international
+  // storiesKnowledge area; Mongolia's own Stories & News is separate.
+  @UseGuards(JwtAuthGuard)
+  @Get('me/stories')
+  myStories(@Req() req: Request) {
+    return this.stories.findForMember((req.user as Member).membershipTier);
+  }
+
   // Care & Repair guide bodies — not tier-scoped (unlike the above), since
   // the page's existing preview/full split is already handled at the page
   // level via lib/access.ts, not per-guide.
@@ -225,7 +237,10 @@ export class MembersController {
         'Cashmere Lovers Club Mongolia is only available to Mongolia members',
       );
     }
-    return this.mongolia.findProducersForMember(member.id, member.membershipTier);
+    return this.mongolia.findProducersForMember(
+      member.id,
+      member.membershipTier,
+    );
   }
 
   // "Your voice" — voting on producers, Mongolia Founding-only (enforced in
@@ -310,7 +325,12 @@ export class MembersController {
     if (!file) {
       throw new BadRequestException('No file uploaded');
     }
-    return this.mongolia.submitPhoto(dto, file, member.id, member.membershipTier);
+    return this.mongolia.submitPhoto(
+      dto,
+      file,
+      member.id,
+      member.membershipTier,
+    );
   }
 
   // Members & Users admin (Milestone 5) — staff-facing directory/search.
@@ -325,7 +345,10 @@ export class MembersController {
   @UseGuards(StaffAuthGuard, RolesGuard)
   @Roles('Club Manager', 'Member Support', 'Mongolia Editor')
   @Get()
-  findAllMembers(@Query('search') search: string | undefined, @Req() req: Request) {
+  findAllMembers(
+    @Query('search') search: string | undefined,
+    @Req() req: Request,
+  ) {
     return this.members.findAllForStaff(
       search,
       getScopedRegion(req.staffUser!.roles, ['Club Manager', 'Member Support']),

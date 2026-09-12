@@ -48,6 +48,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/staff/events", label: "Events & Invitations", icon: CalendarHeart, allowedRoles: ["Event Manager"] },
   { href: "/staff/care-repair", label: "Care & Repair", icon: Wrench, allowedRoles: ["Content Manager"] },
   { href: "/staff/design-lab", label: "Design Lab", icon: Palette, allowedRoles: ["Content Manager"] },
+  { href: "/staff/stories", label: "Stories & Knowledge", icon: BookOpen, allowedRoles: ["Content Manager"] },
   { href: "/staff/mongolia", label: "Mongolia", icon: Mountain, allowedRoles: ["Content Manager", "Mongolia Editor"], children: MONGOLIA_CHILDREN },
   { href: "/staff/data-requests", label: "GDPR Requests", icon: ClipboardList, allowedRoles: ["Super Administrator", "Member Support"] },
   { href: "/staff/audit-log", label: "Audit Log", icon: ScrollText, allowedRoles: ["Super Administrator"] },

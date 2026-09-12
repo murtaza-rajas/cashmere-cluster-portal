@@ -198,6 +198,7 @@ model StaffUser {
   createdMongoliaStories MongoliaStory[]       @relation("MongoliaStoriesCreatedBy")
   createdMongoliaProducers MongoliaProducer[]  @relation("MongoliaProducersCreatedBy")
   reviewedMongoliaPhotos   MongoliaPhoto[]     @relation("MongoliaPhotosReviewedBy")
+  createdStories           Story[]             @relation("StoriesCreatedBy")
 
   @@index([email])
 }
@@ -425,6 +426,53 @@ model Event {
 
   createdById String?
   createdBy   StaffUser? @relation("EventsCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([active])
+}
+
+// Stories & Knowledge (client's PDF nav label; "News & Updates" in our own
+// earlier drafts drifted from it — see PROJECT_TRACKER.md 2026-09-10 sketch
+// review) — the international content type behind the `storiesKnowledge`
+// portal area, previously an honest dead-end placeholder at `/news`.
+// Structured-fields model, not the client sketch's drag-and-drop block
+// editor (PROJECT_TRACKER.md, 2026-09-09 sketch review reply) — covers the
+// same real content (title, hero image, body, a pull quote, a free-text
+// category) without building CMS-grade layout flexibility a Nov 1 launch
+// doesn't need. Reuses the exact `tiers`/`active`/`sortOrder` convention
+// already proven on Benefit/Event rather than a new "isPublic" concept:
+// `storiesKnowledge` only ever needs "full" (Founding/Annual) vs "preview"
+// (Newsletter/Mongolia) — a story visible to all four tiers is the
+// "preview" tier's public story, one scoped to just FOUNDING/ANNUAL is
+// members-only. Deliberately no `regions` field (unlike Benefit/Event) —
+// this is the international storiesKnowledge area; Mongolia's own Stories
+// & News is a separate, already-built content type (MongoliaStory), not
+// this model.
+model Story {
+  id String @id @default(uuid())
+
+  title String
+
+  heroImageUrl String?
+
+  body  String?
+  quote String?
+
+  // Freeform, staff-provided — same reasoning as MongoliaStory.category,
+  // no fixed list given by the client.
+  category String?
+
+  // Which tiers see this story. Empty = draft, visible to nobody — same
+  // convention as Benefit.tiers/Event.tiers.
+  tiers MembershipTier[]
+
+  active    Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  createdById String?
+  createdBy   StaffUser? @relation("StoriesCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
 
   @@index([active])
 }

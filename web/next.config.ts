@@ -89,6 +89,9 @@ const nextConfig: NextConfig = {
       // Shopify & Orders admin view — no frontend page at /order-catalog,
       // so a blanket rewrite here is safe (same reasoning as /benefit-catalog).
       { source: "/order-catalog/:path*", destination: `${apiOrigin}/order-catalog/:path*` },
+      // Stories & Knowledge staff CRUD — no frontend page at /story-catalog,
+      // so a blanket rewrite here is safe (same reasoning as /benefit-catalog).
+      { source: "/story-catalog/:path*", destination: `${apiOrigin}/story-catalog/:path*` },
       { source: "/health", destination: `${apiOrigin}/health` },
       { source: "/webhooks/:path*", destination: `${apiOrigin}/webhooks/:path*` },
     ];

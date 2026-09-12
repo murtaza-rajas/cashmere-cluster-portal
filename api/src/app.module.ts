@@ -20,6 +20,7 @@ import { StaffDashboardModule } from './staff-dashboard/staff-dashboard.module';
 import { DesignsModule } from './designs/designs.module';
 import { MongoliaModule } from './mongolia/mongolia.module';
 import { OrdersModule } from './orders/orders.module';
+import { StoriesModule } from './stories/stories.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { OrdersModule } from './orders/orders.module';
     DesignsModule,
     MongoliaModule,
     OrdersModule,
+    StoriesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
