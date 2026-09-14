@@ -79,3 +79,44 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  # CD: builds the api/Dockerfile (written 2026-08 alongside docker-compose.yml,
+  # never build-tested — no Docker daemon in the dev sandbox) and pushes it to
+  # GitHub Container Registry, so a real, versioned, pullable image exists the
+  # moment Norway hosting (Section 6, PROJECT_TRACKER.md) is confirmed — this
+  # job needs no new secrets (GITHUB_TOKEN already has package-write via the
+  # permissions block below) and doesn't assume any particular deploy target,
+  # matching the Dockerfile's own "generic/portable" comment. Only runs on a
+  # real push to main (never on a PR, and never before build-and-test passes)
+  # — deliberately doesn't deploy anywhere yet, since no hosting target is
+  # confirmed; that step gets added once Section 6 (PROJECT_TRACKER.md) closes.
+  build-and-push-image:
+    needs: build-and-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ghcr.io/${{ github.repository }}-api
+          tags: |
+            type=raw,value=latest
+            type=sha,format=long
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: api
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
