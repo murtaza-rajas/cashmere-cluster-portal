@@ -62,7 +62,7 @@ export default function DataRequestsPage() {
   }
 
   return (
-    <div className="flex max-w-3xl flex-col gap-6">
+    <div className="flex w-full flex-col gap-6">
       <div>
         <h1 className="font-serif text-3xl tracking-tight text-cashmere-text">GDPR Requests</h1>
         <p className="mt-1 text-cashmere-text-muted">Pending member data access requests, oldest first.</p>

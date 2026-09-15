@@ -36,7 +36,7 @@ export default function StaffMemberDetailPage() {
   if (!allowed) return null;
 
   return (
-    <div className="flex max-w-3xl flex-col gap-6">
+    <div className="flex w-full flex-col gap-6">
       <Link href="/staff/members" className="flex w-fit items-center gap-1 text-sm text-cashmere-text-muted hover:text-cashmere-text">
         <ArrowLeft size={14} strokeWidth={1.75} />
         Back to Members &amp; Users

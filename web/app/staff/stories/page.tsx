@@ -143,7 +143,7 @@ export default function StoriesAdminPage() {
   }
 
   return (
-    <div className="flex max-w-4xl flex-col gap-6">
+    <div className="flex w-full flex-col gap-6">
       <div>
         <h1 className="font-serif text-3xl tracking-tight text-cashmere-text">Stories &amp; Knowledge</h1>
         <p className="mt-1 text-cashmere-text-muted">

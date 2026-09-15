@@ -72,7 +72,7 @@ export default function AuditLogPage() {
   const totalPages = state.status === "loaded" ? Math.max(1, Math.ceil(state.total / PAGE_SIZE)) : 1;
 
   return (
-    <div className="flex max-w-5xl flex-col gap-6">
+    <div className="flex w-full flex-col gap-6">
       <div>
         <h1 className="font-serif text-3xl tracking-tight text-cashmere-text">Audit Log</h1>
         <p className="mt-1 text-cashmere-text-muted">Every sensitive administrative action, most recent first.</p>

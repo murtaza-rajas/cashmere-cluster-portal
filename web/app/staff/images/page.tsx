@@ -84,7 +84,7 @@ export default function SiteImagesAdminPage() {
   }
 
   return (
-    <div className="flex max-w-4xl flex-col gap-8">
+    <div className="flex w-full flex-col gap-8">
       <div>
         <h1 className="font-serif text-3xl tracking-tight text-cashmere-text">Site Images</h1>
         <p className="mt-1 text-cashmere-text-muted">
