@@ -45,8 +45,8 @@ export class MembershipLevelsService {
       where: { tier },
       data: {
         displayName: dto.displayName,
-        price: dto.price,
-        currency: dto.currency,
+        priceEur: dto.priceEur,
+        priceUsd: dto.priceUsd,
         periodLabel: dto.periodLabel,
         benefits: dto.benefits,
         updatedById: staffUserId,

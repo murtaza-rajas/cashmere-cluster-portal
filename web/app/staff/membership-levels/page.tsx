@@ -40,8 +40,8 @@ const ACCESS_BADGE: Record<AccessLevel, string> = {
 
 type FormState = {
   displayName: string;
-  price: string;
-  currency: string;
+  priceEur: string;
+  priceUsd: string;
   periodLabel: string;
   benefits: string;
 };
@@ -49,8 +49,8 @@ type FormState = {
 function toForm(row: StaffMembershipLevel): FormState {
   return {
     displayName: row.displayName,
-    price: row.price ?? "",
-    currency: row.currency ?? "",
+    priceEur: row.priceEur ?? "",
+    priceUsd: row.priceUsd ?? "",
     periodLabel: row.periodLabel ?? "",
     benefits: row.benefits ?? "",
   };
@@ -104,8 +104,8 @@ export default function MembershipLevelsAdminPage() {
     try {
       const payload: MembershipLevelInput = {
         displayName: form.displayName || undefined,
-        price: form.price === "" ? undefined : Number(form.price),
-        currency: form.currency || undefined,
+        priceEur: form.priceEur === "" ? undefined : Number(form.priceEur),
+        priceUsd: form.priceUsd === "" ? undefined : Number(form.priceUsd),
         periodLabel: form.periodLabel || undefined,
         benefits: form.benefits || undefined,
       };
@@ -127,8 +127,9 @@ export default function MembershipLevelsAdminPage() {
       <div>
         <h1 className="font-serif text-3xl tracking-tight text-cashmere-text">Membership Levels</h1>
         <p className="mt-1 text-cashmere-text-muted">
-          Name, price, membership period and benefits for each level. Which portal areas a level can reach is fixed
-          by the platform&apos;s access rules, not editable here — see &quot;Access (read-only)&quot; on each card.
+          Name, price (EUR and USD), membership period and benefits for each level. Which portal areas a level can
+          reach is fixed by the platform&apos;s access rules, not editable here — see &quot;Access (read-only)&quot;
+          on each card.
         </p>
       </div>
 
@@ -170,23 +171,26 @@ export default function MembershipLevelsAdminPage() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs uppercase tracking-wide text-cashmere-text-muted">Price</label>
+                    <label className="text-xs uppercase tracking-wide text-cashmere-text-muted">Price (EUR)</label>
                     <input
                       type="number"
                       min="0"
                       step="0.01"
-                      value={form.price}
-                      onChange={(e) => setField(row.tier, "price", e.target.value)}
+                      value={form.priceEur}
+                      onChange={(e) => setField(row.tier, "priceEur", e.target.value)}
                       placeholder="Not yet confirmed"
                       className="mt-1 w-full rounded-lg border border-cashmere-border px-3 py-2 text-sm"
                     />
                   </div>
                   <div>
-                    <label className="text-xs uppercase tracking-wide text-cashmere-text-muted">Currency</label>
+                    <label className="text-xs uppercase tracking-wide text-cashmere-text-muted">Price (USD)</label>
                     <input
-                      value={form.currency}
-                      onChange={(e) => setField(row.tier, "currency", e.target.value)}
-                      placeholder="NOK"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={form.priceUsd}
+                      onChange={(e) => setField(row.tier, "priceUsd", e.target.value)}
+                      placeholder="Not yet confirmed"
                       className="mt-1 w-full rounded-lg border border-cashmere-border px-3 py-2 text-sm"
                     />
                   </div>

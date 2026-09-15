@@ -13,11 +13,12 @@ export class UpdateMembershipLevelDto {
   @IsOptional()
   @IsNumber()
   @Min(0)
-  price?: number;
+  priceEur?: number;
 
   @IsOptional()
-  @IsString()
-  currency?: string;
+  @IsNumber()
+  @Min(0)
+  priceUsd?: number;
 
   @IsOptional()
   @IsString()

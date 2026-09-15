@@ -78,18 +78,22 @@ describe('Membership level catalog (e2e)', () => {
       where: { action: 'membership_level.updated', targetId: before.id },
     });
 
+    const foundingBefore = await prisma.membershipLevel.findUniqueOrThrow({
+      where: { tier: 'FOUNDING' },
+    });
+
     const updated = await request(app.getHttpServer())
       .patch('/membership-level-catalog/ANNUAL')
       .set('Cookie', clubManagerCookie)
       .send({
-        price: 4500,
-        currency: 'NOK',
+        priceEur: 999,
+        priceUsd: 1099,
         benefits: 'Full member access, standard offers.',
       })
       .expect(200);
 
-    expect(updated.body.price).toBe('4500');
-    expect(updated.body.currency).toBe('NOK');
+    expect(updated.body.priceEur).toBe('999');
+    expect(updated.body.priceUsd).toBe('1099');
     expect(updated.body.benefits).toBe('Full member access, standard offers.');
     // periodLabel/displayName untouched — PATCH, not a full replace.
     expect(updated.body.periodLabel).toBe(before.periodLabel);
@@ -100,18 +104,26 @@ describe('Membership level catalog (e2e)', () => {
     });
     expect(auditCountAfter).toBe(auditCountBefore + 1);
 
+    // Real, unrelated data confirms the write didn't leak into another
+    // tier's row — Founding's own confirmed pricing (client email
+    // 2026-09-15: €1,000/$1,000) stays exactly what it was.
     const foundingUnchanged = await prisma.membershipLevel.findUniqueOrThrow({
       where: { tier: 'FOUNDING' },
     });
-    expect(foundingUnchanged.price).toBeNull();
+    expect(foundingUnchanged.priceEur?.toString()).toBe(
+      foundingBefore.priceEur?.toString(),
+    );
+    expect(foundingUnchanged.priceUsd?.toString()).toBe(
+      foundingBefore.priceUsd?.toString(),
+    );
 
     // Restore, so this test is safe to re-run and doesn't leave the shared
     // dev DB's real seeded content mutated for the next run/session.
     await prisma.membershipLevel.update({
       where: { tier: 'ANNUAL' },
       data: {
-        price: before.price,
-        currency: before.currency,
+        priceEur: before.priceEur,
+        priceUsd: before.priceUsd,
         benefits: before.benefits,
       },
     });

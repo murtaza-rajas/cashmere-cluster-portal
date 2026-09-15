@@ -766,8 +766,13 @@ model MembershipLevel {
 
   displayName String
 
-  price    Decimal? @db.Decimal(10, 2)
-  currency String?
+  // Client email 2026-09-15: every price he's given has come as an EUR/USD
+  // pair with identical face value (e.g. "€1,000 / USD 1,000") — real dual
+  // pricing, not a single canonical figure Shopify converts from, so both
+  // are stored explicitly rather than picking one. Nullable independently:
+  // a level can have one confirmed before the other.
+  priceEur Decimal? @db.Decimal(10, 2)
+  priceUsd Decimal? @db.Decimal(10, 2)
 
   periodLabel String?
   benefits    String?

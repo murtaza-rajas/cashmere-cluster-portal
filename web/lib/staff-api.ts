@@ -933,8 +933,8 @@ export interface StaffMembershipLevel {
   id: string;
   tier: MembershipTierValue;
   displayName: string;
-  price: string | null;
-  currency: string | null;
+  priceEur: string | null;
+  priceUsd: string | null;
   periodLabel: string | null;
   benefits: string | null;
   updatedAt: string;
@@ -942,8 +942,8 @@ export interface StaffMembershipLevel {
 
 export interface MembershipLevelInput {
   displayName?: string;
-  price?: number;
-  currency?: string;
+  priceEur?: number;
+  priceUsd?: number;
   periodLabel?: string;
   benefits?: string;
 }
