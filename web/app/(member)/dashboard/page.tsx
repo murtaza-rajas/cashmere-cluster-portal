@@ -18,9 +18,18 @@ import {
   CalendarHeart,
   Heart,
   Sparkles,
+  Palette,
 } from "lucide-react";
 import { useMember } from "@/contexts/member-context";
-import { formatMemberId, formatMonthYear, membershipTierLabel, fetchMemberOrders, fetchMySiteImages } from "@/lib/api";
+import {
+  formatMemberId,
+  formatMonthYear,
+  membershipTierLabel,
+  fetchMemberOrders,
+  fetchMySiteImages,
+  fetchMyDesigns,
+  MemberDesign,
+} from "@/lib/api";
 import { getAccessLevel } from "@/lib/access";
 
 // Matches founding-member-dashboard.jpeg section-for-section. Real data used
@@ -129,6 +138,8 @@ function FullDashboard({ displayName }: { displayName: string }) {
         </div>
       </section>
 
+      <DesignLabTeaser />
+
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <PlaceholderPanel
           icon={Newspaper}
@@ -175,6 +186,100 @@ function FullDashboard({ displayName }: { displayName: string }) {
 
       <ThankYouBand />
     </div>
+  );
+}
+
+// Dashboard-embedded Design Lab teaser — flagged 2026-09-10 as a real,
+// deliberate gap: the standalone /design-lab page and its sidebar link have
+// been live since 2026-09-09, but this inline mid-dashboard preview (per
+// founding-member-dashboard.jpeg) was deferred at the time and never picked
+// back up. Reuses the exact same GET /members/me/designs endpoint the real
+// page uses — no new backend — and the same full/preview split already
+// enforced by access.ts's designLab rule (Founding: full, view/save/vote;
+// Annual: preview, view-only teaser, no vote/save affordance surfaced here).
+// Newsletter/Mongolia never render this at all — they get NewsletterHome,
+// not FullDashboard, so this component is never reached for them.
+function DesignLabTeaser() {
+  const member = useMember();
+  const designLabAccess = getAccessLevel(member.membershipTier, "designLab");
+  const [designs, setDesigns] = useState<MemberDesign[] | null>(null);
+
+  useEffect(() => {
+    fetchMyDesigns()
+      .then((rows) => setDesigns(rows.filter((d) => d.status === "CURRENT")))
+      .catch(() => setDesigns([]));
+  }, []);
+
+  if (designLabAccess === "full") {
+    return (
+      <section className="rounded-2xl border border-cashmere-border bg-white p-6">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-semibold uppercase tracking-wide text-cashmere-text-muted">
+            Founders&apos; Design Lab
+          </p>
+          <a href="/design-lab" className="flex items-center gap-1 text-xs font-medium text-cashmere-accent hover:underline">
+            View all designs <ArrowRight size={12} />
+          </a>
+        </div>
+        {designs === null ? (
+          <p className="mt-4 text-sm text-cashmere-text-muted">Loading…</p>
+        ) : designs.length === 0 ? (
+          <p className="mt-4 text-sm text-cashmere-text-muted">No current-round designs yet — check back soon.</p>
+        ) : (
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+            {designs.slice(0, 3).map((d) => (
+              <a key={d.id} href="/design-lab" className="group flex flex-col gap-2">
+                <div className="relative aspect-square overflow-hidden rounded-xl bg-cashmere-sidebar/60">
+                  {d.heroImageUrl ? (
+                    <Image
+                      src={d.heroImageUrl}
+                      alt=""
+                      fill
+                      className="object-cover transition-transform group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center">
+                      <Palette size={24} strokeWidth={1.5} className="text-cashmere-text-muted" />
+                    </div>
+                  )}
+                </div>
+                <p className="text-sm font-medium text-cashmere-text">{d.title}</p>
+              </a>
+            ))}
+          </div>
+        )}
+      </section>
+    );
+  }
+
+  // Annual — a single teaser card leading to the real preview page, not an
+  // interactive grid, matching the mockup's "homepage teaser" treatment for
+  // this tier (see access.ts's ANNUAL_ACCESS comment).
+  const featured = designs?.[0];
+  return (
+    <section className="flex flex-col items-center gap-4 rounded-2xl border border-cashmere-border bg-white p-6 text-center sm:flex-row sm:text-left">
+      <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-cashmere-sidebar/60 sm:h-28 sm:w-28">
+        {featured?.heroImageUrl ? (
+          <Image src={featured.heroImageUrl} alt="" fill className="object-cover" />
+        ) : (
+          <div className="flex h-full items-center justify-center">
+            <Palette size={24} strokeWidth={1.5} className="text-cashmere-text-muted" />
+          </div>
+        )}
+      </div>
+      <div className="flex-1">
+        <p className="text-xs font-semibold uppercase tracking-wide text-cashmere-text-muted">
+          Founders&apos; Design Lab
+        </p>
+        <p className="mt-1 font-serif text-lg text-cashmere-text">Get a first look at this season&apos;s designs</p>
+        <a
+          href="/design-lab"
+          className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-cashmere-accent hover:underline"
+        >
+          Explore designs <ArrowRight size={12} />
+        </a>
+      </div>
+    </section>
   );
 }
 
