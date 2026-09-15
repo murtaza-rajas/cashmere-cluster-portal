@@ -199,6 +199,7 @@ model StaffUser {
   createdMongoliaProducers MongoliaProducer[]  @relation("MongoliaProducersCreatedBy")
   reviewedMongoliaPhotos   MongoliaPhoto[]     @relation("MongoliaPhotosReviewedBy")
   createdStories           Story[]             @relation("StoriesCreatedBy")
+  updatedMembershipLevels  MembershipLevel[]   @relation("MembershipLevelsUpdatedBy")
 
   @@index([email])
 }
@@ -744,6 +745,38 @@ model CareGuide {
   updatedAt   DateTime  @updatedAt
   updatedById String?
   updatedBy   StaffUser? @relation("CareGuidesUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+}
+
+// Membership Levels admin (client email 2026-09-15) — one row per existing
+// MembershipTier, not a dynamic tier system: the client named exactly the 4
+// levels that already exist (Founding/Annual/Newsletter/Mongolia) and asked
+// to manage "name, price, membership period, benefits and access" for each.
+// Deliberately does NOT cover "access" as an editable field — which areas
+// each tier can reach is fixed, code-defined logic (web/lib/access.ts plus
+// every backend service's own tier check), and turning that into live admin
+// config would be a real, separate, security-relevant architecture change
+// nothing in the request explicitly asked for. The staff UI shows access
+// read-only instead, mirroring the existing matrix. `price` and `benefits`
+// start null (honest empty, not invented) except where the client's own
+// email gave a definite fact — see prisma/seed.ts.
+model MembershipLevel {
+  id String @id @default(uuid())
+
+  tier MembershipTier @unique
+
+  displayName String
+
+  price    Decimal? @db.Decimal(10, 2)
+  currency String?
+
+  periodLabel String?
+  benefits    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  updatedById String?
+  updatedBy   StaffUser? @relation("MembershipLevelsUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
 }
 
 // ---------------------------------------------------------------------------

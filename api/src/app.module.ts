@@ -21,6 +21,7 @@ import { DesignsModule } from './designs/designs.module';
 import { MongoliaModule } from './mongolia/mongolia.module';
 import { OrdersModule } from './orders/orders.module';
 import { StoriesModule } from './stories/stories.module';
+import { MembershipLevelsModule } from './membership-levels/membership-levels.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { StoriesModule } from './stories/stories.module';
     MongoliaModule,
     OrdersModule,
     StoriesModule,
+    MembershipLevelsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

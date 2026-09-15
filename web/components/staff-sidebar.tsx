@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, ShieldCheck, ClipboardList, Gift, Image as ImageIcon, ScrollText, CalendarHeart, Wrench, BarChart3, Plug, Palette, Mountain, LogOut, X, ChevronDown, BookOpen, Factory, Vote, Globe2, ShoppingBag } from "lucide-react";
+import { LayoutDashboard, Users, ShieldCheck, ClipboardList, Gift, Image as ImageIcon, ScrollText, CalendarHeart, Wrench, BarChart3, Plug, Palette, Mountain, LogOut, X, ChevronDown, BookOpen, Factory, Vote, Globe2, ShoppingBag, Layers } from "lucide-react";
 import { useStaff, staffHasAnyRole } from "@/contexts/staff-context";
 import { API_URL } from "@/lib/api";
 
@@ -43,6 +43,7 @@ const MONGOLIA_CHILDREN = [
 const NAV_ITEMS: NavItem[] = [
   { href: "/staff/directory", label: "Staff & Roles", icon: ShieldCheck, allowedRoles: ["Super Administrator"] },
   { href: "/staff/members", label: "Members & Users", icon: Users, allowedRoles: ["Club Manager", "Member Support"] },
+  { href: "/staff/membership-levels", label: "Membership Levels", icon: Layers, allowedRoles: ["Club Manager"] },
   { href: "/staff/benefits", label: "Offers & Benefits", icon: Gift, allowedRoles: ["Club Manager"] },
   { href: "/staff/images", label: "Site Images", icon: ImageIcon, allowedRoles: ["Club Manager", "Content Manager"] },
   { href: "/staff/events", label: "Events & Invitations", icon: CalendarHeart, allowedRoles: ["Event Manager"] },

@@ -923,3 +923,49 @@ export async function deleteStoryImage(id: string): Promise<void> {
   const res = await apiFetch(`/story-catalog/${id}/image`, { method: "DELETE" });
   if (!res.ok) throw new Error(`Unexpected response removing story image: ${res.status}`);
 }
+
+// One fixed row per tier — staff can only update the existing 4 (see
+// schema.prisma's comment on MembershipLevel). No "access" field: which
+// areas each tier can reach stays fixed, code-defined logic (web/lib/access.ts),
+// not admin-editable — see the staff page for the read-only summary shown
+// alongside these editable fields.
+export interface StaffMembershipLevel {
+  id: string;
+  tier: MembershipTierValue;
+  displayName: string;
+  price: string | null;
+  currency: string | null;
+  periodLabel: string | null;
+  benefits: string | null;
+  updatedAt: string;
+}
+
+export interface MembershipLevelInput {
+  displayName?: string;
+  price?: number;
+  currency?: string;
+  periodLabel?: string;
+  benefits?: string;
+}
+
+export async function fetchMembershipLevelCatalog(): Promise<StaffMembershipLevel[]> {
+  const res = await apiFetch("/membership-level-catalog");
+  if (!res.ok) throw new Error(`Unexpected response fetching membership levels: ${res.status}`);
+  return res.json();
+}
+
+export async function updateMembershipLevel(
+  tier: MembershipTierValue,
+  dto: MembershipLevelInput,
+): Promise<StaffMembershipLevel> {
+  const res = await apiFetch(`/membership-level-catalog/${tier}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(dto),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.message ?? `Unexpected response updating membership level: ${res.status}`);
+  }
+  return res.json();
+}

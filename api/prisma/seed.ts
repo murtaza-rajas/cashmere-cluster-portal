@@ -39,6 +39,46 @@ const BENEFITS: {
   { tier: MembershipTier.ANNUAL, sortOrder: 7, icon: 'crown', title: 'Other', description: '—' },
 ];
 
+// Membership Levels admin (client email 2026-09-15) — the client's own
+// wording for these 4 levels and their confirmed facts. Price is left null
+// for every level except Newsletter (explicitly "free" — the one definite
+// price given) since the client said he'll "confirm the final price...
+// before the product is activated in Shopify" for the others — an honest
+// gap, not a guessed number. Mongolia's period is genuinely unspecified in
+// the client's email ("Mongolia Member – separate membership level", no
+// duration given), so periodLabel stays null there too.
+const MEMBERSHIP_LEVELS: {
+  tier: MembershipTier;
+  displayName: string;
+  periodLabel: string | null;
+  price: string | null;
+}[] = [
+  {
+    tier: MembershipTier.FOUNDING,
+    displayName: 'Founding Member',
+    periodLabel: '5 years',
+    price: null,
+  },
+  {
+    tier: MembershipTier.ANNUAL,
+    displayName: 'Annual Member',
+    periodLabel: '1 year',
+    price: null,
+  },
+  {
+    tier: MembershipTier.NEWSLETTER,
+    displayName: 'Newsletter / Free Member',
+    periodLabel: 'Free',
+    price: '0',
+  },
+  {
+    tier: MembershipTier.MONGOLIA,
+    displayName: 'Mongolia Member',
+    periodLabel: null,
+    price: null,
+  },
+];
+
 const ROLES: { name: string; description: string }[] = [
   {
     name: 'Super Administrator',
@@ -141,6 +181,20 @@ async function main() {
     });
   }
   console.log(`Seeded ${CARE_GUIDE_TOPICS.length} care guide topics.`);
+
+  for (const level of MEMBERSHIP_LEVELS) {
+    await prisma.membershipLevel.upsert({
+      where: { tier: level.tier },
+      update: {},
+      create: {
+        tier: level.tier,
+        displayName: level.displayName,
+        periodLabel: level.periodLabel,
+        price: level.price,
+      },
+    });
+  }
+  console.log(`Seeded ${MEMBERSHIP_LEVELS.length} membership levels.`);
 }
 
 main()
