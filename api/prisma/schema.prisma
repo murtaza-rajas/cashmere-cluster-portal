@@ -462,6 +462,15 @@ model Story {
   // no fixed list given by the client.
   category String?
 
+  // Designer Spotlight (client email 2026-09-15, go-ahead given) — set only
+  // on spotlight stories, matched by exact string against Design.designerName
+  // to render "[Designer]'s latest concepts" on the story's own page. Plain
+  // text, not a foreign key: designers aren't their own entity in Phase 1
+  // (client's own 2026-09-10 note — no DCC Designer Hub yet, so a real
+  // profile is just staff-entered attribution, same as everywhere else this
+  // app avoids a DCC dependency it can't fulfill).
+  designerName String?
+
   // Which tiers see this story. Empty = draft, visible to nobody — same
   // convention as Benefit.tiers/Event.tiers.
   tiers MembershipTier[]
@@ -508,6 +517,12 @@ model Design {
   // Chip-style tags on each design card in the mockup ("Lightweight",
   // "Everyday", "Versatile").
   tags String[]
+
+  // Designer Spotlight (client email 2026-09-15) — plain-text attribution
+  // matched against Story.designerName, same reasoning as that field's own
+  // comment. Null means staff-authored/unattributed, the only case that
+  // existed before this.
+  designerName String?
 
   // The mockup's own three image slots per design: the worn/hero photo, a
   // fabric swatch close-up, and a flat sketch. Same disk-storage pattern and

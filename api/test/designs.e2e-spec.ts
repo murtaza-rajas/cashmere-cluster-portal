@@ -209,6 +209,48 @@ describe('Design catalog (e2e)', () => {
     expect(mongoliaRes.body).toEqual([]);
   });
 
+  // Designer Spotlight attribution (client go-ahead, 2026-09-15) — a plain
+  // string match against Story.designerName, not a foreign key (see
+  // schema.prisma's comment). Confirms it round-trips through both the
+  // staff CRUD and the member-facing read, and that it's never confused
+  // with an unattributed design.
+  it('designerName round-trips through create, update, and the member-facing read', async () => {
+    const contentManagerCookie = await staffCookieFor('Content Manager');
+    const created = await request(app.getHttpServer())
+      .post('/design-catalog')
+      .set('Cookie', contentManagerCookie)
+      .send({ title: 'Kimono Belted Cardigan', designerName: 'Cansel' })
+      .expect(201);
+    expect(created.body.designerName).toBe('Cansel');
+
+    const unattributed = await request(app.getHttpServer())
+      .post('/design-catalog')
+      .set('Cookie', contentManagerCookie)
+      .send({ title: 'Sleeveless Long Vest' })
+      .expect(201);
+    expect(unattributed.body.designerName).toBeNull();
+
+    const founding = await memberWithTier('FOUNDING');
+    const res = await request(app.getHttpServer())
+      .get('/members/me/designs')
+      .set('Cookie', sessionCookieFor(founding.id))
+      .expect(200);
+    const cansels = res.body.filter(
+      (d: { designerName: string | null }) => d.designerName === 'Cansel',
+    );
+    expect(cansels.map((d: { id: string }) => d.id)).toContain(created.body.id);
+    expect(cansels.map((d: { id: string }) => d.id)).not.toContain(
+      unattributed.body.id,
+    );
+
+    const updated = await request(app.getHttpServer())
+      .patch(`/design-catalog/${unattributed.body.id}`)
+      .set('Cookie', contentManagerCookie)
+      .send({ designerName: 'Cansel' })
+      .expect(200);
+    expect(updated.body.designerName).toBe('Cansel');
+  });
+
   it('favorite/unfavorite works for Founding and Annual, but voting is Founding-only even via a direct request', async () => {
     const contentManagerCookie = await staffCookieFor('Content Manager');
     const design = await request(app.getHttpServer())

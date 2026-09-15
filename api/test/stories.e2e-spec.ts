@@ -281,4 +281,57 @@ describe('Story catalog (e2e)', () => {
     expect(ids).toContain(publicStory.body.id);
     expect(ids).not.toContain(membersOnlyStory.body.id);
   });
+
+  // Designer Spotlight attribution (client go-ahead, 2026-09-15) — plain
+  // string, not a foreign key (see schema.prisma's comment on
+  // Story.designerName). Round-trips through create/update and reaches the
+  // member-facing read like every other field.
+  it('designerName round-trips through create, update, and the member-facing read', async () => {
+    const contentManagerCookie = await staffCookieFor('Content Manager');
+    const created = await request(app.getHttpServer())
+      .post('/story-catalog')
+      .set('Cookie', contentManagerCookie)
+      .send({
+        title: 'Designer Spotlight: Cansel',
+        category: 'Designer Spotlight',
+        designerName: 'Cansel',
+        tiers: ['FOUNDING', 'ANNUAL'],
+      })
+      .expect(201);
+    expect(created.body.designerName).toBe('Cansel');
+
+    const noDesigner = await request(app.getHttpServer())
+      .post('/story-catalog')
+      .set('Cookie', contentManagerCookie)
+      .send({ title: 'Club news', tiers: ['FOUNDING'] })
+      .expect(201);
+    expect(noDesigner.body.designerName).toBeNull();
+
+    const externalId = `stories-e2e-designer-${Date.now()}`;
+    const foundingMember = await members.findOrCreateFromIdentity({
+      providerId: 'shopify',
+      externalId,
+      email: `${externalId}@example.com`,
+    });
+    await prisma.member.update({
+      where: { id: foundingMember.id },
+      data: { membershipTier: 'FOUNDING' },
+    });
+
+    const res = await request(app.getHttpServer())
+      .get('/members/me/stories')
+      .set('Cookie', sessionCookieFor(foundingMember.id))
+      .expect(200);
+    const spotlight = res.body.find(
+      (s: { id: string }) => s.id === created.body.id,
+    );
+    expect(spotlight.designerName).toBe('Cansel');
+
+    const updated = await request(app.getHttpServer())
+      .patch(`/story-catalog/${noDesigner.body.id}`)
+      .set('Cookie', contentManagerCookie)
+      .send({ designerName: 'Cansel' })
+      .expect(200);
+    expect(updated.body.designerName).toBe('Cansel');
+  });
 });

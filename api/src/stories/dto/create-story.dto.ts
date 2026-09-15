@@ -26,6 +26,10 @@ export class CreateStoryDto {
   @IsString()
   category?: string;
 
+  @IsOptional()
+  @IsString()
+  designerName?: string;
+
   // Allowed to be empty on create (a draft story visible to nobody yet) —
   // see schema.prisma's comment on Story.tiers.
   @IsArray()

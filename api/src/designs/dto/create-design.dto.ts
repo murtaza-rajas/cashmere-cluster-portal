@@ -33,6 +33,10 @@ export class CreateDesignDto {
   tags?: string[];
 
   @IsOptional()
+  @IsString()
+  designerName?: string;
+
+  @IsOptional()
   @IsInt()
   sortOrder?: number;
 

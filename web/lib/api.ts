@@ -157,6 +157,7 @@ export interface MemberStory {
   body: string | null;
   quote: string | null;
   category: string | null;
+  designerName: string | null;
 }
 
 export async function fetchMyStories(): Promise<MemberStory[]> {
@@ -187,6 +188,7 @@ export interface MemberDesign {
   round: string | null;
   status: "CURRENT" | "SELECTED_FOR_PRODUCTION" | "PAST_ROUND";
   tags: string[];
+  designerName: string | null;
   heroImageUrl: string | null;
   swatchImageUrl: string | null;
   sketchImageUrl: string | null;

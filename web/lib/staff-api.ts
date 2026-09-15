@@ -542,6 +542,7 @@ export interface StaffDesign {
   round: string | null;
   status: DesignStatus;
   tags: string[];
+  designerName: string | null;
   heroImageUrl: string | null;
   swatchImageUrl: string | null;
   sketchImageUrl: string | null;
@@ -556,6 +557,7 @@ export interface DesignInput {
   round?: string;
   status?: DesignStatus;
   tags?: string[];
+  designerName?: string;
   sortOrder?: number;
   active?: boolean;
 }
@@ -855,6 +857,7 @@ export interface StaffStory {
   body: string | null;
   quote: string | null;
   category: string | null;
+  designerName: string | null;
   tiers: MembershipTierValue[];
   active: boolean;
   sortOrder: number;
@@ -866,6 +869,7 @@ export interface StoryInput {
   body?: string;
   quote?: string;
   category?: string;
+  designerName?: string;
   tiers: MembershipTierValue[];
   sortOrder?: number;
   active?: boolean;

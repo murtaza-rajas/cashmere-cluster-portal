@@ -36,6 +36,7 @@ const EMPTY_FORM: DesignInput = {
   round: "",
   status: "CURRENT",
   tags: [],
+  designerName: "",
   sortOrder: 0,
   active: true,
 };
@@ -90,6 +91,7 @@ export default function DesignLabAdminPage() {
       round: row.round ?? "",
       status: row.status,
       tags: row.tags,
+      designerName: row.designerName ?? "",
       sortOrder: row.sortOrder,
       active: row.active,
     });
@@ -108,6 +110,7 @@ export default function DesignLabAdminPage() {
         ...form,
         description: form.description || undefined,
         round: form.round || undefined,
+        designerName: form.designerName || undefined,
         tags: tagsText
           .split(",")
           .map((t) => t.trim())
@@ -214,6 +217,15 @@ export default function DesignLabAdminPage() {
                 value={form.round}
                 onChange={(e) => setForm((f) => ({ ...f, round: e.target.value }))}
                 placeholder="e.g. Spring 2027"
+                className="mt-1 w-full rounded-lg border border-cashmere-border px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-xs uppercase tracking-wide text-cashmere-text-muted">Designer name</label>
+              <input
+                value={form.designerName}
+                onChange={(e) => setForm((f) => ({ ...f, designerName: e.target.value }))}
+                placeholder="For Designer Spotlight attribution"
                 className="mt-1 w-full rounded-lg border border-cashmere-border px-3 py-2 text-sm"
               />
             </div>

@@ -35,6 +35,10 @@ export class UpdateDesignDto {
   tags?: string[];
 
   @IsOptional()
+  @IsString()
+  designerName?: string;
+
+  @IsOptional()
   @IsInt()
   sortOrder?: number;
 

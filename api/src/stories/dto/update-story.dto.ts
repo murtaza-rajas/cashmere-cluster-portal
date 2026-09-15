@@ -30,6 +30,10 @@ export class UpdateStoryDto {
   category?: string;
 
   @IsOptional()
+  @IsString()
+  designerName?: string;
+
+  @IsOptional()
   @IsArray()
   @IsEnum(MembershipTier, { each: true })
   tiers?: MembershipTier[];

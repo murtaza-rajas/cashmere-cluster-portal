@@ -23,6 +23,7 @@ const EMPTY_FORM: StoryInput = {
   body: "",
   quote: "",
   category: "",
+  designerName: "",
   tiers: [],
   sortOrder: 0,
   active: true,
@@ -77,6 +78,7 @@ export default function StoriesAdminPage() {
       body: row.body ?? "",
       quote: row.quote ?? "",
       category: row.category ?? "",
+      designerName: row.designerName ?? "",
       tiers: row.tiers,
       sortOrder: row.sortOrder,
       active: row.active,
@@ -94,6 +96,7 @@ export default function StoriesAdminPage() {
         body: form.body || undefined,
         quote: form.quote || undefined,
         category: form.category || undefined,
+        designerName: form.designerName || undefined,
       };
       if (editingId) {
         await updateStory(editingId, payload);
@@ -195,6 +198,15 @@ export default function StoriesAdminPage() {
                 className="mt-1 w-full rounded-lg border border-cashmere-border px-3 py-2 text-sm"
               />
             </div>
+            <div>
+              <label className="text-xs uppercase tracking-wide text-cashmere-text-muted">Designer name</label>
+              <input
+                value={form.designerName}
+                onChange={(e) => setForm((f) => ({ ...f, designerName: e.target.value }))}
+                placeholder="For Designer Spotlight — matches the designer's Design Lab concepts"
+                className="mt-1 w-full rounded-lg border border-cashmere-border px-3 py-2 text-sm"
+              />
+            </div>
           </div>
 
           <div>
@@ -283,7 +295,12 @@ export default function StoriesAdminPage() {
                   <p className="font-medium text-cashmere-text">{row.title}</p>
                   {!row.active && <span className="text-xs text-red-600">(inactive)</span>}
                 </div>
-                {row.category && <p className="mt-1 text-xs text-cashmere-text-muted">{row.category}</p>}
+                {row.category && (
+                  <p className="mt-1 text-xs text-cashmere-text-muted">
+                    {row.category}
+                    {row.designerName && ` — ${row.designerName}`}
+                  </p>
+                )}
                 {row.body && <p className="mt-1 line-clamp-2 text-sm text-cashmere-text-muted">{row.body}</p>}
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {row.tiers.length === 0 && <span className="text-xs text-cashmere-text-muted">No tiers (draft)</span>}

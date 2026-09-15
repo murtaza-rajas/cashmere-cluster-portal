@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { Newspaper, Sparkles } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, Newspaper, Sparkles } from "lucide-react";
 import { useMember } from "@/contexts/member-context";
 import { RequireAccess } from "@/components/require-access";
 import { getAccessLevel } from "@/lib/access";
@@ -75,6 +76,12 @@ export default function NewsPage() {
                     </blockquote>
                   )}
                   {story.body && <p className="mt-3 whitespace-pre-line text-sm text-cashmere-text-muted">{story.body}</p>}
+                  <Link
+                    href={`/news/${story.id}`}
+                    className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-cashmere-accent hover:underline"
+                  >
+                    Read more <ArrowRight size={12} />
+                  </Link>
                 </div>
               </article>
             ))}
