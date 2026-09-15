@@ -31,7 +31,7 @@ export default function NewsPage() {
 
   return (
     <RequireAccess area="storiesKnowledge">
-      <div className="flex max-w-3xl flex-col gap-6">
+      <div className="flex w-full flex-col gap-6">
         <h1 className="font-serif text-3xl tracking-tight text-cashmere-text">
           {isPreview ? "News & Stories" : "Stories & Knowledge"}
         </h1>

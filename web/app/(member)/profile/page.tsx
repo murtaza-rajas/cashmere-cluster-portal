@@ -15,7 +15,7 @@ export default function ProfilePage() {
   const member = useMember();
 
   return (
-    <div className="flex max-w-2xl flex-col gap-6">
+    <div className="flex w-full flex-col gap-6">
       <h1 className="font-serif text-3xl tracking-tight text-cashmere-text">Profile</h1>
 
       <section className="rounded-2xl border border-cashmere-border bg-white p-6">

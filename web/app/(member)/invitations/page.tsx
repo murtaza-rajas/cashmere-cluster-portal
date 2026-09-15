@@ -31,7 +31,7 @@ export default function InvitationsPage() {
   if (isPreview) {
     return (
       <RequireAccess area="invitationsEvents">
-        <div className="flex max-w-2xl flex-col gap-6">
+        <div className="flex w-full flex-col gap-6">
           <h1 className="font-serif text-3xl tracking-tight text-cashmere-text">Invitations &amp; Events</h1>
           <div className="rounded-2xl border border-cashmere-border bg-white p-8 text-center">
             <Sparkles size={28} strokeWidth={1.5} className="mx-auto text-cashmere-accent" />
@@ -54,7 +54,7 @@ export default function InvitationsPage() {
 
   return (
     <RequireAccess area="invitationsEvents">
-      <div className="flex max-w-4xl flex-col gap-6">
+      <div className="flex w-full flex-col gap-6">
         <div>
           <h1 className="font-serif text-3xl tracking-tight text-cashmere-text">Invitations &amp; Events</h1>
           <p className="mt-1 text-cashmere-text-muted">Exclusive member events.</p>

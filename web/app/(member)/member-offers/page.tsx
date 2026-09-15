@@ -24,7 +24,7 @@ export default function MemberOffersPage() {
 
   return (
     <RequireAccess area="memberOffers">
-      <div className="flex max-w-2xl flex-col gap-6">
+      <div className="flex w-full flex-col gap-6">
         <h1 className="font-serif text-3xl tracking-tight text-cashmere-text">Member Offers</h1>
 
         {state.status === "loading" && <p className="text-cashmere-text-muted">Loading offers…</p>}

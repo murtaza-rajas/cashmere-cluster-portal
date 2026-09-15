@@ -18,7 +18,7 @@ export default function ExclusiveCollectionsPage() {
 
   return (
     <RequireAccess area="exclusiveCollections">
-      <div className="flex max-w-2xl flex-col gap-6">
+      <div className="flex w-full flex-col gap-6">
         <h1 className="font-serif text-3xl tracking-tight text-cashmere-text">Exclusive Collections</h1>
         <div className="flex flex-col items-center gap-3 rounded-2xl border border-cashmere-border bg-white px-6 py-16 text-center">
           <ShoppingBag size={28} strokeWidth={1.5} className="text-cashmere-text-muted" />

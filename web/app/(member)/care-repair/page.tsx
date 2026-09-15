@@ -52,7 +52,7 @@ export default function CareRepairPage() {
 
   return (
     <RequireAccess area="careRepair">
-      <div className="flex max-w-4xl flex-col gap-6">
+      <div className="flex w-full flex-col gap-6">
         {/* Real photo (2026-09-08, public/images/care-repair-hero.jpeg — one of
             the client's supplied images) as the default; staff can override
             it per tier via /staff/images without a code change. */}
