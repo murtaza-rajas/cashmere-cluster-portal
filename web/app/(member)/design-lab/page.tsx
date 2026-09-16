@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { Heart, BarChart3, Palette } from "lucide-react";
+import { Heart, BarChart3, Palette, Sparkles } from "lucide-react";
 import { RequireAccess } from "@/components/require-access";
 import {
   fetchMyDesigns,
@@ -15,9 +15,14 @@ import {
 
 type Tab = "CURRENT" | "SELECTED_FOR_PRODUCTION" | "PAST_ROUND" | "FAVOURITES";
 
+// "Coming to Production" — client's own wording (2026-09-15), used here
+// instead of "Selected for Production" even though the underlying
+// DesignStatus enum value is unchanged (SELECTED_FOR_PRODUCTION). Staff's
+// own admin dropdown still shows the technical status name; this is purely
+// the member-facing label.
 const TAB_LABELS: Record<Tab, string> = {
   CURRENT: "Current Designs",
-  SELECTED_FOR_PRODUCTION: "Selected for Production",
+  SELECTED_FOR_PRODUCTION: "Coming to Production",
   FAVOURITES: "Your Favourites",
   PAST_ROUND: "Past Rounds",
 };
@@ -81,6 +86,20 @@ export default function DesignLabPage() {
   const visible =
     tab === "FAVOURITES" ? designs.filter((d) => d.isFavorited) : designs.filter((d) => d.status === tab);
 
+  // "Member Favourite" — client instruction (2026-09-15): "we should not
+  // display public vote counts, rankings or other competitive metrics.
+  // Instead, we should use positive development indicators such as...
+  // 'Member Favourite'." Converts the real favoriteCount data into a single
+  // qualitative badge instead of a number: the one CURRENT design with the
+  // most saves (ties broken by list order), only once at least one member
+  // has actually favorited something — never awarded to an all-zero round.
+  const memberFavouriteId = designs
+    .filter((d) => d.status === "CURRENT" && d.favoriteCount > 0)
+    .reduce<MemberDesign | null>(
+      (best, d) => (!best || d.favoriteCount > best.favoriteCount ? d : best),
+      null,
+    )?.id;
+
   return (
     <RequireAccess area="designLab">
       <div className="flex w-full flex-col gap-6">
@@ -136,6 +155,12 @@ export default function DesignLabPage() {
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {visible.map((design) => (
                   <div key={design.id} className="flex flex-col gap-3 rounded-2xl border border-cashmere-border bg-white p-5">
+                    {design.id === memberFavouriteId && (
+                      <span className="flex w-fit items-center gap-1 rounded-full bg-cashmere-accent/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-cashmere-accent-dark">
+                        <Sparkles size={11} strokeWidth={2} />
+                        Member Favourite
+                      </span>
+                    )}
                     <div className="flex gap-2">
                       <div className="relative h-40 flex-1 overflow-hidden rounded-xl bg-cashmere-sidebar/60">
                         {design.heroImageUrl ? (
@@ -186,7 +211,7 @@ export default function DesignLabPage() {
                         }`}
                       >
                         <Heart size={14} strokeWidth={2} fill={design.isFavorited ? "currentColor" : "none"} />
-                        {design.favoriteCount}
+                        {design.isFavorited ? "Saved" : "Save"}
                       </button>
                       {design.canVote ? (
                         <button
@@ -202,7 +227,7 @@ export default function DesignLabPage() {
                         </button>
                       ) : (
                         <span className="flex flex-1 items-center justify-center gap-1.5 rounded-full border border-dashed border-cashmere-border px-3 py-1.5 text-[11px] text-cashmere-text-muted">
-                          {design.voteCount} votes
+                          Founding Members vote
                         </span>
                       )}
                     </div>
