@@ -20,6 +20,7 @@ import {
 
 const STATUS_OPTIONS: { value: DesignStatus; label: string }[] = [
   { value: "CURRENT", label: "Current" },
+  { value: "SELECTED_FOR_DEVELOPMENT", label: "Selected for Development" },
   { value: "SELECTED_FOR_PRODUCTION", label: "Selected for Production" },
   { value: "PAST_ROUND", label: "Past Round" },
 ];

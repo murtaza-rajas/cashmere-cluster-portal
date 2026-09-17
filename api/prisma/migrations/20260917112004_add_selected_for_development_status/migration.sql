@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "DesignStatus" ADD VALUE 'SELECTED_FOR_DEVELOPMENT';

@@ -496,8 +496,19 @@ model Story {
 // preview (view + save, no vote — its own mockup card never mentions
 // voting), Newsletter has no presence at all, Mongolia isn't shown anywhere
 // (out of scope for this specific feature). See web/lib/access.ts.
+// SELECTED_FOR_DEVELOPMENT added 2026-09-17, per the client's own written
+// flow: "Member Favourite -> Selected for Development -> Coming to
+// Production" ("Coming to Production" is member-facing copy for
+// SELECTED_FOR_PRODUCTION, unchanged — see design-lab/page.tsx's
+// TAB_LABELS). A design moves here once staff picks it to develop further
+// but it isn't yet confirmed for production. Voting/saving stays open in
+// this stage (client's own words: "This will allow us to continue
+// measuring member interest while the design is being developed") — voting
+// only closes once a design reaches SELECTED_FOR_PRODUCTION, enforced in
+// designs.service.ts's canVote(), not just hidden in the UI.
 enum DesignStatus {
   CURRENT
+  SELECTED_FOR_DEVELOPMENT
   SELECTED_FOR_PRODUCTION
   PAST_ROUND
 }

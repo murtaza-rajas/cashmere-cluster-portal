@@ -186,7 +186,7 @@ export interface MemberDesign {
   title: string;
   description: string | null;
   round: string | null;
-  status: "CURRENT" | "SELECTED_FOR_PRODUCTION" | "PAST_ROUND";
+  status: "CURRENT" | "SELECTED_FOR_DEVELOPMENT" | "SELECTED_FOR_PRODUCTION" | "PAST_ROUND";
   tags: string[];
   designerName: string | null;
   heroImageUrl: string | null;

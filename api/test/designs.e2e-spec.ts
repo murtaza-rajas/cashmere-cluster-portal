@@ -314,4 +314,79 @@ describe('Design catalog (e2e)', () => {
     expect(row.favoriteCount).toBeGreaterThanOrEqual(1);
     expect(row.voteCount).toBe(0);
   });
+
+  // Client email 2026-09-17: "Member Favourite -> Selected for Development
+  // -> Coming to Production". Voting/saving stays open through
+  // SELECTED_FOR_DEVELOPMENT ("continue measuring member interest while the
+  // design is being developed"), and closes for everyone — not just
+  // non-Founding tiers — once a design reaches SELECTED_FOR_PRODUCTION
+  // ("Coming to Production").
+  it('voting stays open through SELECTED_FOR_DEVELOPMENT but closes for everyone once SELECTED_FOR_PRODUCTION, while saving stays open throughout', async () => {
+    const contentManagerCookie = await staffCookieFor('Content Manager');
+    const design = await request(app.getHttpServer())
+      .post('/design-catalog')
+      .set('Cookie', contentManagerCookie)
+      .send({
+        title: 'Kimono Belted Cardigan',
+        status: 'SELECTED_FOR_DEVELOPMENT',
+      })
+      .expect(201);
+    const designId = design.body.id;
+
+    const founding = await memberWithTier('FOUNDING');
+
+    // Voting is still open in SELECTED_FOR_DEVELOPMENT.
+    await request(app.getHttpServer())
+      .post(`/members/me/designs/${designId}/vote`)
+      .set('Cookie', sessionCookieFor(founding.id))
+      .expect(201);
+    const devStageRead = await request(app.getHttpServer())
+      .get('/members/me/designs')
+      .set('Cookie', sessionCookieFor(founding.id))
+      .expect(200);
+    expect(
+      devStageRead.body.find((d: { id: string }) => d.id === designId).canVote,
+    ).toBe(true);
+
+    // Saving is unaffected either way.
+    await request(app.getHttpServer())
+      .post(`/members/me/designs/${designId}/favorite`)
+      .set('Cookie', sessionCookieFor(founding.id))
+      .expect(201);
+
+    // Move the design to SELECTED_FOR_PRODUCTION ("Coming to Production").
+    await request(app.getHttpServer())
+      .patch(`/design-catalog/${designId}`)
+      .set('Cookie', contentManagerCookie)
+      .send({ status: 'SELECTED_FOR_PRODUCTION' })
+      .expect(200);
+
+    // Voting is now closed for Founding too — not just hidden, a real 403.
+    await request(app.getHttpServer())
+      .post(`/members/me/designs/${designId}/vote`)
+      .set('Cookie', sessionCookieFor(founding.id))
+      .expect(403);
+    // The existing vote from the earlier stage can't be retracted either.
+    await request(app.getHttpServer())
+      .delete(`/members/me/designs/${designId}/vote`)
+      .set('Cookie', sessionCookieFor(founding.id))
+      .expect(403);
+    const productionRead = await request(app.getHttpServer())
+      .get('/members/me/designs')
+      .set('Cookie', sessionCookieFor(founding.id))
+      .expect(200);
+    const productionRow = productionRead.body.find(
+      (d: { id: string }) => d.id === designId,
+    );
+    expect(productionRow.canVote).toBe(false);
+    // The vote cast during SELECTED_FOR_DEVELOPMENT is untouched — closing
+    // the round doesn't retroactively erase it, just blocks new changes.
+    expect(productionRow.isVoted).toBe(true);
+
+    // Saving still works even once voting has closed.
+    await request(app.getHttpServer())
+      .delete(`/members/me/designs/${designId}/favorite`)
+      .set('Cookie', sessionCookieFor(founding.id))
+      .expect(200);
+  });
 });

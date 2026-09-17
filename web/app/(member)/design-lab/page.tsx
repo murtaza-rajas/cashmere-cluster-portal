@@ -13,15 +13,18 @@ import {
   MemberDesign,
 } from "@/lib/api";
 
-type Tab = "CURRENT" | "SELECTED_FOR_PRODUCTION" | "PAST_ROUND" | "FAVOURITES";
+type Tab = "CURRENT" | "SELECTED_FOR_DEVELOPMENT" | "SELECTED_FOR_PRODUCTION" | "PAST_ROUND" | "FAVOURITES";
 
 // "Coming to Production" — client's own wording (2026-09-15), used here
 // instead of "Selected for Production" even though the underlying
 // DesignStatus enum value is unchanged (SELECTED_FOR_PRODUCTION). Staff's
 // own admin dropdown still shows the technical status name; this is purely
-// the member-facing label.
+// the member-facing label. SELECTED_FOR_DEVELOPMENT added 2026-09-17, per
+// the client's own flow: "Member Favourite -> Selected for Development ->
+// Coming to Production."
 const TAB_LABELS: Record<Tab, string> = {
   CURRENT: "Current Designs",
+  SELECTED_FOR_DEVELOPMENT: "Selected for Development",
   SELECTED_FOR_PRODUCTION: "Coming to Production",
   FAVOURITES: "Your Favourites",
   PAST_ROUND: "Past Rounds",
@@ -79,6 +82,7 @@ export default function DesignLabPage() {
   const designs = state.status === "loaded" ? state.designs : [];
   const counts: Record<Tab, number> = {
     CURRENT: designs.filter((d) => d.status === "CURRENT").length,
+    SELECTED_FOR_DEVELOPMENT: designs.filter((d) => d.status === "SELECTED_FOR_DEVELOPMENT").length,
     SELECTED_FOR_PRODUCTION: designs.filter((d) => d.status === "SELECTED_FOR_PRODUCTION").length,
     PAST_ROUND: designs.filter((d) => d.status === "PAST_ROUND").length,
     FAVOURITES: designs.filter((d) => d.isFavorited).length,
@@ -225,9 +229,21 @@ export default function DesignLabPage() {
                           <BarChart3 size={14} strokeWidth={2} />
                           {design.isVoted ? "Voted" : "Vote"}
                         </button>
+                      ) : design.isVoted ? (
+                        // Voting closed (client email 2026-09-17: it closes
+                        // for everyone once a design reaches "Coming to
+                        // Production") after this member already voted —
+                        // the vote itself isn't erased, so say so rather
+                        // than silently dropping the indicator.
+                        <span className="flex flex-1 items-center justify-center gap-1.5 rounded-full border border-cashmere-accent bg-cashmere-accent/10 px-3 py-1.5 text-xs font-medium text-cashmere-accent-dark">
+                          <BarChart3 size={14} strokeWidth={2} />
+                          Voted
+                        </span>
                       ) : (
                         <span className="flex flex-1 items-center justify-center gap-1.5 rounded-full border border-dashed border-cashmere-border px-3 py-1.5 text-[11px] text-cashmere-text-muted">
-                          Founding Members vote
+                          {design.status === "SELECTED_FOR_PRODUCTION" || design.status === "PAST_ROUND"
+                            ? "Voting closed"
+                            : "Founding Members vote"}
                         </span>
                       )}
                     </div>

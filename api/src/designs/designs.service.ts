@@ -8,7 +8,7 @@ import { join, extname } from 'path';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
-import { MembershipTier } from '@prisma/client';
+import { MembershipTier, DesignStatus } from '@prisma/client';
 import { CreateDesignDto } from './dto/create-design.dto';
 import { UpdateDesignDto } from './dto/update-design.dto';
 
@@ -32,8 +32,19 @@ const IMAGE_FIELD: Record<
 function canView(tier: MembershipTier): boolean {
   return tier === 'FOUNDING' || tier === 'ANNUAL';
 }
-function canVote(tier: MembershipTier): boolean {
-  return tier === 'FOUNDING';
+// Client email 2026-09-17, exact words: voting/saving stays open through
+// CURRENT and SELECTED_FOR_DEVELOPMENT ("this will allow us to continue
+// measuring member interest while the design is being developed"), and
+// "once the design moves to Coming to Production, the voting stage can be
+// closed" — so voting closes for every tier, not just non-Founding, once a
+// design reaches SELECTED_FOR_PRODUCTION (or is archived to PAST_ROUND).
+// Saving/favoriting is never gated by status, only by canView's tier check.
+const VOTABLE_STATUSES: DesignStatus[] = [
+  DesignStatus.CURRENT,
+  DesignStatus.SELECTED_FOR_DEVELOPMENT,
+];
+function canVote(tier: MembershipTier, status: DesignStatus): boolean {
+  return tier === 'FOUNDING' && VOTABLE_STATUSES.includes(status);
 }
 
 @Injectable()
@@ -223,7 +234,7 @@ export class DesignsService {
       voteCount: d._count.votes,
       isFavorited: d.favorites.length > 0,
       isVoted: d.votes.length > 0,
-      canVote: canVote(tier),
+      canVote: canVote(tier, d.status),
     }));
   }
 
@@ -250,12 +261,15 @@ export class DesignsService {
   }
 
   async addVote(designId: string, memberId: string, tier: MembershipTier) {
-    if (!canVote(tier)) {
+    const design = await this.findOrThrow(designId);
+    if (!canVote(tier, design.status)) {
       throw new ForbiddenException(
-        'Voting is available to Founding Members only',
+        design.status === DesignStatus.CURRENT ||
+          design.status === DesignStatus.SELECTED_FOR_DEVELOPMENT
+          ? 'Voting is available to Founding Members only'
+          : 'Voting has closed for this design',
       );
     }
-    await this.findOrThrow(designId);
     await this.prisma.designVote.upsert({
       where: { designId_memberId: { designId, memberId } },
       update: {},
@@ -264,7 +278,20 @@ export class DesignsService {
     return { designId, voted: true };
   }
 
+  // Same closed-round reasoning as addVote — a member shouldn't be able to
+  // change their vote after voting has closed either, even though removing
+  // one is less consequential than adding one. Tier isn't checked here
+  // (unlike addVote): if a vote somehow exists, whoever cast it should
+  // always be able to retract it while voting is still open, regardless of
+  // how the tier rule might read for a fresh vote.
   async removeVote(designId: string, memberId: string) {
+    const design = await this.findOrThrow(designId);
+    if (
+      design.status !== DesignStatus.CURRENT &&
+      design.status !== DesignStatus.SELECTED_FOR_DEVELOPMENT
+    ) {
+      throw new ForbiddenException('Voting has closed for this design');
+    }
     await this.prisma.designVote.deleteMany({ where: { designId, memberId } });
     return { designId, voted: false };
   }

@@ -532,7 +532,7 @@ export async function fetchDashboardPendingTasks(): Promise<DashboardPendingTask
   return res.json();
 }
 
-export type DesignStatus = "CURRENT" | "SELECTED_FOR_PRODUCTION" | "PAST_ROUND";
+export type DesignStatus = "CURRENT" | "SELECTED_FOR_DEVELOPMENT" | "SELECTED_FOR_PRODUCTION" | "PAST_ROUND";
 export type DesignImageSlot = "hero" | "swatch" | "sketch";
 
 export interface StaffDesign {
