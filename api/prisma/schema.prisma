@@ -200,6 +200,7 @@ model StaffUser {
   reviewedMongoliaPhotos   MongoliaPhoto[]     @relation("MongoliaPhotosReviewedBy")
   createdStories           Story[]             @relation("StoriesCreatedBy")
   updatedMembershipLevels  MembershipLevel[]   @relation("MembershipLevelsUpdatedBy")
+  createdNewsletterCampaigns NewsletterCampaign[] @relation("NewsletterCampaignsCreatedBy")
 
   @@index([email])
 }
@@ -325,6 +326,50 @@ model Benefit {
   createdBy   StaffUser? @relation("BenefitsCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
 
   @@index([type])
+}
+
+// ---------------------------------------------------------------------------
+// Newsletter campaigns (Communication / email admin, Newsletter Manager)
+// ---------------------------------------------------------------------------
+// Real, DB-backed content authoring for the newsletter — draft the subject,
+// body and intended audience, entirely independent of any email provider.
+// What this deliberately does NOT do is send anything: no Mailchimp API
+// access exists yet (see PROJECT_TRACKER.md Section 6/the 2026-09-15
+// blocker list), so there is no SENT status and no delivery stats here —
+// same "real feature, honest placeholder for the unbuilt external
+// integration" split already used for Mailchimp on the Integrations page.
+// A campaign only ever reaches READY_TO_SEND; taking it out to Mailchimp is
+// a manual step until that integration exists.
+enum NewsletterCampaignStatus {
+  DRAFT
+  READY_TO_SEND
+}
+
+model NewsletterCampaign {
+  id String @id @default(uuid())
+
+  subject String
+  body    String?
+
+  // Empty = draft, not targeted at anyone yet — same convention as
+  // Benefit.tiers/Story.tiers.
+  audienceTiers   MembershipTier[]
+  audienceRegions Region[]         @default([INTERNATIONAL, MONGOLIA])
+
+  // Staff's intended send date — informational only (nothing schedules or
+  // sends automatically off this field yet), so a campaign can be prepared
+  // ahead of time without implying an automation that doesn't exist.
+  scheduledFor DateTime?
+
+  status NewsletterCampaignStatus @default(DRAFT)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  createdById String?
+  createdBy   StaffUser? @relation("NewsletterCampaignsCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([status])
 }
 
 // ---------------------------------------------------------------------------

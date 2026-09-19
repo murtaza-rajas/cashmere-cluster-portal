@@ -22,6 +22,7 @@ import { MongoliaModule } from './mongolia/mongolia.module';
 import { OrdersModule } from './orders/orders.module';
 import { StoriesModule } from './stories/stories.module';
 import { MembershipLevelsModule } from './membership-levels/membership-levels.module';
+import { NewsletterCampaignsModule } from './newsletter-campaigns/newsletter-campaigns.module';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { MembershipLevelsModule } from './membership-levels/membership-levels.mo
     OrdersModule,
     StoriesModule,
     MembershipLevelsModule,
+    NewsletterCampaignsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

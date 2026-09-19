@@ -95,6 +95,10 @@ const nextConfig: NextConfig = {
       // Membership Levels staff admin — no frontend page at
       // /membership-level-catalog, so a blanket rewrite here is safe.
       { source: "/membership-level-catalog/:path*", destination: `${apiOrigin}/membership-level-catalog/:path*` },
+      // Communication (newsletter campaign drafting) staff CRUD — no
+      // frontend page at /newsletter-campaigns (the staff UI lives at
+      // /staff/communication instead), so a blanket rewrite here is safe.
+      { source: "/newsletter-campaigns/:path*", destination: `${apiOrigin}/newsletter-campaigns/:path*` },
       { source: "/health", destination: `${apiOrigin}/health` },
       { source: "/webhooks/:path*", destination: `${apiOrigin}/webhooks/:path*` },
     ];

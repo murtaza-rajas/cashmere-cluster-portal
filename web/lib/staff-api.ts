@@ -973,3 +973,70 @@ export async function updateMembershipLevel(
   }
   return res.json();
 }
+
+// Communication / newsletter campaigns — real drafting/audience-targeting
+// only, no send. There is no Mailchimp integration yet (see
+// PROJECT_TRACKER.md's blocker list), so a campaign only ever reaches
+// READY_TO_SEND — never SENT — and there is no send endpoint at all.
+export type NewsletterCampaignStatusValue = "DRAFT" | "READY_TO_SEND";
+
+export interface StaffNewsletterCampaign {
+  id: string;
+  subject: string;
+  body: string | null;
+  audienceTiers: MembershipTierValue[];
+  audienceRegions: RegionValue[];
+  scheduledFor: string | null;
+  status: NewsletterCampaignStatusValue;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface NewsletterCampaignInput {
+  subject: string;
+  body?: string;
+  audienceTiers: MembershipTierValue[];
+  audienceRegions?: RegionValue[];
+  scheduledFor?: string;
+  status?: NewsletterCampaignStatusValue;
+}
+
+export async function fetchNewsletterCampaigns(): Promise<StaffNewsletterCampaign[]> {
+  const res = await apiFetch("/newsletter-campaigns");
+  if (!res.ok) throw new Error(`Unexpected response fetching newsletter campaigns: ${res.status}`);
+  return res.json();
+}
+
+export async function createNewsletterCampaign(dto: NewsletterCampaignInput): Promise<StaffNewsletterCampaign> {
+  const res = await apiFetch("/newsletter-campaigns", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(dto),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.message ?? `Unexpected response creating newsletter campaign: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function updateNewsletterCampaign(
+  id: string,
+  dto: Partial<NewsletterCampaignInput>,
+): Promise<StaffNewsletterCampaign> {
+  const res = await apiFetch(`/newsletter-campaigns/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(dto),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.message ?? `Unexpected response updating newsletter campaign: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function deleteNewsletterCampaign(id: string): Promise<void> {
+  const res = await apiFetch(`/newsletter-campaigns/${id}`, { method: "DELETE" });
+  if (!res.ok) throw new Error(`Unexpected response deleting newsletter campaign: ${res.status}`);
+}

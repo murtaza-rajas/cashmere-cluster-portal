@@ -324,6 +324,13 @@ export default function StaffDashboardPage() {
           ctaLabel="Manage Mongolia"
           href={staffHasAnyRole(staff, ["Content Manager"]) ? "/staff/mongolia" : undefined}
         />
+        <FeatureCard
+          icon={Mail}
+          title="Communication"
+          description="Draft newsletter campaigns and their audience ahead of sending via Mailchimp."
+          ctaLabel="Manage Communication"
+          href={staffHasAnyRole(staff, ["Newsletter Manager"]) ? "/staff/communication" : undefined}
+        />
       </div>
     </div>
   );
