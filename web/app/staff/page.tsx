@@ -158,8 +158,8 @@ export default function StaffDashboardPage() {
             <div className="mt-3 flex flex-col gap-2">
               <QuickAction icon={UserPlus} label="Add member" disabled disabledReason="No staff-initiated signup flow — members join via Shopify" />
               <QuickAction icon={Gift} label="Create member offer" href="/staff/benefits" />
-              <QuickAction icon={Newspaper} label="Publish a story" disabled disabledReason="Stories & News isn't built yet" />
-              <QuickAction icon={Palette} label="Manage Design Lab" disabled disabledReason="Design Lab isn't built yet" />
+              <QuickAction icon={Newspaper} label="Publish a story" href="/staff/stories" />
+              <QuickAction icon={Palette} label="Manage Design Lab" href="/staff/design-lab" />
               <QuickAction icon={CalendarPlus} label="Create event" href="/staff/events" />
               <QuickAction icon={ImageIcon} label="Upload site image" href="/staff/images" />
               <QuickAction icon={Receipt} label="View recent orders" href="/staff/reports" />
@@ -298,9 +298,10 @@ export default function StaffDashboardPage() {
         />
         <FeatureCard
           icon={Newspaper}
-          title="Stories & News"
+          title="Stories & Knowledge"
           description="Create and manage stories, designer spotlights and updates."
-          ctaLabel="Coming soon"
+          ctaLabel="Manage Stories"
+          href={staffHasAnyRole(staff, ["Content Manager"]) ? "/staff/stories" : undefined}
         />
         <FeatureCard
           icon={Gift}
