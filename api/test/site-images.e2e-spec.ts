@@ -35,7 +35,17 @@ describe('Site image catalog (e2e)', () => {
     await prisma.siteImage.deleteMany();
   });
 
+  // Real bug found live (2026-09-21): this suite's uploads use the same
+  // 10x10 red test fixture as every other e2e spec, and unlike most tables
+  // here (Benefit/Event/etc.), SiteImage is a singleton per (slot, tier) —
+  // a leftover test row doesn't just add clutter, it silently *replaces*
+  // what member-facing pages actually render (the dashboard hero, Care &
+  // Repair hero). A prior session found this exact row and deleted it by
+  // hand once, but running this suite again (e.g. for unrelated feature
+  // work elsewhere) immediately reintroduced it, since nothing here ever
+  // cleaned up after itself. Symmetrical with the beforeAll wipe above.
   afterAll(async () => {
+    await prisma.siteImage.deleteMany();
     await app.close();
   });
 
