@@ -22,7 +22,19 @@ describe('Care guide catalog (e2e)', () => {
     members = app.get(MembersService);
   });
 
+  // Real bug found live (2026-09-21): same fixed-pre-seeded-row shape as
+  // SiteImage/MembershipLevel, but unlike either of those this suite never
+  // restored what it wrote — the STORAGE test's PATCH was left in place
+  // (the WASHING test happens to clear itself back to null as its own
+  // assertion, masking that nothing here was actually being restored on
+  // principle). Confirmed live: the real Care & Repair page was showing
+  // this suite's fixture text ("Store folded, away from direct light.")
+  // as if it were real staff-authored content. Topics are fixed and never
+  // created fresh, so resetting all five back to null (their real,
+  // never-yet-populated state) is safe and symmetrical with how
+  // membership-levels.e2e-spec.ts already restores ANNUAL.
   afterAll(async () => {
+    await prisma.careGuide.updateMany({ data: { body: null } });
     await app.close();
   });
 
