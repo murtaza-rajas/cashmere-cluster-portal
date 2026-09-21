@@ -20,7 +20,11 @@ describe('Newsletter campaigns (e2e)', () => {
     prisma = app.get(PrismaService);
   });
 
+  // No real campaigns exist yet (this whole feature is new as of
+  // 2026-09-19) — safe to wipe entirely, same reasoning applied to every
+  // other content-model spec during the 2026-09-21 e2e cleanup audit.
   afterAll(async () => {
+    await prisma.newsletterCampaign.deleteMany();
     await app.close();
   });
 
@@ -133,9 +137,7 @@ describe('Newsletter campaigns (e2e)', () => {
   });
 
   it('GET /newsletter-campaigns: 401 with no session, 403 for a role without access', async () => {
-    await request(app.getHttpServer())
-      .get('/newsletter-campaigns')
-      .expect(401);
+    await request(app.getHttpServer()).get('/newsletter-campaigns').expect(401);
 
     await request(app.getHttpServer())
       .get('/newsletter-campaigns')

@@ -29,7 +29,28 @@ describe('Story catalog (e2e)', () => {
     members = app.get(MembersService);
   });
 
+  // Real cleanup gap found live (2026-09-21) while auditing every e2e spec
+  // for the Site Images/Care Guides class of bug: unlike those two, Story
+  // isn't a fixed-key row, so a leftover row here doesn't overwrite real
+  // content — it just accumulates as clutter, forever, since nothing ever
+  // removed what this suite created. Confirmed via the live dev DB: every
+  // distinct title in the table (including "Designer Spotlight: Cansel"
+  // and "From Herd to Hem: a Mongolia sourcing story", which read like real
+  // content) matches this file's own fixtures exactly — Stories & Knowledge
+  // has never had real client-approved copy entered. Safe to wipe entirely.
   afterAll(async () => {
+    const leftover = await prisma.story.findMany({
+      where: { heroImageUrl: { not: null } },
+      select: { heroImageUrl: true },
+    });
+    await prisma.story.deleteMany();
+    await Promise.all(
+      leftover.map((s) =>
+        fs
+          .unlink(join(process.cwd(), s.heroImageUrl!.slice(1)))
+          .catch(() => undefined),
+      ),
+    );
     await app.close();
   });
 

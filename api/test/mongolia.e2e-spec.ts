@@ -29,36 +29,77 @@ describe('Mongolia (e2e)', () => {
     members = app.get(MembersService);
   });
 
+  // Real bug found live (2026-09-21): confirmed against the live dev DB
+  // that all MongoliaStory/MongoliaProducer rows were 100% this suite's own
+  // fixtures (repeated across every past run), which had visibly broken the
+  // real Mongolia member page — duplicated cards and the suite's own red
+  // test-fixture images rendering as if they were real content. Cleaned up
+  // by hand once already today; this stops it recurring, same pattern as
+  // Story/Event/Design.
   afterAll(async () => {
+    const [storyLeftover, producerLeftover] = await Promise.all([
+      prisma.mongoliaStory.findMany({
+        where: { heroImageUrl: { not: null } },
+        select: { heroImageUrl: true },
+      }),
+      prisma.mongoliaProducer.findMany({
+        where: { heroImageUrl: { not: null } },
+        select: { heroImageUrl: true },
+      }),
+    ]);
+    await prisma.mongoliaStory.deleteMany();
+    await prisma.mongoliaProducer.deleteMany();
+    const urls = [...storyLeftover, ...producerLeftover]
+      .map((r) => r.heroImageUrl!)
+      .filter(Boolean);
+    await Promise.all(
+      urls.map((u) =>
+        fs.unlink(join(process.cwd(), u.slice(1))).catch(() => undefined),
+      ),
+    );
     await app.close();
   });
 
   function sessionCookieFor(memberId: string): string {
-    const token = jwt.sign({ sub: memberId }, process.env.JWT_SECRET!, { expiresIn: '1h' });
+    const token = jwt.sign({ sub: memberId }, process.env.JWT_SECRET!, {
+      expiresIn: '1h',
+    });
     return `clc_session=${token}`;
   }
 
   async function staffCookieFor(roleName: string): Promise<string> {
-    const role = await prisma.role.findUniqueOrThrow({ where: { name: roleName } });
+    const role = await prisma.role.findUniqueOrThrow({
+      where: { name: roleName },
+    });
     const staff = await prisma.staffUser.create({
       data: {
         email: `mongolia-e2e-${roleName.replace(/\s+/g, '-')}-${Date.now()}-${Math.random()}@example.com`,
         name: `Test ${roleName}`,
       },
     });
-    await prisma.staffRoleAssignment.create({ data: { staffUserId: staff.id, roleId: role.id } });
-    const token = jwt.sign({ sub: staff.id }, process.env.STAFF_JWT_SECRET!, { expiresIn: '1h' });
+    await prisma.staffRoleAssignment.create({
+      data: { staffUserId: staff.id, roleId: role.id },
+    });
+    const token = jwt.sign({ sub: staff.id }, process.env.STAFF_JWT_SECRET!, {
+      expiresIn: '1h',
+    });
     return `clc_staff_session=${token}`;
   }
 
-  async function member(tier: 'NEWSLETTER' | 'MONGOLIA', region: 'MONGOLIA' | 'INTERNATIONAL' = 'MONGOLIA') {
+  async function member(
+    tier: 'NEWSLETTER' | 'MONGOLIA',
+    region: 'MONGOLIA' | 'INTERNATIONAL' = 'MONGOLIA',
+  ) {
     const externalId = `mongolia-e2e-member-${tier}-${region}-${Date.now()}-${Math.random()}`;
     const m = await members.findOrCreateFromIdentity({
       providerId: 'shopify',
       externalId,
       email: `${externalId}@example.com`,
     });
-    await prisma.member.update({ where: { id: m.id }, data: { membershipTier: tier, region } });
+    await prisma.member.update({
+      where: { id: m.id },
+      data: { membershipTier: tier, region },
+    });
     return m;
   }
 
@@ -80,7 +121,8 @@ describe('Mongolia (e2e)', () => {
       .set('Cookie', contentManagerCookie)
       .send({
         title: 'New Partnership in Mongolia',
-        excerpt: 'We are proud to welcome a new artisan factory to our network.',
+        excerpt:
+          'We are proud to welcome a new artisan factory to our network.',
         category: 'Community',
       })
       .expect(201);
@@ -135,7 +177,9 @@ describe('Mongolia (e2e)', () => {
       .set('Cookie', contentManagerCookie)
       .attach('file', FIXTURE_IMAGE)
       .expect(201);
-    expect(uploaded.body.heroImageUrl).toMatch(/^\/uploads\/mongolia-stories\/.+\.jpg$/);
+    expect(uploaded.body.heroImageUrl).toMatch(
+      /^\/uploads\/mongolia-stories\/.+\.jpg$/,
+    );
     const savedPath = join(process.cwd(), uploaded.body.heroImageUrl.slice(1));
     await expect(fs.stat(savedPath)).resolves.toBeDefined();
 
@@ -178,16 +222,32 @@ describe('Mongolia (e2e)', () => {
       .get('/members/me/mongolia/stories')
       .set('Cookie', sessionCookieFor(mongoliaNewsletter.id))
       .expect(200);
-    expect(newsletterRes.body.some((s: { id: string }) => s.id === everyoneStory.body.id)).toBe(true);
-    expect(newsletterRes.body.some((s: { id: string }) => s.id === foundingOnlyStory.body.id)).toBe(false);
+    expect(
+      newsletterRes.body.some(
+        (s: { id: string }) => s.id === everyoneStory.body.id,
+      ),
+    ).toBe(true);
+    expect(
+      newsletterRes.body.some(
+        (s: { id: string }) => s.id === foundingOnlyStory.body.id,
+      ),
+    ).toBe(false);
 
     const mongoliaFounding = await member('MONGOLIA', 'MONGOLIA');
     const foundingRes = await request(app.getHttpServer())
       .get('/members/me/mongolia/stories')
       .set('Cookie', sessionCookieFor(mongoliaFounding.id))
       .expect(200);
-    expect(foundingRes.body.some((s: { id: string }) => s.id === everyoneStory.body.id)).toBe(true);
-    expect(foundingRes.body.some((s: { id: string }) => s.id === foundingOnlyStory.body.id)).toBe(true);
+    expect(
+      foundingRes.body.some(
+        (s: { id: string }) => s.id === everyoneStory.body.id,
+      ),
+    ).toBe(true);
+    expect(
+      foundingRes.body.some(
+        (s: { id: string }) => s.id === foundingOnlyStory.body.id,
+      ),
+    ).toBe(true);
   });
 
   // Second Mongolia content type, same access rules — Producer profiles.
@@ -264,7 +324,9 @@ describe('Mongolia (e2e)', () => {
       .set('Cookie', contentManagerCookie)
       .attach('file', FIXTURE_IMAGE)
       .expect(201);
-    expect(uploaded.body.heroImageUrl).toMatch(/^\/uploads\/mongolia-producers\/.+\.jpg$/);
+    expect(uploaded.body.heroImageUrl).toMatch(
+      /^\/uploads\/mongolia-producers\/.+\.jpg$/,
+    );
     const savedPath = join(process.cwd(), uploaded.body.heroImageUrl.slice(1));
     await expect(fs.stat(savedPath)).resolves.toBeDefined();
 
@@ -307,16 +369,32 @@ describe('Mongolia (e2e)', () => {
       .get('/members/me/mongolia/producers')
       .set('Cookie', sessionCookieFor(mongoliaNewsletter.id))
       .expect(200);
-    expect(newsletterRes.body.some((p: { id: string }) => p.id === everyoneProducer.body.id)).toBe(true);
-    expect(newsletterRes.body.some((p: { id: string }) => p.id === foundingOnlyProducer.body.id)).toBe(false);
+    expect(
+      newsletterRes.body.some(
+        (p: { id: string }) => p.id === everyoneProducer.body.id,
+      ),
+    ).toBe(true);
+    expect(
+      newsletterRes.body.some(
+        (p: { id: string }) => p.id === foundingOnlyProducer.body.id,
+      ),
+    ).toBe(false);
 
     const mongoliaFounding = await member('MONGOLIA', 'MONGOLIA');
     const foundingRes = await request(app.getHttpServer())
       .get('/members/me/mongolia/producers')
       .set('Cookie', sessionCookieFor(mongoliaFounding.id))
       .expect(200);
-    expect(foundingRes.body.some((p: { id: string }) => p.id === everyoneProducer.body.id)).toBe(true);
-    expect(foundingRes.body.some((p: { id: string }) => p.id === foundingOnlyProducer.body.id)).toBe(true);
+    expect(
+      foundingRes.body.some(
+        (p: { id: string }) => p.id === everyoneProducer.body.id,
+      ),
+    ).toBe(true);
+    expect(
+      foundingRes.body.some(
+        (p: { id: string }) => p.id === foundingOnlyProducer.body.id,
+      ),
+    ).toBe(true);
   });
 
   // "Your voice" — voting on producers, Mongolia Founding-only per the
@@ -354,7 +432,9 @@ describe('Mongolia (e2e)', () => {
       .expect(201);
 
     let vote = await prisma.mongoliaProducerVote.findUnique({
-      where: { producerId_memberId: { producerId, memberId: mongoliaFounding.id } },
+      where: {
+        producerId_memberId: { producerId, memberId: mongoliaFounding.id },
+      },
     });
     expect(vote).toBeDefined();
 
@@ -373,7 +453,9 @@ describe('Mongolia (e2e)', () => {
       .expect(200);
 
     vote = await prisma.mongoliaProducerVote.findUnique({
-      where: { producerId_memberId: { producerId, memberId: mongoliaFounding.id } },
+      where: {
+        producerId_memberId: { producerId, memberId: mongoliaFounding.id },
+      },
     });
     expect(vote).toBeNull();
   });
@@ -426,13 +508,17 @@ describe('Mongolia (e2e)', () => {
       .get('/members/me/mongolia/photos')
       .set('Cookie', sessionCookieFor(mongoliaFounding.id))
       .expect(200);
-    expect(publicView.body.some((p: { id: string }) => p.id === photoId)).toBe(false);
+    expect(publicView.body.some((p: { id: string }) => p.id === photoId)).toBe(
+      false,
+    );
 
     const mineView = await request(app.getHttpServer())
       .get('/members/me/mongolia/photos/mine')
       .set('Cookie', sessionCookieFor(mongoliaFounding.id))
       .expect(200);
-    expect(mineView.body.some((p: { id: string }) => p.id === photoId)).toBe(true);
+    expect(mineView.body.some((p: { id: string }) => p.id === photoId)).toBe(
+      true,
+    );
 
     const contentManagerCookie = await staffCookieFor('Content Manager');
     await request(app.getHttpServer())
@@ -445,11 +531,15 @@ describe('Mongolia (e2e)', () => {
       .get('/members/me/mongolia/photos')
       .set('Cookie', sessionCookieFor(mongoliaFounding.id))
       .expect(200);
-    expect(afterApproval.body.some((p: { id: string }) => p.id === photoId)).toBe(true);
+    expect(
+      afterApproval.body.some((p: { id: string }) => p.id === photoId),
+    ).toBe(true);
   });
 
   it('GET /mongolia-catalog/photos: 401/403 for non-Content-Managers; PATCH rejecting a photo keeps it out of the public archive; DELETE removes it and its file', async () => {
-    await request(app.getHttpServer()).get('/mongolia-catalog/photos').expect(401);
+    await request(app.getHttpServer())
+      .get('/mongolia-catalog/photos')
+      .expect(401);
     await request(app.getHttpServer())
       .get('/mongolia-catalog/photos')
       .set('Cookie', await staffCookieFor('Event Manager'))
@@ -470,7 +560,9 @@ describe('Mongolia (e2e)', () => {
       .get('/mongolia-catalog/photos')
       .set('Cookie', contentManagerCookie)
       .expect(200);
-    expect(staffList.body.some((p: { id: string }) => p.id === photoId)).toBe(true);
+    expect(staffList.body.some((p: { id: string }) => p.id === photoId)).toBe(
+      true,
+    );
 
     const rejected = await request(app.getHttpServer())
       .patch(`/mongolia-catalog/photos/${photoId}`)
@@ -483,7 +575,9 @@ describe('Mongolia (e2e)', () => {
       .get('/members/me/mongolia/photos')
       .set('Cookie', sessionCookieFor(mongoliaFounding.id))
       .expect(200);
-    expect(publicView.body.some((p: { id: string }) => p.id === photoId)).toBe(false);
+    expect(publicView.body.some((p: { id: string }) => p.id === photoId)).toBe(
+      false,
+    );
 
     const auditEntries = await prisma.auditLog.findMany({
       where: { action: 'mongolia_photo.rejected', targetId: photoId },

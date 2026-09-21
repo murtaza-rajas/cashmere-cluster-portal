@@ -21,7 +21,35 @@ describe('Benefit catalog (e2e)', () => {
     members = app.get(MembersService);
   });
 
+  // Real cleanup gap found live (2026-09-21), different in kind from the
+  // Story/Event/Design/Mongolia fix — unlike those tables, Benefit holds
+  // real content: the actual seeded My Benefits copy (Term/Status/Welcome
+  // gift/Discount/Early access/Offers/Events/Other, one set per FOUNDING
+  // and ANNUAL, from prisma/seed.ts). A blanket wipe here would delete real
+  // content, not just test fixtures, so this deletes only by this file's
+  // own exact fixture titles — confirmed by cross-checking every title
+  // that had accumulated in the live dev DB (290 rows) against this file's
+  // literal `.send({ title: ... })` calls, one for one, with the 16 real
+  // seeded rows using entirely different titles that never collide.
   afterAll(async () => {
+    await prisma.benefit.deleteMany({
+      where: {
+        title: {
+          in: [
+            'Test offer',
+            'Autumn scarf sale',
+            'Draft row',
+            'Founding-only perk',
+            'Annual-only offer',
+            'Inactive perk',
+            'Mongolia Newsletter welcome offer',
+            'Mongolia-only welcome offer',
+            'Mongolia-only welcome offer (updated)',
+            'International Founding offer',
+          ],
+        },
+      },
+    });
     await app.close();
   });
 
@@ -195,7 +223,7 @@ describe('Benefit catalog (e2e)', () => {
   // Mongolia Newsletter (if scoped to tiers:['MONGOLIA'], which only
   // Founding carries) or leaked to every international Newsletter
   // Subscriber (if scoped to tiers:['NEWSLETTER']).
-  it("a Mongolia-only offer is visible to Mongolia Newsletter but not to an international Newsletter Subscriber", async () => {
+  it('a Mongolia-only offer is visible to Mongolia Newsletter but not to an international Newsletter Subscriber', async () => {
     const clubManagerCookie = await staffCookieFor('Club Manager');
 
     const mongoliaOnlyOffer = await request(app.getHttpServer())
@@ -258,14 +286,22 @@ describe('Benefit catalog (e2e)', () => {
     const created = await request(app.getHttpServer())
       .post('/benefit-catalog')
       .set('Cookie', mongoliaEditorCookie)
-      .send({ type: 'OFFER', tiers: ['MONGOLIA'], title: 'Mongolia-only welcome offer' })
+      .send({
+        type: 'OFFER',
+        tiers: ['MONGOLIA'],
+        title: 'Mongolia-only welcome offer',
+      })
       .expect(201);
     expect(created.body.regions).toEqual(['MONGOLIA']);
 
     const internationalOffer = await request(app.getHttpServer())
       .post('/benefit-catalog')
       .set('Cookie', clubManagerCookie)
-      .send({ type: 'OFFER', tiers: ['FOUNDING'], title: 'International Founding offer' })
+      .send({
+        type: 'OFFER',
+        tiers: ['FOUNDING'],
+        title: 'International Founding offer',
+      })
       .expect(201);
 
     const editorList = await request(app.getHttpServer())

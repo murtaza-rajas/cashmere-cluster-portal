@@ -26,7 +26,26 @@ describe('Event catalog (e2e)', () => {
     members = app.get(MembersService);
   });
 
+  // Same real cleanup gap found live (2026-09-21) as Story/Design/Mongolia —
+  // Event isn't a fixed-key row so a leftover here is clutter, not an
+  // overwrite, but nothing ever removed what this suite created. Confirmed
+  // every distinct title in the table (including "International Founders
+  // Dinner", "Mongolia Evening — Meet the Producers", "Ulaanbaatar Cashmere
+  // Festival") matches this file's own fixtures exactly — no real events
+  // have been entered. Safe to wipe entirely.
   afterAll(async () => {
+    const leftover = await prisma.event.findMany({
+      where: { imageUrl: { not: null } },
+      select: { imageUrl: true },
+    });
+    await prisma.event.deleteMany();
+    await Promise.all(
+      leftover.map((e) =>
+        fs
+          .unlink(join(process.cwd(), e.imageUrl!.slice(1)))
+          .catch(() => undefined),
+      ),
+    );
     await app.close();
   });
 
@@ -273,7 +292,7 @@ describe('Event catalog (e2e)', () => {
   // Benefit test: tier alone can't tell a Mongolia Newsletter member apart
   // from an international one (both carry tier NEWSLETTER), found while
   // reusing Event for Mongolia's own Events section.
-  it("a Mongolia-only event is visible to Mongolia Newsletter but not to an international Newsletter Subscriber", async () => {
+  it('a Mongolia-only event is visible to Mongolia Newsletter but not to an international Newsletter Subscriber', async () => {
     const eventManagerCookie = await staffCookieFor('Event Manager');
 
     const mongoliaOnlyEvent = await request(app.getHttpServer())
@@ -343,7 +362,11 @@ describe('Event catalog (e2e)', () => {
     const created = await request(app.getHttpServer())
       .post('/event-catalog')
       .set('Cookie', mongoliaEditorCookie)
-      .send({ title: 'Naadam Gathering', locationType: 'IN_PERSON', tiers: ['MONGOLIA'] })
+      .send({
+        title: 'Naadam Gathering',
+        locationType: 'IN_PERSON',
+        tiers: ['MONGOLIA'],
+      })
       .expect(201);
     expect(created.body.regions).toEqual(['MONGOLIA']);
 
@@ -353,7 +376,11 @@ describe('Event catalog (e2e)', () => {
     const internationalEvent = await request(app.getHttpServer())
       .post('/event-catalog')
       .set('Cookie', eventManagerCookie)
-      .send({ title: 'International Founders Dinner', locationType: 'IN_PERSON', tiers: ['FOUNDING'] })
+      .send({
+        title: 'International Founders Dinner',
+        locationType: 'IN_PERSON',
+        tiers: ['FOUNDING'],
+      })
       .expect(201);
 
     const editorList = await request(app.getHttpServer())

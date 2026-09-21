@@ -29,36 +29,80 @@ describe('Design catalog (e2e)', () => {
     members = app.get(MembersService);
   });
 
+  // Same real cleanup gap found live (2026-09-21) as Story/Event/Mongolia —
+  // Design isn't a fixed-key row so a leftover here is clutter, not an
+  // overwrite, but this table specifically has needed repeated manual
+  // accumulation cleanups all engagement (see the dated entries in
+  // PROJECT_TRACKER.md — 178, then 144, then 33+ rows deleted by hand on
+  // separate occasions), always the same 4 fixture titles from this file.
+  // No real Design Lab content has ever been entered. Safe to wipe
+  // entirely.
   afterAll(async () => {
+    const leftover = await prisma.design.findMany({
+      where: {
+        OR: [
+          { heroImageUrl: { not: null } },
+          { swatchImageUrl: { not: null } },
+          { sketchImageUrl: { not: null } },
+        ],
+      },
+      select: {
+        heroImageUrl: true,
+        swatchImageUrl: true,
+        sketchImageUrl: true,
+      },
+    });
+    await prisma.design.deleteMany();
+    const urls = leftover
+      .flatMap((d) => [d.heroImageUrl, d.swatchImageUrl, d.sketchImageUrl])
+      .filter((u): u is string => Boolean(u));
+    await Promise.all(
+      urls.map((u) =>
+        fs.unlink(join(process.cwd(), u.slice(1))).catch(() => undefined),
+      ),
+    );
     await app.close();
   });
 
   function sessionCookieFor(memberId: string): string {
-    const token = jwt.sign({ sub: memberId }, process.env.JWT_SECRET!, { expiresIn: '1h' });
+    const token = jwt.sign({ sub: memberId }, process.env.JWT_SECRET!, {
+      expiresIn: '1h',
+    });
     return `clc_session=${token}`;
   }
 
   async function staffCookieFor(roleName: string): Promise<string> {
-    const role = await prisma.role.findUniqueOrThrow({ where: { name: roleName } });
+    const role = await prisma.role.findUniqueOrThrow({
+      where: { name: roleName },
+    });
     const staff = await prisma.staffUser.create({
       data: {
         email: `designs-e2e-${roleName.replace(/\s+/g, '-')}-${Date.now()}-${Math.random()}@example.com`,
         name: `Test ${roleName}`,
       },
     });
-    await prisma.staffRoleAssignment.create({ data: { staffUserId: staff.id, roleId: role.id } });
-    const token = jwt.sign({ sub: staff.id }, process.env.STAFF_JWT_SECRET!, { expiresIn: '1h' });
+    await prisma.staffRoleAssignment.create({
+      data: { staffUserId: staff.id, roleId: role.id },
+    });
+    const token = jwt.sign({ sub: staff.id }, process.env.STAFF_JWT_SECRET!, {
+      expiresIn: '1h',
+    });
     return `clc_staff_session=${token}`;
   }
 
-  async function memberWithTier(tier: 'FOUNDING' | 'ANNUAL' | 'NEWSLETTER' | 'MONGOLIA') {
+  async function memberWithTier(
+    tier: 'FOUNDING' | 'ANNUAL' | 'NEWSLETTER' | 'MONGOLIA',
+  ) {
     const externalId = `designs-e2e-member-${tier}-${Date.now()}-${Math.random()}`;
     const member = await members.findOrCreateFromIdentity({
       providerId: 'shopify',
       externalId,
       email: `${externalId}@example.com`,
     });
-    await prisma.member.update({ where: { id: member.id }, data: { membershipTier: tier } });
+    await prisma.member.update({
+      where: { id: member.id },
+      data: { membershipTier: tier },
+    });
     return member;
   }
 
@@ -106,7 +150,10 @@ describe('Design catalog (e2e)', () => {
     const updated = await request(app.getHttpServer())
       .patch(`/design-catalog/${created.body.id}`)
       .set('Cookie', contentManagerCookie)
-      .send({ status: 'SELECTED_FOR_PRODUCTION', tags: ['Breathable', 'Modern'] })
+      .send({
+        status: 'SELECTED_FOR_PRODUCTION',
+        tags: ['Breathable', 'Modern'],
+      })
       .expect(200);
     expect(updated.body.status).toBe('SELECTED_FOR_PRODUCTION');
     expect(updated.body.tags).toEqual(['Breathable', 'Modern']);
@@ -139,7 +186,9 @@ describe('Design catalog (e2e)', () => {
         .attach('file', FIXTURE_IMAGE)
         .expect(201);
       const urlField = `${slot}ImageUrl`;
-      expect(uploaded.body[urlField]).toMatch(new RegExp(`^/uploads/designs/.+\\.jpg$`));
+      expect(uploaded.body[urlField]).toMatch(
+        new RegExp(`^/uploads/designs/.+\\.jpg$`),
+      );
       const savedPath = join(process.cwd(), uploaded.body[urlField].slice(1));
       await expect(fs.stat(savedPath)).resolves.toBeDefined();
 
@@ -184,7 +233,9 @@ describe('Design catalog (e2e)', () => {
       .get('/members/me/designs')
       .set('Cookie', sessionCookieFor(founding.id))
       .expect(200);
-    const foundingRow = foundingRes.body.find((d: { id: string }) => d.id === designId);
+    const foundingRow = foundingRes.body.find(
+      (d: { id: string }) => d.id === designId,
+    );
     expect(foundingRow).toBeDefined();
     expect(foundingRow.canVote).toBe(true);
 
@@ -192,7 +243,9 @@ describe('Design catalog (e2e)', () => {
       .get('/members/me/designs')
       .set('Cookie', sessionCookieFor(annual.id))
       .expect(200);
-    const annualRow = annualRes.body.find((d: { id: string }) => d.id === designId);
+    const annualRow = annualRes.body.find(
+      (d: { id: string }) => d.id === designId,
+    );
     expect(annualRow).toBeDefined();
     expect(annualRow.canVote).toBe(false);
 
