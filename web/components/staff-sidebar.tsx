@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, ShieldCheck, ClipboardList, Gift, Image as ImageIcon, Images, ScrollText, CalendarHeart, Wrench, BarChart3, Plug, Palette, Mountain, LogOut, X, ChevronDown, BookOpen, Factory, Vote, Globe2, ShoppingBag, Layers, Mail } from "lucide-react";
+import { LayoutDashboard, Users, ShieldCheck, ClipboardList, Gift, Image as ImageIcon, ScrollText, CalendarHeart, Wrench, BarChart3, Plug, Palette, Mountain, LogOut, X, ChevronDown, BookOpen, Factory, Vote, Globe2, ShoppingBag, Layers, Mail } from "lucide-react";
 import { useStaff, staffHasAnyRole } from "@/contexts/staff-context";
 import { API_URL } from "@/lib/api";
 
@@ -38,7 +38,13 @@ const MONGOLIA_CHILDREN = [
   { href: "/staff/mongolia/world", label: "Mongolia and the World", icon: Globe2 },
   { href: "/staff/mongolia/events", label: "Events", icon: CalendarHeart },
   { href: "/staff/mongolia/membership", label: "Membership Access", icon: Users },
-  { href: "/staff/mongolia/photos", label: "Photo Archive", icon: Images },
+  // Deliberately NOT linked here — see the 2026-09-12 PROJECT_TRACKER.md
+  // entry. Photo Archive is explicitly deferred to post-launch (Morten
+  // wants member-submission consent/usage-rights handling designed first,
+  // never built); the page/route/backend are all real and untouched, just
+  // not discoverable via nav until launch, so a permanently-empty
+  // moderation queue doesn't read as live functionality before then. Don't
+  // re-add this without Rick's explicit go-ahead post-1-November.
 ];
 
 const NAV_ITEMS: NavItem[] = [

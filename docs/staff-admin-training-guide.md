@@ -77,9 +77,10 @@ A self-contained nested section (expand it in the sidebar) mirroring several int
 | Mongolia and the World | Stories & News | Not a separate content type — it's Stories & News filtered by category. Full editing (photos, delete) only works from the actual Stories & News page |
 | Events | Events & Invitations | Same **Event Manager** role gate as the international page — Content Manager alone doesn't unlock this one; you need Event Manager or Mongolia Editor specifically |
 | Membership Access | Members & Users | Same member data, filtered to Mongolia region. Read-only, same as the international page |
-| Photo Archive | — | Member-submitted photo moderation queue (Pending/Approved/Rejected). No create form — staff only approve, reject, or delete what members submit |
 
 Deleting a producer here also removes it from voting results, since voting reads live from the same producer list.
+
+**Photo Archive (`/staff/mongolia/photos`) is deliberately not in this list or the sidebar.** It's fully built (a real Pending/Approved/Rejected moderation queue) but explicitly deferred to **after the 1 November launch** — Morten wants member-submission consent/usage-rights handling designed before it goes live, and the nav link was removed on purpose so a permanently-empty queue doesn't read as live functionality before then. The page still works if you go there directly; don't re-add it to navigation without checking with Rick that it's actually launch-cleared.
 
 ### Communication — *Newsletter Manager*
 Draft newsletter campaigns — subject, body, intended audience, intended send date, and a Draft/"Ready to send" status. **There is no send button anywhere in this app.** Mailchimp isn't connected yet (see Integrations & Settings), so a "Ready to send" campaign has to be copied out and sent through Mailchimp directly by hand. This is the one area most likely to look unfinished if you don't know that going in — it isn't; it's doing exactly what it was built to do.
@@ -113,5 +114,6 @@ Despite the name, this is a **status page, not a settings page** — nothing her
 - Collections and Exclusive Collections admin don't exist yet — blocked on Shopify Storefront API credentials.
 - Reports & Analytics' 5th KPI (member engagement) is a placeholder pending a client definition of the term.
 - Investor Relations Manager role exists but has no admin area built for it.
+- Mongolia Photo Archive is built and working but deliberately hidden from navigation until after 1 November launch — see the Mongolia section above.
 
 Anything not listed above that looks unfinished is worth flagging to Rick rather than assumed — this list is meant to be the complete set of known, deliberate gaps as of 2026-09-22, not a reason to stop asking.
