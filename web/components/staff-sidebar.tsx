@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, ShieldCheck, ClipboardList, Gift, Image as ImageIcon, ScrollText, CalendarHeart, Wrench, BarChart3, Plug, Palette, Mountain, LogOut, X, ChevronDown, BookOpen, Factory, Vote, Globe2, ShoppingBag, Layers } from "lucide-react";
+import { LayoutDashboard, Users, ShieldCheck, ClipboardList, Gift, Image as ImageIcon, Images, ScrollText, CalendarHeart, Wrench, BarChart3, Plug, Palette, Mountain, LogOut, X, ChevronDown, BookOpen, Factory, Vote, Globe2, ShoppingBag, Layers, Mail } from "lucide-react";
 import { useStaff, staffHasAnyRole } from "@/contexts/staff-context";
 import { API_URL } from "@/lib/api";
 
@@ -38,6 +38,7 @@ const MONGOLIA_CHILDREN = [
   { href: "/staff/mongolia/world", label: "Mongolia and the World", icon: Globe2 },
   { href: "/staff/mongolia/events", label: "Events", icon: CalendarHeart },
   { href: "/staff/mongolia/membership", label: "Membership Access", icon: Users },
+  { href: "/staff/mongolia/photos", label: "Photo Archive", icon: Images },
 ];
 
 const NAV_ITEMS: NavItem[] = [
@@ -51,6 +52,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/staff/design-lab", label: "Design Lab", icon: Palette, allowedRoles: ["Content Manager"] },
   { href: "/staff/stories", label: "Stories & Knowledge", icon: BookOpen, allowedRoles: ["Content Manager"] },
   { href: "/staff/mongolia", label: "Mongolia", icon: Mountain, allowedRoles: ["Content Manager", "Mongolia Editor"], children: MONGOLIA_CHILDREN },
+  { href: "/staff/communication", label: "Communication", icon: Mail, allowedRoles: ["Newsletter Manager"] },
   { href: "/staff/data-requests", label: "GDPR Requests", icon: ClipboardList, allowedRoles: ["Super Administrator", "Member Support"] },
   { href: "/staff/audit-log", label: "Audit Log", icon: ScrollText, allowedRoles: ["Super Administrator"] },
   { href: "/staff/reports", label: "Reports & Analytics", icon: BarChart3, allowedRoles: ["Analytics Viewer"] },
