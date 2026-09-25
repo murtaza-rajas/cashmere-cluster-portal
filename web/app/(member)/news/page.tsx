@@ -9,11 +9,22 @@ import { RequireAccess } from "@/components/require-access";
 import { getAccessLevel } from "@/lib/access";
 import { fetchMyStories, MemberStory } from "@/lib/api";
 
+// Card preview helpers — a story's content now lives in an ordered
+// `sections` list (2026-09-25 rebuild) instead of fixed body/quote fields,
+// so the list-page card picks the first TEXT/QUOTE section it finds rather
+// than assuming a fixed shape. Not every story has either.
+function firstTextSection(story: MemberStory): string | null {
+  return story.sections.find((s) => s.type === "TEXT" && s.text)?.text ?? null;
+}
+function firstQuoteSection(story: MemberStory): string | null {
+  return story.sections.find((s) => s.type === "QUOTE" && s.quoteText)?.quoteText ?? null;
+}
+
 // Real Stories & Knowledge content, replacing the "coming soon" placeholder
 // that stood here since 2026-09-08 (real, pre-existing dead nav link — see
-// PROJECT_TRACKER.md). Backend already filters to active stories visible to
-// this member's own tier (StoriesService.findForMember) — a "preview"-tier
-// member (Newsletter/Mongolia) only ever receives stories staff marked
+// PROJECT_TRACKER.md). Backend already filters to PUBLISHED stories visible
+// to this member's own tier (StoriesService.findForMember) — a "preview"-
+// tier member (Newsletter/Mongolia) only ever receives stories staff marked
 // visible to every tier ("public" stories), never a members-only one, so
 // there's nothing further to filter client-side.
 export default function NewsPage() {
@@ -64,18 +75,20 @@ export default function NewsPage() {
                   </div>
                 )}
                 <div className="p-6">
-                  {story.category && (
-                    <p className="text-xs font-semibold uppercase tracking-wide text-cashmere-accent-dark">
-                      {story.category}
-                    </p>
-                  )}
+                  <p className="text-xs font-semibold uppercase tracking-wide text-cashmere-accent-dark">
+                    {story.category.name}
+                  </p>
                   <h2 className="mt-1 font-serif text-xl tracking-tight text-cashmere-text">{story.title}</h2>
-                  {story.quote && (
+                  {firstQuoteSection(story) && (
                     <blockquote className="mt-3 border-l-2 border-cashmere-accent pl-4 text-sm italic text-cashmere-text-muted">
-                      &ldquo;{story.quote}&rdquo;
+                      &ldquo;{firstQuoteSection(story)}&rdquo;
                     </blockquote>
                   )}
-                  {story.body && <p className="mt-3 whitespace-pre-line text-sm text-cashmere-text-muted">{story.body}</p>}
+                  {firstTextSection(story) && (
+                    <p className="mt-3 line-clamp-3 whitespace-pre-line text-sm text-cashmere-text-muted">
+                      {firstTextSection(story)}
+                    </p>
+                  )}
                   <Link
                     href={`/news/${story.id}`}
                     className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-cashmere-accent hover:underline"

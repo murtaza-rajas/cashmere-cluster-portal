@@ -199,6 +199,19 @@ async function main() {
     });
   }
   console.log(`Seeded ${MEMBERSHIP_LEVELS.length} membership levels.`);
+
+  // Stories & Knowledge launch categories (client email 2026-09-24) — a
+  // real, growable table from day one, not a hardcoded list: only Super
+  // Administrator can add to it later (see StoryCategoriesController).
+  const STORY_CATEGORIES = ['Story', 'Knowledge', 'Designer Spotlight', 'Mongolia & the World'];
+  for (const name of STORY_CATEGORIES) {
+    await prisma.storyCategory.upsert({
+      where: { name },
+      update: {},
+      create: { name },
+    });
+  }
+  console.log(`Seeded ${STORY_CATEGORIES.length} story categories.`);
 }
 
 main()

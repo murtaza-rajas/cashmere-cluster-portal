@@ -164,6 +164,16 @@ export class MembersController {
     return this.stories.findForMember((req.user as Member).membershipTier);
   }
 
+  // Homepage "Latest News & Updates" curation (client email 2026-09-22) —
+  // replaces the dashboard's previous static placeholder text.
+  @UseGuards(JwtAuthGuard)
+  @Get('me/stories/featured')
+  myFeaturedStories(@Req() req: Request) {
+    return this.stories.findFeaturedForMember(
+      (req.user as Member).membershipTier,
+    );
+  }
+
   // Care & Repair guide bodies — not tier-scoped (unlike the above), since
   // the page's existing preview/full split is already handled at the page
   // level via lib/access.ts, not per-guide.

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {
   Star,
   Gift,
@@ -28,7 +29,9 @@ import {
   fetchMemberOrders,
   fetchMySiteImages,
   fetchMyDesigns,
+  fetchMyFeaturedStories,
   MemberDesign,
+  MemberStory,
 } from "@/lib/api";
 import { getAccessLevel } from "@/lib/access";
 
@@ -141,11 +144,7 @@ function FullDashboard({ displayName }: { displayName: string }) {
       <DesignLabTeaser />
 
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <PlaceholderPanel
-          icon={Newspaper}
-          title="Latest News & Updates"
-          body="Club news, producer stories and Mongolia updates will appear here."
-        />
+        <FeaturedStoriesPanel />
         <PlaceholderPanel
           icon={PlayCircle}
           title="Behind the Cashmere"
@@ -379,6 +378,60 @@ function OrderRow({
         </p>
         <p className="text-xs text-cashmere-text-muted">{detail}</p>
       </div>
+    </div>
+  );
+}
+
+// Real featured-stories curation (client email 2026-09-22: "choose which
+// articles should be featured on the members' homepage") — replaces the
+// static placeholder text this card used to show. Same real-fetch pattern
+// as DesignLabTeaser above; GET /members/me/stories/featured is already
+// filtered server-side to PUBLISHED + featured + this member's own tier.
+function FeaturedStoriesPanel() {
+  const [stories, setStories] = useState<MemberStory[] | null>(null);
+
+  useEffect(() => {
+    fetchMyFeaturedStories()
+      .then(setStories)
+      .catch(() => setStories([]));
+  }, []);
+
+  return (
+    <div className="rounded-2xl border border-cashmere-border bg-white p-6">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold uppercase tracking-wide text-cashmere-text-muted">
+          Latest News &amp; Updates
+        </p>
+        <Link href="/news" className="flex items-center gap-1 text-xs font-medium text-cashmere-accent hover:underline">
+          View all <ArrowRight size={12} />
+        </Link>
+      </div>
+      {stories === null ? (
+        <p className="mt-4 text-sm text-cashmere-text-muted">Loading…</p>
+      ) : stories.length === 0 ? (
+        <div className="mt-4 flex flex-col items-center gap-2 rounded-xl bg-cashmere-sidebar/60 px-6 py-10 text-center">
+          <Newspaper size={24} strokeWidth={1.5} className="text-cashmere-text-muted" />
+          <p className="max-w-xs text-sm text-cashmere-text-muted">
+            Club news, producer stories and Mongolia updates will appear here.
+          </p>
+        </div>
+      ) : (
+        <div className="mt-4 flex flex-col gap-3">
+          {stories.slice(0, 3).map((story) => (
+            <Link key={story.id} href={`/news/${story.id}`} className="flex items-center gap-3 group">
+              <div className="relative h-12 w-16 shrink-0 overflow-hidden rounded-lg bg-cashmere-sidebar/60">
+                {story.heroImageUrl && <Image src={story.heroImageUrl} alt="" fill className="object-cover" />}
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium text-cashmere-text group-hover:text-cashmere-accent-dark">
+                  {story.title}
+                </p>
+                <p className="text-xs text-cashmere-text-muted">{story.category.name}</p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

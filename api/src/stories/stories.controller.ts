@@ -83,4 +83,22 @@ export class StoriesController {
   removeImage(@Param('id') id: string, @Req() req: Request) {
     return this.stories.removeImage(id, req.staffUser!.id);
   }
+
+  // Generic section-content upload (IMAGE/IMAGE_GALLERY sections) — see
+  // StoriesService.uploadSectionImage's comment for why this isn't scoped
+  // to a story/section id.
+  @Post('section-image')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: { fileSize: MAX_FILE_SIZE_BYTES },
+      fileFilter: imageOnlyFileFilter,
+    }),
+  )
+  async uploadSectionImage(@UploadedFile() file: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+    return this.stories.uploadSectionImage(file);
+  }
 }

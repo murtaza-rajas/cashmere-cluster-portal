@@ -145,24 +145,45 @@ export async function fetchMyEvents(): Promise<MemberEvent[]> {
   return res.json();
 }
 
+// A single article section, in display order — see staff-api.ts's
+// StorySection for the type-to-field mapping.
+export type MemberStorySectionType = "TEXT" | "IMAGE" | "IMAGE_GALLERY" | "QUOTE";
+
+export interface MemberStorySection {
+  order: number;
+  type: MemberStorySectionType;
+  text: string | null;
+  imageUrl: string | null;
+  galleryImageUrls: string[];
+  quoteText: string | null;
+  quoteAttribution: string | null;
+}
+
 // A single story as shown to a member — already filtered server-side to
-// active rows visible to the member's own tier (see web/lib/access.ts's
+// PUBLISHED rows visible to the member's own tier (see web/lib/access.ts's
 // storiesKnowledge comment: a story visible to all four tiers is the
 // "public story" a preview-tier member sees; a Founding/Annual-only story
 // is members-only content, invisible to a preview-tier member entirely).
+// Rebuilt 2026-09-25 into the flexible section structure — no more fixed
+// body/quote fields.
 export interface MemberStory {
   id: string;
   title: string;
   heroImageUrl: string | null;
-  body: string | null;
-  quote: string | null;
-  category: string | null;
+  category: { id: string; name: string };
   designerName: string | null;
+  sections: MemberStorySection[];
 }
 
 export async function fetchMyStories(): Promise<MemberStory[]> {
   const res = await apiFetch("/members/me/stories");
   if (!res.ok) throw new Error(`Unexpected response fetching stories: ${res.status}`);
+  return res.json();
+}
+
+export async function fetchMyFeaturedStories(): Promise<MemberStory[]> {
+  const res = await apiFetch("/members/me/stories/featured");
+  if (!res.ok) throw new Error(`Unexpected response fetching featured stories: ${res.status}`);
   return res.json();
 }
 

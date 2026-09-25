@@ -850,29 +850,76 @@ export async function fetchOrderCatalog(search?: string): Promise<StaffOrder[]> 
   return res.json();
 }
 
+// Stories & Knowledge categories (2026-09-25) — a real, growable list, not
+// a fixed set: Super Administrator can add to it, every other role only
+// selects from what's already here (enforced server-side).
+export interface StoryCategory {
+  id: string;
+  name: string;
+}
+
+export async function fetchStoryCategories(): Promise<StoryCategory[]> {
+  const res = await apiFetch("/story-categories");
+  if (!res.ok) throw new Error(`Unexpected response fetching story categories: ${res.status}`);
+  return res.json();
+}
+
+export async function createStoryCategory(name: string): Promise<StoryCategory> {
+  const res = await apiFetch("/story-categories", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.message ?? `Unexpected response creating story category: ${res.status}`);
+  }
+  return res.json();
+}
+
+// The flexible article structure (2026-09-25 rebuild) — every story is an
+// ordered list of typed sections instead of one fixed body/quote shape.
+// Which fields are meaningful depends on `type`: TEXT uses `text`, IMAGE
+// uses `imageUrl`, IMAGE_GALLERY uses `galleryImageUrls`, QUOTE uses
+// `quoteText`/`quoteAttribution`.
+export type StorySectionType = "TEXT" | "IMAGE" | "IMAGE_GALLERY" | "QUOTE";
+
+export interface StorySection {
+  id?: string;
+  order: number;
+  type: StorySectionType;
+  text?: string | null;
+  imageUrl?: string | null;
+  galleryImageUrls?: string[];
+  quoteText?: string | null;
+  quoteAttribution?: string | null;
+}
+
+export type StoryStatusValue = "DRAFT" | "PUBLISHED";
+
 export interface StaffStory {
   id: string;
   title: string;
   heroImageUrl: string | null;
-  body: string | null;
-  quote: string | null;
-  category: string | null;
+  category: StoryCategory;
   designerName: string | null;
   tiers: MembershipTierValue[];
-  active: boolean;
+  status: StoryStatusValue;
+  featured: boolean;
   sortOrder: number;
   createdAt: string;
+  sections: StorySection[];
 }
 
 export interface StoryInput {
   title: string;
-  body?: string;
-  quote?: string;
-  category?: string;
+  categoryId: string;
   designerName?: string;
   tiers: MembershipTierValue[];
+  status?: StoryStatusValue;
+  featured?: boolean;
   sortOrder?: number;
-  active?: boolean;
+  sections: StorySection[];
 }
 
 export async function fetchStoryCatalog(): Promise<StaffStory[]> {
@@ -926,6 +973,20 @@ export async function uploadStoryImage(id: string, file: File): Promise<StaffSto
 export async function deleteStoryImage(id: string): Promise<void> {
   const res = await apiFetch(`/story-catalog/${id}/image`, { method: "DELETE" });
   if (!res.ok) throw new Error(`Unexpected response removing story image: ${res.status}`);
+}
+
+// Generic section-image upload — returns just a URL, not tied to a story or
+// section id (sections don't have a stable id until the story itself is
+// saved). Reused for both IMAGE and IMAGE_GALLERY sections.
+export async function uploadStorySectionImage(file: File): Promise<{ url: string }> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await apiFetch("/story-catalog/section-image", { method: "POST", body: formData });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.message ?? `Unexpected response uploading section image: ${res.status}`);
+  }
+  return res.json();
 }
 
 // One fixed row per tier — staff can only update the existing 4 (see

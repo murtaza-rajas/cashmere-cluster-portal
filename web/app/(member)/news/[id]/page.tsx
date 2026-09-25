@@ -6,9 +6,49 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Newspaper, Palette } from "lucide-react";
 import { RequireAccess } from "@/components/require-access";
-import { fetchMyStories, fetchMyDesigns, MemberStory, MemberDesign } from "@/lib/api";
+import { fetchMyStories, fetchMyDesigns, MemberStory, MemberStorySection, MemberDesign } from "@/lib/api";
 import { useMember } from "@/contexts/member-context";
 import { getAccessLevel } from "@/lib/access";
+
+// Renders one section per its `type` (2026-09-25 flexible-article rebuild)
+// — the whole reason every article shares one template instead of a
+// separate layout per content type. Order is whatever staff set in the
+// admin builder; this component just renders what it's given, in order.
+function StorySectionBlock({ section }: { section: MemberStorySection }) {
+  switch (section.type) {
+    case "TEXT":
+      return section.text ? (
+        <p className="whitespace-pre-line text-cashmere-text-muted">{section.text}</p>
+      ) : null;
+    case "IMAGE":
+      return section.imageUrl ? (
+        <div className="relative h-72 w-full overflow-hidden rounded-2xl sm:h-96">
+          <Image src={section.imageUrl} alt="" fill className="object-cover" />
+        </div>
+      ) : null;
+    case "IMAGE_GALLERY":
+      return section.galleryImageUrls.length > 0 ? (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {section.galleryImageUrls.map((url) => (
+            <div key={url} className="relative aspect-square overflow-hidden rounded-xl">
+              <Image src={url} alt="" fill className="object-cover" />
+            </div>
+          ))}
+        </div>
+      ) : null;
+    case "QUOTE":
+      return section.quoteText ? (
+        <blockquote className="border-l-2 border-cashmere-accent pl-4">
+          <p className="text-lg italic text-cashmere-text">&ldquo;{section.quoteText}&rdquo;</p>
+          {section.quoteAttribution && (
+            <footer className="mt-2 text-sm text-cashmere-text-muted">— {section.quoteAttribution}</footer>
+          )}
+        </blockquote>
+      ) : null;
+    default:
+      return null;
+  }
+}
 
 // Individual story page — added for Designer Spotlight (client go-ahead,
 // 2026-09-15), whose own mockup is a dedicated article page with a
@@ -89,22 +129,22 @@ export default function StoryDetailPage() {
             )}
 
             <div className="rounded-2xl border border-cashmere-border bg-white p-8">
-              {state.story.category && (
-                <p className="text-xs font-semibold uppercase tracking-wide text-cashmere-accent-dark">
-                  {state.story.category}
-                </p>
-              )}
+              <p className="text-xs font-semibold uppercase tracking-wide text-cashmere-accent-dark">
+                {state.story.category.name}
+              </p>
               <h1 className="mt-2 font-serif text-4xl tracking-tight text-cashmere-text">{state.story.title}</h1>
               {state.story.designerName && (
                 <p className="mt-1 text-sm text-cashmere-text-muted">By {state.story.designerName}</p>
               )}
-              {state.story.quote && (
-                <blockquote className="mt-6 border-l-2 border-cashmere-accent pl-4 text-lg italic text-cashmere-text">
-                  &ldquo;{state.story.quote}&rdquo;
-                </blockquote>
-              )}
-              {state.story.body && (
-                <p className="mt-6 whitespace-pre-line text-cashmere-text-muted">{state.story.body}</p>
+
+              {state.story.sections.length > 0 && (
+                <div className="mt-6 flex flex-col gap-6">
+                  {[...state.story.sections]
+                    .sort((a, b) => a.order - b.order)
+                    .map((section, i) => (
+                      <StorySectionBlock key={i} section={section} />
+                    ))}
+                </div>
               )}
             </div>
 

@@ -493,19 +493,92 @@ model Event {
 // this is the international storiesKnowledge area; Mongolia's own Stories
 // & News is a separate, already-built content type (MongoliaStory), not
 // this model.
+// Stories & Knowledge categories (client email 2026-09-24, scoped separately
+// from the article template work — see PROJECT_TRACKER.md's 2026-09-22/24
+// entries). Its own small table rather than a fixed enum specifically
+// because the client's own requirement is that Super Administrator can add
+// new categories later "without requiring developer assistance" — every
+// other role only ever selects from this list, never creates a row in it
+// (enforced in StoryCategoriesController, not here). The 4 launch
+// categories (Story, Knowledge, Designer Spotlight, Mongolia & the World)
+// are seeded, not hardcoded, so this table is never empty in practice but
+// is still a real, growable list from day one.
+model StoryCategory {
+  id   String @id @default(uuid())
+  name String @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  stories Story[]
+}
+
+// The flexible article structure itself (client email 2026-09-22/24): one
+// reusable template for every Stories & Knowledge article — Designer
+// Spotlight included, not a separate system — built from an ordered list of
+// typed sections a staff member adds, removes, reorders and fills in.
+// Deliberately 4 types only, matching exactly what the client asked for
+// "from day one" (explicitly declined video/tables for now, to protect the
+// 1 November testing window) — adding a 5th type later means one new enum
+// value plus one new set of nullable fields here, not a redesign.
+enum StorySectionType {
+  TEXT
+  IMAGE
+  IMAGE_GALLERY
+  QUOTE
+}
+
+model StorySection {
+  id String @id @default(uuid())
+
+  storyId String
+  story   Story  @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  // Staff-controlled display order within the article (ascending).
+  order Int
+
+  type StorySectionType
+
+  // TEXT
+  text String?
+
+  // IMAGE — a single photo.
+  imageUrl String?
+
+  // IMAGE_GALLERY — its own type rather than reusing IMAGE, per the
+  // client's explicit ask: a real multi-image block (upload/reorder/remove
+  // per image), not just a bigger single image. A scalar array is enough
+  // here — no per-image metadata (caption, alt text) was asked for, so a
+  // separate child table would be normalization with no real use yet.
+  galleryImageUrls String[] @default([])
+
+  // QUOTE
+  quoteText        String?
+  quoteAttribution String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([storyId])
+}
+
+enum StoryStatus {
+  DRAFT
+  PUBLISHED
+}
+
 model Story {
   id String @id @default(uuid())
 
   title String
 
+  // Distinct from the section list — the card/list-view thumbnail and
+  // top-of-article hero photo, same as before this rebuild. Body content
+  // now lives entirely in `sections` below.
   heroImageUrl String?
 
-  body  String?
-  quote String?
-
-  // Freeform, staff-provided — same reasoning as MongoliaStory.category,
-  // no fixed list given by the client.
-  category String?
+  categoryId String
+  category   StoryCategory @relation(fields: [categoryId], references: [id])
 
   // Designer Spotlight (client email 2026-09-15, go-ahead given) — set only
   // on spotlight stories, matched by exact string against Design.designerName
@@ -516,12 +589,25 @@ model Story {
   // app avoids a DCC dependency it can't fulfill).
   designerName String?
 
-  // Which tiers see this story. Empty = draft, visible to nobody — same
-  // convention as Benefit.tiers/Event.tiers.
+  // Which tiers see this story once published. Empty = not targeted at any
+  // tier yet — same convention as Benefit.tiers/Event.tiers. Independent
+  // of `status` below: a PUBLISHED story with no tiers set is real, just
+  // not visible to anyone yet (a legitimate staging step, not a bug).
   tiers MembershipTier[]
 
-  active    Boolean @default(true)
-  sortOrder Int     @default(0)
+  // Real draft/publish workflow (client email 2026-09-22: "save as draft
+  // and publish when the article is ready") — replaces the old `active`
+  // boolean with the client's own actual mental model. DRAFT is never
+  // visible to members regardless of `tiers`.
+  status StoryStatus @default(DRAFT)
+
+  // Client-curatable homepage placement (client email 2026-09-22: "choose
+  // which articles should be featured on the members' homepage") — the
+  // dashboard's "Latest News & Updates" card reads this, replacing its
+  // static placeholder text.
+  featured Boolean @default(false)
+
+  sortOrder Int @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -529,7 +615,10 @@ model Story {
   createdById String?
   createdBy   StaffUser? @relation("StoriesCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
 
-  @@index([active])
+  sections StorySection[]
+
+  @@index([status])
+  @@index([categoryId])
 }
 
 // Founders' Design Lab (client email 2026-09-07/08) — international portal

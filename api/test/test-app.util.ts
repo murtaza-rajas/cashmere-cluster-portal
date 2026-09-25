@@ -13,7 +13,9 @@ import { AppModule } from '../src/app.module';
 // database. Centralizing the bootstrap here means every current and future e2e
 // test automatically stays in sync with main.ts instead of each file risking its
 // own drift.
-export async function createTestApp(options?: { rawBody?: boolean }): Promise<INestApplication> {
+export async function createTestApp(options?: {
+  rawBody?: boolean;
+}): Promise<INestApplication> {
   const moduleFixture: TestingModule = await Test.createTestingModule({
     imports: [AppModule],
   }).compile();
@@ -22,7 +24,13 @@ export async function createTestApp(options?: { rawBody?: boolean }): Promise<IN
     options?.rawBody ? { rawBody: true } : undefined,
   );
   app.use(cookieParser());
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }));
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
   await app.init();
 
   return app;

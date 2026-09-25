@@ -23,6 +23,7 @@ import { OrdersModule } from './orders/orders.module';
 import { StoriesModule } from './stories/stories.module';
 import { MembershipLevelsModule } from './membership-levels/membership-levels.module';
 import { NewsletterCampaignsModule } from './newsletter-campaigns/newsletter-campaigns.module';
+import { StoryCategoriesModule } from './story-categories/story-categories.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { NewsletterCampaignsModule } from './newsletter-campaigns/newsletter-cam
     StoriesModule,
     MembershipLevelsModule,
     NewsletterCampaignsModule,
+    StoryCategoriesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

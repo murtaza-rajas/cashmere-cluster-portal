@@ -92,6 +92,9 @@ const nextConfig: NextConfig = {
       // Stories & Knowledge staff CRUD — no frontend page at /story-catalog,
       // so a blanket rewrite here is safe (same reasoning as /benefit-catalog).
       { source: "/story-catalog/:path*", destination: `${apiOrigin}/story-catalog/:path*` },
+      // Stories & Knowledge categories (2026-09-25) — no frontend page at
+      // /story-categories, so a blanket rewrite here is safe.
+      { source: "/story-categories/:path*", destination: `${apiOrigin}/story-categories/:path*` },
       // Membership Levels staff admin — no frontend page at
       // /membership-level-catalog, so a blanket rewrite here is safe.
       { source: "/membership-level-catalog/:path*", destination: `${apiOrigin}/membership-level-catalog/:path*` },

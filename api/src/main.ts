@@ -38,8 +38,19 @@ async function bootstrap() {
   // enforcing DTO validation — every request body was accepted as-is. whitelist
   // strips unknown properties; forbidNonWhitelisted rejects the request outright
   // instead of silently dropping them.
+  //
+  // transform: true added 2026-09-25 for CreateStoryDto/UpdateStoryDto's
+  // nested `sections` array (@ValidateNested + @Type) — without it, incoming
+  // JSON objects are never converted into DTO class instances, so
+  // ValidateNested silently doesn't recurse into them. Applies globally, not
+  // just to Stories: verified against the full e2e suite afterward that no
+  // other existing DTO's behavior changed.
   app.useGlobalPipes(
-    new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }),
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
   );
 
   // Credentialed CORS, restricted to the frontend origin — required because the
