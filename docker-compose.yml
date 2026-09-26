@@ -63,12 +63,14 @@ services:
     profiles: ["full"]
     build:
       context: ./web
-      # NEXT_PUBLIC_API_URL must ALSO be passed as a build arg (see the
-      # Dockerfile's own comment) — the environment: entry below only
-      # affects the running container, which is too late for a value
-      # Next.js inlines into the client bundle at build time.
+      # NEXT_PUBLIC_API_URL and API_PROXY_TARGET must ALSO be passed as
+      # build args (see the Dockerfile's own comments) — the environment:
+      # entry below only affects the running container, which is too late
+      # for values `next build` bakes in (the client bundle for the first,
+      # the rewrites() routing manifest for the second).
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3000}
+        API_PROXY_TARGET: ${API_PROXY_TARGET:-http://localhost:3000}
     restart: unless-stopped
     depends_on:
       - api

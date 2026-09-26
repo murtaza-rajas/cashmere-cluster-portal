@@ -20,6 +20,15 @@ COPY . .
 # `build.args` (see docker-compose.yml).
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+# Same class of bug, same fix, for a second variable — found immediately
+# after the first (2026-09-26): `next build` also resolves next.config.ts's
+# rewrites() once and bakes the result into the standalone server's routing
+# manifest, so API_PROXY_TARGET needs to exist at build time too, not just
+# at container runtime, or every proxied request silently falls back to
+# next.config.ts's own "http://localhost:3000" default — which inside this
+# container is itself, not the api service.
+ARG API_PROXY_TARGET
+ENV API_PROXY_TARGET=$API_PROXY_TARGET
 RUN npm run build
 
 FROM node:22-alpine AS runner
