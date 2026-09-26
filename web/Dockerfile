@@ -12,6 +12,14 @@ FROM node:22-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# NEXT_PUBLIC_* vars are inlined into the client bundle at build time, not
+# read at container runtime — a docker-compose `environment:` entry alone
+# does nothing for this one. Found 2026-09-26 during the first real
+# production deploy: the API logout link/etc. baked in as empty because
+# nothing passed this through as a build arg. Compose supplies it via
+# `build.args` (see docker-compose.yml).
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 RUN npm run build
 
 FROM node:22-alpine AS runner
