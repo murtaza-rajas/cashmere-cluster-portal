@@ -16,12 +16,20 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: cashmere_lovers_club
     ports:
       - "5432:5432"
+    # postgres:18+'s official image expects a single mount at
+    # /var/lib/postgresql (it places version-specific data in a subdirectory
+    # itself) — the previous /var/lib/postgresql/data mount is the pre-18
+    # convention and made the container refuse to start against this image
+    # ("Error: in 18+, these Docker images are configured to store database
+    # data in a format which is compatible with pg_ctlcluster..."), caught
+    # 2026-09-26 during this engagement's first real build-test of this file
+    # (no Docker daemon existed in dev until the production VPS).
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -37,13 +45,17 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/cashmere_lovers_club?schema=public
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/cashmere_lovers_club?schema=public}
       JWT_SECRET: ${JWT_SECRET:-dev-only-secret-do-not-use-in-production}
       STAFF_JWT_SECRET: ${STAFF_JWT_SECRET:-dev-only-staff-secret-do-not-use-in-production}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3001}
       SHOPIFY_SHOP_DOMAIN: ${SHOPIFY_SHOP_DOMAIN:-your-store.myshopify.com}
       SHOPIFY_CLIENT_ID: ${SHOPIFY_CLIENT_ID:-placeholder}
       SHOPIFY_REDIRECT_URI: ${SHOPIFY_REDIRECT_URI:-https://placeholder.example.com/auth/shopify/callback}
+      # Missing entirely before 2026-09-26 — real webhook signature
+      # verification (ShopifyWebhookGuard) would fail closed against every
+      # request without this set to the real value in production.
+      SHOPIFY_WEBHOOK_SECRET: ${SHOPIFY_WEBHOOK_SECRET:-placeholder}
     ports:
       - "3000:3000"
 
@@ -56,6 +68,12 @@ services:
       - api
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3000}
+      # Missing entirely before 2026-09-26 — next.config.ts's server-side
+      # rewrites use this (not NEXT_PUBLIC_API_URL, which is browser-facing)
+      # to reach the api container over the compose network. Without it,
+      # every proxied request falls back to localhost:3000 *inside the web
+      # container itself*, which has nothing listening on it.
+      API_PROXY_TARGET: ${API_PROXY_TARGET:-http://api:3000}
     ports:
       - "3001:3000"
 
