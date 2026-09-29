@@ -46,6 +46,10 @@ const nextConfig: NextConfig = {
       { source: "/auth/:path*", destination: `${apiOrigin}/auth/:path*` },
       { source: "/members/:path*", destination: `${apiOrigin}/members/:path*` },
       { source: "/staff/me", destination: `${apiOrigin}/staff/me` },
+      // Staff preview-login links (create-staff-preview-link.js) — same collision
+      // risk as every other /staff/* backend route, no frontend page at this path
+      // so listing it here is safe.
+      { source: "/staff/preview-login", destination: `${apiOrigin}/staff/preview-login` },
       { source: "/staff/roles", destination: `${apiOrigin}/staff/roles` },
       { source: "/staff/:id/roles", destination: `${apiOrigin}/staff/:id/roles` },
       { source: "/staff/:id/roles/:roleName", destination: `${apiOrigin}/staff/:id/roles/:roleName` },
