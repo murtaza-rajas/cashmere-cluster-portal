@@ -5,20 +5,60 @@ import {
   Get,
   Param,
   Post,
+  Query,
   Req,
+  Res,
+  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
 import { StaffAuthGuard } from './guards/staff-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { Roles } from './decorators/roles.decorator';
 import { StaffService } from './staff.service';
 import { GrantRoleDto } from './dto/grant-role.dto';
 import { CreateStaffUserDto } from './dto/create-staff-user.dto';
+import { STAFF_SESSION_COOKIE, sessionCookieOptions } from '../auth/session-cookie.util';
 
 @Controller('staff')
 export class StaffController {
-  constructor(private readonly staffService: StaffService) {}
+  constructor(
+    private readonly staffService: StaffService,
+    private readonly jwt: JwtService,
+    private readonly config: ConfigService,
+  ) {}
+
+  // TEMPORARY convenience standing in for real staff login (see staff-jwt.strategy.ts —
+  // this is a placeholder until the Milestone 1 auth evaluation picks magic
+  // link/Auth0/Passkeys). Turns a signed preview token, minted with
+  // scripts/create-staff-preview-link.ts, into a real clc_staff_session cookie via a
+  // single click on a URL someone was sent — no devtools/curl/cookie editing needed.
+  // Only works for a token signed with STAFF_JWT_SECRET, so it can't be forged, and it
+  // stops working the moment the token's own expiry passes. Remove once real staff
+  // login exists.
+  @Get('preview-login')
+  async previewLogin(@Query('token') token: string, @Res() res: Response) {
+    let payload: { sub: string };
+    try {
+      payload = await this.jwt.verifyAsync<{ sub: string }>(token);
+      const staffUser = await this.staffService.findById(payload.sub);
+      if (!staffUser.isActive) {
+        throw new Error('inactive');
+      }
+    } catch {
+      throw new UnauthorizedException(
+        'This preview link has expired or is no longer valid — ask for a new one.',
+      );
+    }
+    res.cookie(STAFF_SESSION_COOKIE, token, {
+      ...sessionCookieOptions(this.config),
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+    const frontendUrl = this.config.getOrThrow<string>('FRONTEND_URL');
+    return res.redirect(`${frontendUrl}/staff`);
+  }
 
   // Any authenticated staff member, no specific role required.
   @UseGuards(StaffAuthGuard)
