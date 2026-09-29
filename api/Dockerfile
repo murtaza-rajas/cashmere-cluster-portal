@@ -32,6 +32,11 @@ COPY --from=builder /app/prisma ./prisma
 # over means the runner doesn't need `prisma generate` to run again with dev tooling.
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+# Plain-JS-only (no ts-node/typescript here, see deps note above) admin scripts meant
+# to be run directly in the deployed container, e.g. `docker compose exec api node
+# scripts/create-staff-preview-link.js ...`. The .ts scripts alongside these are dev-only
+# and never make it into this image.
+COPY --from=builder /app/scripts/*.js ./scripts/
 
 USER nestjs
 EXPOSE 3000
