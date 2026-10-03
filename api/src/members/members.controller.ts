@@ -6,6 +6,7 @@ import {
   ForbiddenException,
   Get,
   Param,
+  Patch,
   Post,
   Query,
   Req,
@@ -21,7 +22,10 @@ import { StaffAuthGuard } from '../staff/guards/staff-auth.guard';
 import { RolesGuard } from '../staff/guards/roles.guard';
 import { Roles } from '../staff/decorators/roles.decorator';
 import { MembersService } from './members.service';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 import { DataSubjectRequestsService } from '../data-subject-requests/data-subject-requests.service';
+import { CreateRequestDto } from '../data-subject-requests/dto/create-request.dto';
+import { DataSubjectRequestType } from '@prisma/client';
 import { WishlistService } from '../wishlist/wishlist.service';
 import { AddWishlistItemDto } from '../wishlist/dto/add-wishlist-item.dto';
 import { BenefitsService } from '../benefits/benefits.service';
@@ -74,8 +78,18 @@ export class MembersController {
     return this.members.findCollectionForMember((req.user as Member).id);
   }
 
-  // Self-service GDPR access requests — see DataSubjectRequestsService.
-  // createFromMember for why this is scoped to ACCESS only, not deletion.
+  // Self-service profile edit (client requirement, 2026-10-03) — phoneNumber/
+  // countryOfResidence/gender only, never the Shopify-synced identity fields
+  // (name/email), which stay read-only here same as always.
+  @UseGuards(JwtAuthGuard)
+  @Patch('me/profile')
+  updateProfile(@Body() dto: UpdateProfileDto, @Req() req: Request) {
+    return this.members.updateProfile((req.user as Member).id, dto);
+  }
+
+  // Self-service GDPR requests — see DataSubjectRequestsService.createFromMember
+  // for why only ACCESS/DELETION can be created this way (EXPORT stays
+  // staff/webhook-only).
   @UseGuards(JwtAuthGuard)
   @Get('me/data-requests')
   dataRequests(@Req() req: Request) {
@@ -84,8 +98,11 @@ export class MembersController {
 
   @UseGuards(JwtAuthGuard)
   @Post('me/data-requests')
-  createDataRequest(@Req() req: Request) {
-    return this.dataSubjectRequests.createFromMember((req.user as Member).id);
+  createDataRequest(@Body() dto: CreateRequestDto, @Req() req: Request) {
+    return this.dataSubjectRequests.createFromMember(
+      (req.user as Member).id,
+      dto.type === 'DELETION' ? DataSubjectRequestType.DELETION : DataSubjectRequestType.ACCESS,
+    );
   }
 
   // Self-service Wishlist — see WishlistService for the (memberId, shopifyProductId)

@@ -6,9 +6,12 @@ import { useStaff, staffHasAnyRole } from "@/contexts/staff-context";
 import { fetchPendingDataRequests, completeDataRequest, StaffDataSubjectRequest } from "@/lib/staff-api";
 
 // Member Support (or Super Administrator) only — mirrors the server-side
-// @Roles('Member Support') guard on DataSubjectRequestsController. Deletion
-// requests never appear here — those go straight through the customers/redact
-// webhook (see api/src/webhooks/), this queue is ACCESS/EXPORT only.
+// @Roles('Member Support') guard on DataSubjectRequestsController. Shows
+// ACCESS and DELETION requests (self-service, see members.controller.ts) —
+// EXPORT stays staff/webhook-only so never appears here. A DELETION row here
+// is a request to be actioned, not an automatic deletion: "complete" it by
+// actually deleting the Shopify customer, which is what triggers the real
+// erasure via the separate customers/redact webhook (api/src/webhooks/).
 export default function DataRequestsPage() {
   const staff = useStaff();
   const router = useRouter();
@@ -65,7 +68,7 @@ export default function DataRequestsPage() {
     <div className="flex w-full flex-col gap-6">
       <div>
         <h1 className="font-serif text-3xl tracking-tight text-cashmere-text">GDPR Requests</h1>
-        <p className="mt-1 text-cashmere-text-muted">Pending member data access requests, oldest first.</p>
+        <p className="mt-1 text-cashmere-text-muted">Pending member data access and deletion requests, oldest first.</p>
       </div>
 
       {actionError && (
@@ -111,7 +114,7 @@ export default function DataRequestsPage() {
 
             <div className="mt-3 flex flex-col gap-2 border-t border-cashmere-border pt-3 sm:flex-row sm:items-center">
               <input
-                placeholder="Optional note (e.g. how the export was delivered)"
+                placeholder="Optional note (e.g. how the export was delivered, or when the account was deleted)"
                 value={reasonById[r.id] ?? ""}
                 onChange={(e) => setReasonById((prev) => ({ ...prev, [r.id]: e.target.value }))}
                 className="flex-1 rounded-lg border border-cashmere-border px-3 py-1.5 text-sm"

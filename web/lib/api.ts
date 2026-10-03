@@ -1,5 +1,7 @@
 export const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
+export type Gender = "FEMALE" | "MALE" | "OTHER" | "PREFER_NOT_TO_SAY";
+
 export interface Member {
   id: string;
   email: string;
@@ -14,6 +16,11 @@ export interface Member {
   membershipStartDate: string | null;
   membershipEndDate: string | null;
   createdAt: string;
+  // Self-service profile fields — never Shopify-synced, set directly in CLC
+  // (client requirement, 2026-10-03). All optional/nullable.
+  phoneNumber: string | null;
+  countryOfResidence: string | null;
+  gender: Gender | null;
 }
 
 export interface MemberOrder {
@@ -263,9 +270,29 @@ export async function fetchMemberDataRequests(): Promise<DataSubjectRequest[]> {
   return res.json();
 }
 
-export async function requestMemberData(): Promise<DataSubjectRequest> {
-  const res = await apiFetch("/members/me/data-requests", { method: "POST" });
+export async function requestMemberData(type: "ACCESS" | "DELETION" = "ACCESS"): Promise<DataSubjectRequest> {
+  const res = await apiFetch("/members/me/data-requests", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ type }),
+  });
   if (!res.ok) throw new Error(`Unexpected response creating data request: ${res.status}`);
+  return res.json();
+}
+
+export interface UpdateProfileInput {
+  phoneNumber?: string;
+  countryOfResidence?: string;
+  gender?: Gender;
+}
+
+export async function updateMemberProfile(input: UpdateProfileInput): Promise<Member> {
+  const res = await apiFetch("/members/me/profile", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) throw new Error(`Unexpected response updating profile: ${res.status}`);
   return res.json();
 }
 

@@ -62,22 +62,30 @@ export class DataSubjectRequestsService {
 
   // Self-service entry point for a member requesting their own data — until now
   // the only way a DataSubjectRequest ever got created was Shopify's
-  // customers/data_request webhook (see shopify-webhooks.service.ts). Scoped to
-  // ACCESS only (not DELETION) here: account deletion is already handled by the
-  // separate, more deliberate customers/redact webhook flow, and isn't something
-  // to expose as a single self-service click without more thought. Idempotent
-  // against an existing pending request — a member re-clicking "request my data"
-  // shouldn't queue duplicate work for staff.
-  async createFromMember(memberId: string) {
+  // customers/data_request webhook (see shopify-webhooks.service.ts). ACCESS only
+  // by default (EXPORT stays staff/webhook-only — there's no self-service
+  // distinction between "see my data" and "export my data" in the UI).
+  //
+  // DELETION added as a self-service option 2026-10-03 (client go-ahead) — this
+  // queues a request for staff to action rather than erasing anything itself.
+  // Real erasure still only ever happens via the separate, more deliberate
+  // customers/redact webhook flow (see shopify-webhooks.service.ts) — staff
+  // actually deleting the Shopify customer is what triggers that. Idempotent per
+  // type against an existing pending request — a member re-clicking a request
+  // button shouldn't queue duplicate work for staff.
+  async createFromMember(
+    memberId: string,
+    type: typeof DataSubjectRequestType.ACCESS | typeof DataSubjectRequestType.DELETION = DataSubjectRequestType.ACCESS,
+  ) {
     const existing = await this.prisma.dataSubjectRequest.findFirst({
-      where: { memberId, type: DataSubjectRequestType.ACCESS, status: DataSubjectRequestStatus.PENDING },
+      where: { memberId, type, status: DataSubjectRequestStatus.PENDING },
     });
     if (existing) {
       return existing;
     }
 
     const created = await this.prisma.dataSubjectRequest.create({
-      data: { memberId, type: DataSubjectRequestType.ACCESS },
+      data: { memberId, type },
     });
 
     await this.auditLog.log({
@@ -85,7 +93,7 @@ export class DataSubjectRequestsService {
       targetType: 'DataSubjectRequest',
       targetId: created.id,
       targetMemberId: memberId,
-      metadata: { source: 'member_self_service' },
+      metadata: { source: 'member_self_service', type },
     });
 
     return created;

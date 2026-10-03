@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { MembershipTier, Prisma, Region } from '@prisma/client';
+import { Gender, MembershipTier, Prisma, Region } from '@prisma/client';
 import { ExternalIdentity } from '../auth/interfaces/identity-provider.interface';
 import { AuditLogService } from '../audit-log/audit-log.service';
 
@@ -66,6 +66,27 @@ export class MembersService {
 
   findById(id: string) {
     return this.prisma.member.findUniqueOrThrow({ where: { id } });
+  }
+
+  // Self-service profile edit (client requirement, 2026-10-03) — phoneNumber/
+  // countryOfResidence/gender only, never the Shopify-synced identity fields.
+  // An empty string means "clear this field", stored as null rather than "" so
+  // the frontend's existing `?? "—"` display pattern keeps working unchanged.
+  updateProfile(
+    memberId: string,
+    dto: { phoneNumber?: string; countryOfResidence?: string; gender?: Gender },
+  ) {
+    const toNullable = (value: string | undefined) =>
+      value === undefined ? undefined : value === '' ? null : value;
+
+    return this.prisma.member.update({
+      where: { id: memberId },
+      data: {
+        phoneNumber: toNullable(dto.phoneNumber),
+        countryOfResidence: toNullable(dto.countryOfResidence),
+        gender: dto.gender,
+      },
+    });
   }
 
   // Nullable variant for the staff-facing member-detail lookup, where the id

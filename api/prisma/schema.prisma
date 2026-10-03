@@ -61,6 +61,16 @@ enum Language {
   MONGOLIAN
 }
 
+// Self-reported, optional, member-editable. Client requirement (2026-10-03): used to
+// understand membership and tailor content/newsletters, never to affect marketing
+// consent, and a member can clear or change it at any time.
+enum Gender {
+  FEMALE
+  MALE
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
 model Member {
   id     String @id @default(uuid())
 
@@ -80,6 +90,14 @@ model Member {
   // Independent of membershipTier — see the Region/Language enum comments above.
   region   Region   @default(INTERNATIONAL)
   language Language @default(ENGLISH)
+
+  // Self-service profile fields — unlike email/firstName/lastName above, these are
+  // never synced from Shopify. The member sets them directly in CLC (client
+  // requirement, 2026-10-03: profile page redesign) via PATCH /members/me/profile.
+  // All optional, all independent of marketing consent.
+  phoneNumber        String?
+  countryOfResidence String?
+  gender             Gender?
 
   // Permanent once true — do NOT derive this from membershipStatus/expiry.
   // Client requirement: Founding Member badge stays for life even if the term isn't renewed.
