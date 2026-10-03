@@ -21,16 +21,17 @@ export const metadata: Metadata = {
 // consent flow, so it has to be readable before anyone logs in.
 export default function CookiePolicyPage() {
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-6 py-16">
-      <div>
-        <Link href="/" className="text-sm text-cashmere-accent hover:underline">
-          ← Cashmere Lovers Club
-        </Link>
-        <h1 className="mt-4 font-serif text-3xl tracking-tight text-cashmere-text">Cookie Policy</h1>
-        <p className="mt-2 text-sm text-cashmere-text-muted">Proposed effective date: 1 November 2026</p>
-      </div>
+    <div className="min-h-screen bg-cashmere-bg">
+      <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-12 sm:px-8 sm:py-16">
+        <div>
+          <Link href="/" className="text-sm text-cashmere-accent hover:underline">
+            ← Cashmere Lovers Club
+          </Link>
+          <h1 className="mt-4 font-serif text-3xl tracking-tight text-cashmere-text sm:text-4xl">Cookie Policy</h1>
+          <p className="mt-2 text-sm text-cashmere-text-muted">Proposed effective date: 1 November 2026</p>
+        </div>
 
-      <div className="flex flex-col gap-6 text-cashmere-text">
+        <div className="flex flex-col gap-6 rounded-2xl border border-cashmere-border bg-white p-6 text-cashmere-text sm:p-10">
         <Section title="1. About this policy">
           <p>
             This Cookie Policy explains how Cashmere Lovers Club uses cookies and similar technologies on
@@ -160,6 +161,7 @@ export default function CookiePolicyPage() {
           <p>For questions about cookies or personal data, contact:</p>
           <Address />
         </Section>
+        </div>
       </div>
     </div>
   );

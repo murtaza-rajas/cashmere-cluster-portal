@@ -15,16 +15,17 @@ export const metadata: Metadata = {
 // in, and it's linked from the Profile page for signed-in members too.
 export default function PrivacyPolicyPage() {
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-6 py-16">
-      <div>
-        <Link href="/" className="text-sm text-cashmere-accent hover:underline">
-          ← Cashmere Lovers Club
-        </Link>
-        <h1 className="mt-4 font-serif text-3xl tracking-tight text-cashmere-text">Privacy Policy</h1>
-        <p className="mt-2 text-sm text-cashmere-text-muted">Proposed effective date: 1 November 2026 — to be confirmed</p>
-      </div>
+    <div className="min-h-screen bg-cashmere-bg">
+      <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-12 sm:px-8 sm:py-16">
+        <div>
+          <Link href="/" className="text-sm text-cashmere-accent hover:underline">
+            ← Cashmere Lovers Club
+          </Link>
+          <h1 className="mt-4 font-serif text-3xl tracking-tight text-cashmere-text sm:text-4xl">Privacy Policy</h1>
+          <p className="mt-2 text-sm text-cashmere-text-muted">Proposed effective date: 1 November 2026 — to be confirmed</p>
+        </div>
 
-      <div className="flex flex-col gap-6 text-cashmere-text">
+        <div className="flex flex-col gap-6 rounded-2xl border border-cashmere-border bg-white p-6 text-cashmere-text sm:p-10">
         <p>
           Cashmere Lovers Club respects your privacy. This Privacy Policy explains how we collect, use, store and
           protect personal data when you visit our membership portal, register as a member, subscribe to newsletters
@@ -335,6 +336,7 @@ export default function PrivacyPolicyPage() {
           <p>If you have questions about this Privacy Policy or wish to exercise your rights, you can contact:</p>
           <Address />
         </Section>
+        </div>
       </div>
     </div>
   );
