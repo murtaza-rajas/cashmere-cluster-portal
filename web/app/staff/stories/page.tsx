@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Plus, Pencil, Trash2, Upload, X, ChevronUp, ChevronDown, Type, ImageIcon, Images, Quote } from "lucide-react";
+import { Plus, Pencil, Trash2, Upload, X, ChevronUp, ChevronDown, Type, ImageIcon, Images, Quote, Eye } from "lucide-react";
 import { useStaff, staffHasAnyRole } from "@/contexts/staff-context";
 import {
   fetchStoryCatalog,
@@ -539,6 +539,17 @@ export default function StoriesAdminPage() {
             </label>
 
             <div className="ml-auto flex gap-2">
+              {editingId && (
+                <a
+                  href={`/preview/stories/${editingId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 rounded-full border border-cashmere-border px-5 py-2.5 text-sm font-medium text-cashmere-text transition-colors hover:border-cashmere-accent"
+                >
+                  <Eye size={16} strokeWidth={2} />
+                  Preview
+                </a>
+              )}
               {editingId && (
                 <button
                   type="button"
