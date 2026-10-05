@@ -33,6 +33,42 @@ export class DataSubjectRequestsService {
       throw new ConflictException('Already marked completed');
     }
 
+    // DELETION is handled differently from ACCESS/EXPORT: completing it must
+    // actually erase the member's data, not just flip a status flag. The real
+    // erasure webhook (customers/redact) isn't registered against the live
+    // store yet (see PROJECT_TRACKER.md) — until it is, this is the only code
+    // path that actually deletes anything for a DELETION request. Same erasure
+    // logic as ShopifyWebhooksService.handleCustomersRedact (audit log first,
+    // then delete the Member row), just staff-triggered instead of Shopify-
+    // triggered. The DataSubjectRequest row itself cascades away with the
+    // Member it belongs to (schema.prisma) — expected, not a bug: the
+    // AuditLog entry below (onDelete: SetNull) is the permanent record once
+    // the member no longer exists to reference. Returns a synthetic completed
+    // shape, since there's no longer a real row to return.
+    if (existing.type === DataSubjectRequestType.DELETION) {
+      await this.auditLog.log({
+        actorStaffUserId: params.staffUserId,
+        action: 'member.redacted',
+        targetType: 'Member',
+        targetId: existing.memberId,
+        targetMemberId: existing.memberId,
+        reason: params.reason ?? 'Staff-completed self-service deletion request',
+        metadata: {
+          source: 'staff_manual_deletion',
+          dataSubjectRequestId: existing.id,
+        },
+      });
+      await this.prisma.member.delete({ where: { id: existing.memberId } });
+      return {
+        id: existing.id,
+        memberId: existing.memberId,
+        type: existing.type,
+        status: DataSubjectRequestStatus.COMPLETED,
+        requestedAt: existing.requestedAt,
+        completedAt: new Date(),
+      };
+    }
+
     const updated = await this.prisma.dataSubjectRequest.update({
       where: { id: params.id },
       data: { status: DataSubjectRequestStatus.COMPLETED, completedAt: new Date() },
@@ -67,12 +103,11 @@ export class DataSubjectRequestsService {
   // distinction between "see my data" and "export my data" in the UI).
   //
   // DELETION added as a self-service option 2026-10-03 (client go-ahead) — this
-  // queues a request for staff to action rather than erasing anything itself.
-  // Real erasure still only ever happens via the separate, more deliberate
-  // customers/redact webhook flow (see shopify-webhooks.service.ts) — staff
-  // actually deleting the Shopify customer is what triggers that. Idempotent per
-  // type against an existing pending request — a member re-clicking a request
-  // button shouldn't queue duplicate work for staff.
+  // just queues a request for staff to action, it never erases anything itself.
+  // The actual erasure happens when staff complete() it — see that method for
+  // why completing a DELETION request is a real delete, not just a status
+  // change. Idempotent per type against an existing pending request — a member
+  // re-clicking a request button shouldn't queue duplicate work for staff.
   async createFromMember(
     memberId: string,
     type: typeof DataSubjectRequestType.ACCESS | typeof DataSubjectRequestType.DELETION = DataSubjectRequestType.ACCESS,

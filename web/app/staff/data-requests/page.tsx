@@ -8,10 +8,11 @@ import { fetchPendingDataRequests, completeDataRequest, StaffDataSubjectRequest 
 // Member Support (or Super Administrator) only — mirrors the server-side
 // @Roles('Member Support') guard on DataSubjectRequestsController. Shows
 // ACCESS and DELETION requests (self-service, see members.controller.ts) —
-// EXPORT stays staff/webhook-only so never appears here. A DELETION row here
-// is a request to be actioned, not an automatic deletion: "complete" it by
-// actually deleting the Shopify customer, which is what triggers the real
-// erasure via the separate customers/redact webhook (api/src/webhooks/).
+// EXPORT stays staff/webhook-only so never appears here. Clicking "Mark
+// complete" on a DELETION row is a real, immediate, irreversible deletion of
+// the member's data (see DataSubjectRequestsService#complete) — unlike ACCESS,
+// which is just a status flag, so this one gets its own inline confirm step
+// below rather than completing on the first click.
 export default function DataRequestsPage() {
   const staff = useStaff();
   const router = useRouter();
@@ -24,6 +25,7 @@ export default function DataRequestsPage() {
   >({ status: "loading" });
   const [reasonById, setReasonById] = useState<Record<string, string>>({});
   const [completingId, setCompletingId] = useState<string | null>(null);
+  const [confirmingDeletionId, setConfirmingDeletionId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
   function load() {
@@ -45,6 +47,7 @@ export default function DataRequestsPage() {
   async function handleComplete(id: string) {
     setCompletingId(id);
     setActionError(null);
+    setConfirmingDeletionId(null);
     try {
       await completeDataRequest(id, reasonById[id]);
       load();
@@ -119,14 +122,41 @@ export default function DataRequestsPage() {
                 onChange={(e) => setReasonById((prev) => ({ ...prev, [r.id]: e.target.value }))}
                 className="flex-1 rounded-lg border border-cashmere-border px-3 py-1.5 text-sm"
               />
-              <button
-                onClick={() => handleComplete(r.id)}
-                disabled={completingId === r.id}
-                className="rounded-full bg-cashmere-accent px-5 py-1.5 text-sm font-medium text-white transition-colors hover:bg-cashmere-accent-dark disabled:opacity-60"
-              >
-                {completingId === r.id ? "Completing…" : "Mark complete"}
-              </button>
+              {r.type !== "DELETION" || confirmingDeletionId === r.id ? (
+                <button
+                  onClick={() => handleComplete(r.id)}
+                  disabled={completingId === r.id}
+                  className="rounded-full bg-cashmere-accent px-5 py-1.5 text-sm font-medium text-white transition-colors hover:bg-cashmere-accent-dark disabled:opacity-60"
+                >
+                  {completingId === r.id
+                    ? "Completing…"
+                    : r.type === "DELETION"
+                      ? "Yes, delete this member's data"
+                      : "Mark complete"}
+                </button>
+              ) : (
+                <button
+                  onClick={() => setConfirmingDeletionId(r.id)}
+                  className="rounded-full border border-red-300 px-5 py-1.5 text-sm font-medium text-red-700 transition-colors hover:border-red-500"
+                >
+                  Mark complete (deletes data)
+                </button>
+              )}
+              {confirmingDeletionId === r.id && (
+                <button
+                  onClick={() => setConfirmingDeletionId(null)}
+                  className="rounded-full border border-cashmere-border px-5 py-1.5 text-sm font-medium text-cashmere-text transition-colors hover:border-cashmere-accent"
+                >
+                  Cancel
+                </button>
+              )}
             </div>
+            {confirmingDeletionId === r.id && (
+              <p className="mt-2 text-xs text-red-700">
+                This permanently deletes {r.member.firstName ?? r.member.email}&apos;s member record and everything
+                tied to it (orders, wishlist, favorites). This cannot be undone.
+              </p>
+            )}
           </div>
         ))}
     </div>

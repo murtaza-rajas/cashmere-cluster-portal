@@ -6,9 +6,11 @@ import { Roles } from '../staff/decorators/roles.decorator';
 import { DataSubjectRequestsService } from './data-subject-requests.service';
 import { CompleteRequestDto } from './dto/complete-request.dto';
 
-// GDPR access/export request queue for staff — see schema.prisma's DataSubjectRequest
-// comment and PROJECT_TRACKER.md Section 4. Deletion requests are handled entirely by
-// the customers/redact webhook (src/webhooks/) and never land here as a row to action.
+// GDPR request queue for staff — see schema.prisma's DataSubjectRequest comment and
+// PROJECT_TRACKER.md Section 4. Shows ACCESS and DELETION requests (self-service,
+// see MembersController); EXPORT stays staff/webhook-only. Completing a DELETION
+// request here actually erases the member's data — see
+// DataSubjectRequestsService#complete for why.
 @Controller('data-subject-requests')
 @UseGuards(StaffAuthGuard, RolesGuard)
 @Roles('Member Support')
