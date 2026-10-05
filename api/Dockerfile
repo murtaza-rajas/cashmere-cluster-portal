@@ -38,6 +38,19 @@ COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 # and never make it into this image.
 COPY --from=builder /app/scripts/*.js ./scripts/
 
+# Staff-uploaded images (site hero photos, Stories & Knowledge section images,
+# event photos, etc. — see src/common/image-upload.util.ts and every service's
+# own uploadImage()) are written to ./uploads at runtime, served back out by
+# main.ts's useStaticAssets. This directory is never created by anything above
+# (no file ever gets COPYed into it — it only exists once something uploads),
+# and /app itself is root-owned from the COPY steps above, so the non-root
+# nestjs user below could never create it on first write — confirmed live in
+# production (2026-10-04): every upload failed with EACCES: permission denied,
+# mkdir '/app/uploads'. Must be writable by nestjs before switching to that
+# user. docker-compose.yml mounts a named volume over this same path so
+# uploaded files also survive a container rebuild, not just this permission fix.
+RUN mkdir -p /app/uploads && chown -R nestjs:nestjs /app/uploads
+
 USER nestjs
 EXPOSE 3000
 

@@ -58,6 +58,13 @@ services:
       SHOPIFY_WEBHOOK_SECRET: ${SHOPIFY_WEBHOOK_SECRET:-placeholder}
     ports:
       - "3000:3000"
+    # Staff-uploaded images (site hero photos, Stories & Knowledge, events, etc.)
+    # are written to ./uploads inside the container — without a volume here they
+    # live only in that container's writable layer and are silently lost on every
+    # `docker compose up -d --build api` (i.e. every deploy). Named volume, not a
+    # bind mount, so it also works unchanged on a fresh host.
+    volumes:
+      - api_uploads:/app/uploads
 
   web:
     profiles: ["full"]
@@ -87,3 +94,4 @@ services:
 
 volumes:
   postgres_data:
+  api_uploads:
