@@ -153,6 +153,10 @@ export default function Home() {
             <FooterItem icon={Gem} title="Timeless Quality" description="Crafted to last for generations." />
             <FooterItem icon={Heart} title="Made with Care" description="From the finest Mongolian cashmere." />
           </div>
+
+          {/* Client request 2026-10-05: the company behind the club, stated plainly
+              in the one real footer this app has. */}
+          <p className="mt-10 text-center text-xs text-white/70">Cashmere Lovers Club &ndash; Cashmere House Limited</p>
         </div>
       </div>
     </div>
