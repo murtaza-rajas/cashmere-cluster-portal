@@ -32,9 +32,23 @@ export class StaffJwtStrategy extends PassportStrategy(Strategy, 'staff-jwt') {
   }
 
   async validate(payload: { sub: string }) {
-    const staffUser = await this.staff.findById(payload.sub);
-    if (!staffUser.isActive) {
+    // findById uses findUniqueOrThrow, which throws a plain Prisma
+    // NotFoundError (not a Nest HttpException) when the staff user no longer
+    // exists — e.g. a stale cookie outliving a revoked/deleted account. With
+    // no global Prisma exception filter anywhere in this app, that was
+    // surfacing as an unhandled 500 ("Could not load your staff session"),
+    // not the clean 401 a revoked session should give. Same bug, same fix,
+    // as JwtStrategy's member-side equivalent (2026-10-05) — caught live in
+    // production the same day, after cleaning up accumulated preview/test
+    // staff accounts left an active session pointing at a deleted one.
+    let staffUser;
+    try {
+      staffUser = await this.staff.findById(payload.sub);
+    } catch {
       return null; // passport-jwt turns a falsy return into a 401
+    }
+    if (!staffUser.isActive) {
+      return null;
     }
     return staffUser;
   }
