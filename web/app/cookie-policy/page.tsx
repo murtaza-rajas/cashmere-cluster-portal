@@ -210,8 +210,8 @@ function Address() {
       <p>Membership portal: member.cashmerehouse.com</p>
       <p>Website: cashmerehouse.com</p>
       <p className="mt-2">Registered office:</p>
-      <p>Ground Floor, 71 Lower Baggot Street</p>
-      <p>Dublin 2, Co. Dublin, D02 P593</p>
+      <p>60 Merrion Square South</p>
+      <p>Dublin 2, D02 HE24</p>
       <p>Ireland</p>
     </div>
   );
