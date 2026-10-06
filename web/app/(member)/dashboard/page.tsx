@@ -490,10 +490,23 @@ function NewsletterHome({ displayName }: { displayName: string }) {
     <div className="flex flex-col gap-6">
       <section className="rounded-2xl border border-cashmere-border bg-white p-8">
         <h1 className="font-serif text-3xl tracking-tight text-cashmere-text">Welcome, {displayName}</h1>
-        <p className="mt-3 max-w-md text-cashmere-text-muted">
-          Thank you for being part of the Cashmere Lovers Club newsletter. Explore public stories, events and
-          collection previews from here.
-        </p>
+        <div className="mt-3 flex max-w-md flex-col gap-3 text-cashmere-text-muted">
+          <p>Thank you for following Cashmere Lovers Club through our newsletter!</p>
+          <p>
+            You are now logged into our upcoming member portal. We are developing the design and content ahead of
+            the launch on 1 November 2026.
+          </p>
+          <p>
+            For now, you have access to this welcome page. We will keep you updated through our newsletter as the
+            opening approaches.
+          </p>
+          <p className="font-serif italic text-cashmere-text">For those of us who love cashmere</p>
+          <p>
+            We look forward to sharing stories from Mongolia, insights into cashmere, and exciting membership
+            benefits with you.
+          </p>
+          <p>Thank you for being with us from the start!</p>
+        </div>
       </section>
 
       <section className="rounded-2xl border border-cashmere-border bg-white p-8 text-center">
