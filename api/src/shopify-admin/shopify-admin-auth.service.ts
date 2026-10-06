@@ -13,10 +13,16 @@ const REFRESH_SKEW_MS = 5 * 60 * 1000;
 
 interface ShopifyTokenResponse {
   access_token: string;
-  refresh_token: string;
   scope: string;
-  expires_in: number; // seconds, 3600 for an expiring offline token
-  refresh_token_expires_in: number; // seconds, 7776000 (90 days) when issued
+  // All three absent together for a Custom Distribution app's real response
+  // (confirmed live 2026-10-06) — a genuine non-expiring offline-access
+  // token, Shopify's classic behavior for this app type. Present (expiring
+  // access token + 90-day refresh token) is the shape the original,
+  // Public-distribution-oriented research assumed applied universally;
+  // keeping both optional so either real shape persists correctly.
+  refresh_token?: string;
+  expires_in?: number; // seconds, 3600 for an expiring offline token
+  refresh_token_expires_in?: number; // seconds, 7776000 (90 days) when issued
 }
 
 // Admin API access (products, Selling Plans, customers) for the live store —
@@ -139,23 +145,19 @@ export class ShopifyAdminAuthService {
 
   private async persist(data: ShopifyTokenResponse): Promise<void> {
     const now = Date.now();
+    const fields = {
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token ?? null,
+      scope: data.scope,
+      accessTokenExpiresAt: data.expires_in ? new Date(now + data.expires_in * 1000) : null,
+      refreshTokenExpiresAt: data.refresh_token_expires_in
+        ? new Date(now + data.refresh_token_expires_in * 1000)
+        : null,
+    };
     await this.prisma.shopifyAdminToken.upsert({
       where: { id: SINGLETON_ID },
-      create: {
-        id: SINGLETON_ID,
-        accessToken: data.access_token,
-        refreshToken: data.refresh_token,
-        scope: data.scope,
-        accessTokenExpiresAt: new Date(now + data.expires_in * 1000),
-        refreshTokenExpiresAt: new Date(now + data.refresh_token_expires_in * 1000),
-      },
-      update: {
-        accessToken: data.access_token,
-        refreshToken: data.refresh_token,
-        scope: data.scope,
-        accessTokenExpiresAt: new Date(now + data.expires_in * 1000),
-        refreshTokenExpiresAt: new Date(now + data.refresh_token_expires_in * 1000),
-      },
+      create: { id: SINGLETON_ID, ...fields },
+      update: fields,
     });
   }
 
@@ -175,8 +177,21 @@ export class ShopifyAdminAuthService {
       );
     }
 
+    // No expiry at all means a permanent offline-access token (this app's real
+    // behavior as a Custom Distribution app, confirmed live 2026-10-06) —
+    // nothing to refresh, ever.
+    if (!row.accessTokenExpiresAt) {
+      return row.accessToken;
+    }
+
     if (row.accessTokenExpiresAt.getTime() - REFRESH_SKEW_MS > Date.now()) {
       return row.accessToken;
+    }
+
+    if (!row.refreshToken || !row.refreshTokenExpiresAt) {
+      throw new UnauthorizedException(
+        'Shopify Admin API access token expired with no refresh token on file — reconnect via /auth/shopify/admin-install',
+      );
     }
 
     if (row.refreshTokenExpiresAt.getTime() < Date.now()) {

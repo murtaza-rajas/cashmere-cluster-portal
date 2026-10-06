@@ -1015,11 +1015,18 @@ model ShopifyAdminToken {
   id String @id @default("singleton")
 
   accessToken  String
-  refreshToken String
+  // Nullable, not just "expiring vs. permanent" as two code paths: Shopify's
+  // real response for a Custom Distribution app (confirmed live 2026-10-06)
+  // omits refresh_token/expires_in/refresh_token_expires_in entirely — a
+  // genuine non-expiring offline-access token (the classic "legacy custom
+  // app" behavior), not the 1hr/90-day expiring+refresh pair this schema
+  // originally assumed applied to every Dev Dashboard app on a real store.
+  // Null here means "never expires, nothing to refresh."
+  refreshToken String?
   scope        String
 
-  accessTokenExpiresAt  DateTime
-  refreshTokenExpiresAt DateTime
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
