@@ -127,7 +127,21 @@ export default function StoriesAdminPage() {
         designerName: form.designerName || undefined,
         // Recompute order from display position — reordering just moves
         // array entries around, it doesn't keep `order` in sync itself.
-        sections: form.sections.map((s, i) => ({ ...s, order: i })),
+        // Picked explicitly (not `{ ...s, order: i }`): editing an existing
+        // story carries id/storyId/createdAt/updatedAt on each section from
+        // the GET response into form state (see startEdit below), and the
+        // backend's StorySectionDto whitelist rejects any of those coming
+        // back on save ("property id should not exist", etc.) — a spread
+        // forwards them, an explicit pick doesn't.
+        sections: form.sections.map((s, i) => ({
+          order: i,
+          type: s.type,
+          text: s.text,
+          imageUrl: s.imageUrl,
+          galleryImageUrls: s.galleryImageUrls,
+          quoteText: s.quoteText,
+          quoteAttribution: s.quoteAttribution,
+        })),
       };
       if (editingId) {
         await updateStory(editingId, payload);
