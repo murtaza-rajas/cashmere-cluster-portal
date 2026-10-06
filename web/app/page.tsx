@@ -54,14 +54,17 @@ export default function Home() {
             </h1>
             <HeartDivider className="mx-auto mt-4 w-20" />
             <p className="mt-4 text-sm text-cashmere-text-muted">
-              Your exclusive community for ethical luxury, rooted in{" "}
-              <strong className="text-cashmere-text">Mongolia</strong>. Crafted for a{" "}
-              <strong className="text-cashmere-text">better future</strong>.
+              A global community for those who love cashmere. Discover the quality, craftsmanship and people behind
+              the garments — from Mongolia and beyond.
             </p>
 
             <div className="mt-6">
               <SessionStatus />
             </div>
+
+            <p className="mt-4 text-xs text-cashmere-text-muted">
+              Launching on 1 November 2026. Sign up for our free newsletter and follow our journey to launch.
+            </p>
 
             {/* Line runs edge-to-edge with the label sitting on top of it (matches
                 the mockup's divider-with-centred-label), not a plain border
@@ -74,21 +77,29 @@ export default function Home() {
               </span>
             </div>
             <p className="mt-2 text-xs text-cashmere-text-muted">
-              Your data is safe with us and used only to enhance your experience.
+              We respect your privacy. Read our{" "}
+              <a href="/privacy-policy" className="font-medium text-cashmere-navy hover:underline">
+                Privacy Policy
+              </a>{" "}
+              to learn how we handle your personal data.
             </p>
 
             <div className="mt-8 grid grid-cols-3 gap-4 border-t border-cashmere-border pt-6 text-xs">
               <TrustItem
                 icon={Gift}
                 title="Member Benefits"
-                description="Exclusive offers, early access and special privileges."
+                description="Exclusive offers, early access and special membership benefits."
               />
               <TrustItem
                 icon={Award}
                 title="Exclusive Access"
-                description="For members only — stories, insights and inspiration."
+                description="Explore selected collections, special releases and member experiences."
               />
-              <TrustItem icon={Leaf} title="Ethical by Nature" description="Respect for animals, people and the planet." />
+              <TrustItem
+                icon={Leaf}
+                title="Ethical by Nature"
+                description="Discover our commitment to animals, people and the planet."
+              />
             </div>
           </div>
         </div>
@@ -148,10 +159,14 @@ export default function Home() {
             <FooterItem
               icon={MapPinned}
               title="Rooted in Mongolia"
-              description="Supporting local herders and communities."
+              description="Mongolian roots. A global cashmere community."
             />
-            <FooterItem icon={Gem} title="Timeless Quality" description="Crafted to last for generations." />
-            <FooterItem icon={Heart} title="Made with Care" description="From the finest Mongolian cashmere." />
+            <FooterItem icon={Gem} title="Timeless Quality" description="Quality to enjoy for years to come." />
+            <FooterItem
+              icon={Heart}
+              title="Made with Care"
+              description="Discover the journey from fine fibres to finished garments."
+            />
           </div>
 
           {/* Client request 2026-10-05: the company behind the club, stated plainly
