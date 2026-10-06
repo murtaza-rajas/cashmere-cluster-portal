@@ -40,7 +40,7 @@ export class ShopifyAdminController {
     @Query('state') state: string,
     @Query('shop') shop: string,
     @Query('hmac') hmac: string,
-    @Query('timestamp') timestamp: string,
+    @Query() query: Record<string, string>,
     @Req() req: Request,
     @Res() res: Response,
   ) {
@@ -48,7 +48,15 @@ export class ShopifyAdminController {
       throw new BadRequestException('Missing required parameters on Shopify OAuth callback');
     }
 
-    this.shopifyAdminAuth.verifyCallbackHmac({ code, state, shop, hmac, timestamp });
+    // The real callback carries more than just code/state/shop/timestamp — e.g.
+    // a `host` param was present on the first live attempt (2026-10-06) and Shopify
+    // signs the hmac over every param it actually sends, not just the ones we
+    // expect. Passing the hand-picked 5 fields here (the original version of this
+    // code) silently dropped `host` from the signed message, so our recomputed
+    // hmac never matched — a deterministic "Invalid hmac" on every real attempt.
+    // The full `query` object (whatever Shopify actually sent) is the only thing
+    // that can be verified correctly.
+    this.shopifyAdminAuth.verifyCallbackHmac(query);
 
     const cookies = req.cookies as Record<string, string> | undefined;
     const expectedState = cookies?.[STATE_COOKIE];
