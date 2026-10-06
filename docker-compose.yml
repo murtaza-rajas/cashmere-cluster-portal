@@ -56,6 +56,24 @@ services:
       # verification (ShopifyWebhookGuard) would fail closed against every
       # request without this set to the real value in production.
       SHOPIFY_WEBHOOK_SECRET: ${SHOPIFY_WEBHOOK_SECRET:-placeholder}
+      # Separate app/credentials from SHOPIFY_CLIENT_ID above — see
+      # src/shopify-admin/. Missing entirely before 2026-10-06: having a key
+      # in .env does NOT mean Compose passes it into the container — only
+      # keys actually listed here get through, regardless of what .env has.
+      # Caught live the same way SHOPIFY_WEBHOOK_SECRET's gap was: a real
+      # TypeError from ConfigService.getOrThrow in production, not assumed.
+      SHOPIFY_ADMIN_CLIENT_ID: ${SHOPIFY_ADMIN_CLIENT_ID:-placeholder}
+      SHOPIFY_ADMIN_CLIENT_SECRET: ${SHOPIFY_ADMIN_CLIENT_SECRET:-placeholder}
+      SHOPIFY_ADMIN_REDIRECT_URI: ${SHOPIFY_ADMIN_REDIRECT_URI:-https://placeholder.example.com/auth/shopify/admin-callback}
+      # Same gap, same fix — present in .env since 2026-10-05 but never
+      # actually reaching the container until now.
+      MAILCHIMP_API_KEY: ${MAILCHIMP_API_KEY:-placeholder}
+      # Optional (session-cookie.util.ts reads it with .get, not .getOrThrow)
+      # so its absence never crashed anything, unlike the vars above — but it
+      # was silently not applying either. Blank default matches .env.example's
+      # "leave unset for local dev" note; real value only matters once the
+      # frontend and backend need to share a cookie across subdomains.
+      COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
     ports:
       - "3000:3000"
     # Staff-uploaded images (site hero photos, Stories & Knowledge, events, etc.)
