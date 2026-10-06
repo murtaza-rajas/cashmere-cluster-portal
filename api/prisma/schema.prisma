@@ -996,3 +996,31 @@ model DataSubjectRequest {
   @@index([memberId])
   @@index([status])
 }
+
+// ---------------------------------------------------------------------------
+// Shopify Admin API — Commerce (products, Selling Plans, customer creation)
+// ---------------------------------------------------------------------------
+
+// Single row, fixed id — this is a single-tenant app (one store), and Shopify's
+// Authorization Code Grant for a standalone app on a real (non-dev-store) paid
+// store issues a short-lived access token (1h) plus a refresh token (90d), not
+// the old-style non-expiring static token (that path closed 2026-01-01 along
+// with legacy custom app creation). This table is what makes that durable:
+// ShopifyAdminAuthService reads/writes it and refreshes before expiry, rather
+// than every Admin API caller needing to know about the OAuth dance. Never
+// derive write access to Shopify from SHOPIFY_CLIENT_ID/.env alone again — that
+// pair is for the separate Customer Account API (member login) app, unrelated
+// to this one despite the similar name.
+model ShopifyAdminToken {
+  id String @id @default("singleton")
+
+  accessToken  String
+  refreshToken String
+  scope        String
+
+  accessTokenExpiresAt  DateTime
+  refreshTokenExpiresAt DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
