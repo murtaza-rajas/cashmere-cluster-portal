@@ -39,34 +39,40 @@ interface NavItem {
   badge?: string;
 }
 
-// Founding/Annual navigation — per cashmere-lovers-club-access-administration-model
-// PDF, page 6 ("Navigation menus"). Founding and Annual share this same set of
-// links (the PDF differs only on a couple of labels between them, e.g. "Exclusive
-// Collections" vs "Collections" — not functionally different, not worth splitting
-// into two lists for a label nuance).
-const FULL_NAV_ITEMS: NavItem[] = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  // Founding-only in practice (filtered out below for Annual, per
-  // lib/access.ts's designLab area) — Annual reaches a preview of this same
-  // page via a dashboard teaser card instead of a persistent nav item,
-  // confirmed directly from the client's own tier-homepage mockups.
-  { href: "/design-lab", label: "Design Lab", icon: Palette, badge: "NEW" },
-  { href: "/member-offers", label: "Member Offers", icon: Tag, badge: "NEW" },
-  {
-    href: "/exclusive-collections",
-    label: "Exclusive Collections",
-    icon: ShoppingBag,
-  },
-  { href: "/orders", label: "My Orders", icon: Package },
-  { href: "/collection", label: "My Collection", icon: Shirt },
-  { href: "/wishlist", label: "Wishlist", icon: Heart },
-  { href: "/invitations", label: "Invitations & Events", icon: CalendarHeart },
-  { href: "/news", label: "Stories & Knowledge", icon: Newspaper },
-  { href: "/care-repair", label: "Care & Repair", icon: Wrench },
-  { href: "/benefits", label: "My Benefits", icon: Gift },
-  { href: "/profile", label: "Profile", icon: User },
-  { href: "/settings", label: "Settings", icon: Settings },
-  { href: "/help", label: "Help & Support", icon: HelpCircle },
+// Founding/Annual/6-Month navigation — per cashmere-lovers-club-access-
+// administration-model PDF, page 6 ("Navigation menus"), regrouped per the
+// client's own request (2026-10-07) into 5 visual groups with dividers
+// between them (group headings deliberately omitted — he said they "do not
+// necessarily need to appear"). Grouped as a nested array, not a flat list
+// with inserted dividers, so the groups stay the source of truth for both
+// the ordering and where the divider lines go.
+const FULL_NAV_GROUPS: NavItem[][] = [
+  [{ href: "/dashboard", label: "Dashboard", icon: LayoutDashboard }],
+  [
+    { href: "/benefits", label: "My Benefits", icon: Gift },
+    { href: "/member-offers", label: "Member Offers", icon: Tag, badge: "NEW" },
+    { href: "/exclusive-collections", label: "Exclusive Collections", icon: ShoppingBag },
+  ],
+  [
+    { href: "/news", label: "Stories & Knowledge", icon: Newspaper },
+    // Founding-only in practice (filtered out below for Annual/6-Month, per
+    // lib/access.ts's designLab area) — those tiers reach a preview of this
+    // same page via a dashboard teaser card instead of a persistent nav
+    // item, confirmed directly from the client's own tier-homepage mockups.
+    { href: "/design-lab", label: "Design Lab", icon: Palette, badge: "NEW" },
+    { href: "/invitations", label: "Invitations & Events", icon: CalendarHeart },
+  ],
+  [
+    { href: "/wishlist", label: "Wishlist", icon: Heart },
+    { href: "/orders", label: "My Orders", icon: Package },
+    { href: "/collection", label: "My Collection", icon: Shirt },
+    { href: "/care-repair", label: "Care & Repair", icon: Wrench },
+  ],
+  [
+    { href: "/profile", label: "Profile", icon: User },
+    { href: "/settings", label: "Settings", icon: Settings },
+    { href: "/help", label: "Help & Support", icon: HelpCircle },
+  ],
 ];
 
 // Newsletter Subscriber navigation — a deliberately different, shorter list, per
@@ -95,12 +101,20 @@ export default function Sidebar({
   const pathname = usePathname();
   const member = useMember();
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-  const navItems =
-    member.membershipTier === "FOUNDING" || member.membershipTier === "ANNUAL"
-      ? FULL_NAV_ITEMS.filter(
+  // SIX_MONTH added here 2026-10-07 — was falling through to the short
+  // Newsletter nav (a real bug: access.ts already treats SIX_MONTH exactly
+  // like ANNUAL, this check just hadn't caught up with it).
+  const hasFullNav =
+    member.membershipTier === "FOUNDING" ||
+    member.membershipTier === "ANNUAL" ||
+    member.membershipTier === "SIX_MONTH";
+  const navGroups: NavItem[][] = hasFullNav
+    ? FULL_NAV_GROUPS.map((group) =>
+        group.filter(
           (item) => item.href !== "/design-lab" || getAccessLevel(member.membershipTier, "designLab") === "full",
-        )
-      : NEWSLETTER_NAV_ITEMS;
+        ),
+      )
+    : [NEWSLETTER_NAV_ITEMS];
 
   const [helpPhotoSrc, setHelpPhotoSrc] = useState(DEFAULT_SIDEBAR_HELP_PHOTO);
   useEffect(() => {
@@ -149,30 +163,34 @@ export default function Sidebar({
             </button>
           </div>
 
-          <nav className="flex flex-col gap-1">
-            {navItems.map(({ href, label, icon: Icon, badge }) => {
-              const active = pathname === href;
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  onClick={onClose}
-                  className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
-                    active
-                      ? "bg-cashmere-accent/15 font-medium text-cashmere-accent-dark"
-                      : "text-cashmere-text hover:bg-cashmere-border/60"
-                  }`}
-                >
-                  <Icon size={18} strokeWidth={1.75} />
-                  <span className="flex-1">{label}</span>
-                  {badge && (
-                    <span className="rounded-full bg-cashmere-accent px-1.5 py-0.5 text-[10px] font-semibold text-white">
-                      {badge}
-                    </span>
-                  )}
-                </Link>
-              );
-            })}
+          <nav className="flex flex-col">
+            {navGroups.map((group, groupIndex) => (
+              <div key={groupIndex} className={`flex flex-col gap-1 ${groupIndex > 0 ? "mt-3 border-t border-cashmere-border pt-3" : ""}`}>
+                {group.map(({ href, label, icon: Icon, badge }) => {
+                  const active = pathname === href;
+                  return (
+                    <Link
+                      key={href}
+                      href={href}
+                      onClick={onClose}
+                      className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
+                        active
+                          ? "bg-cashmere-accent/15 font-medium text-cashmere-accent-dark"
+                          : "text-cashmere-text hover:bg-cashmere-border/60"
+                      }`}
+                    >
+                      <Icon size={18} strokeWidth={1.75} />
+                      <span className="flex-1">{label}</span>
+                      {badge && (
+                        <span className="rounded-full bg-cashmere-accent px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                          {badge}
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            ))}
 
             <a
               href={`${apiUrl}/auth/logout`}

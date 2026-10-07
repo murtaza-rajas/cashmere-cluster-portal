@@ -41,7 +41,14 @@ const NEWSLETTER_TABS: TabItem[] = [
 export default function BottomTabBar() {
   const pathname = usePathname();
   const member = useMember();
-  const tabs = member.membershipTier === "FOUNDING" || member.membershipTier === "ANNUAL" ? FULL_TABS : NEWSLETTER_TABS;
+  // SIX_MONTH added 2026-10-07 — same bug/fix as components/sidebar.tsx's
+  // hasFullNav: access.ts already treats it like ANNUAL, this check hadn't
+  // caught up.
+  const hasFullNav =
+    member.membershipTier === "FOUNDING" ||
+    member.membershipTier === "ANNUAL" ||
+    member.membershipTier === "SIX_MONTH";
+  const tabs = hasFullNav ? FULL_TABS : NEWSLETTER_TABS;
 
   return (
     <nav
