@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
-import { DataSubjectRequestType, Prisma } from '@prisma/client';
+import { DataSubjectRequestType, MembershipTier, Prisma } from '@prisma/client';
 import {
   ShopifyCustomersDataRequestPayload,
   ShopifyCustomersRedactPayload,
@@ -182,5 +182,85 @@ export class ShopifyWebhooksService {
         lineItems,
       },
     });
+
+    if (payload.financial_status === 'paid') {
+      await this.activateMembershipFromOrder(member.id, payload);
+    }
+  }
+
+  /**
+   * Auto-activation-on-payment (Milestone 4, built 2026-10-07 once real
+   * Shopify products/variant IDs existed to match against). Fires from both
+   * orders/create (an instant payment method) and orders/updated (pending →
+   * paid later) — whichever delivery first reports `paid` triggers this, and
+   * re-delivery of an already-processed paid order is a harmless no-op (same
+   * values written again).
+   *
+   * Matches on product_id, not a specific variant — each real membership
+   * product (Founding/Annual/6-Month) has exactly one variant ("Default
+   * Title"), so the product itself is the real identity of what was bought.
+   * MembershipLevel.shopifyProductId is the mapping (developer-set, not
+   * staff-editable — see schema.prisma's comment on why).
+   *
+   * Deliberately one-way: this activates/extends a membership, it never
+   * downgrades or deactivates one on a refund/cancellation — that lifecycle
+   * was never scoped and isn't built here. If an order somehow contains more
+   * than one membership-product line item (not a real purchase flow Explore
+   * Membership offers — one plan at a time), the first match wins; this
+   * isn't trying to handle that as a real case.
+   */
+  private async activateMembershipFromOrder(
+    memberId: string,
+    payload: ShopifyOrderPayload,
+  ): Promise<void> {
+    const productIds = (payload.line_items ?? [])
+      .map((item) => item.product_id)
+      .filter((id): id is number => id !== null)
+      .map(String);
+    if (productIds.length === 0) return;
+
+    const level = await this.prisma.membershipLevel.findFirst({
+      where: { shopifyProductId: { in: productIds } },
+    });
+    if (!level || !level.termLengthMonths) {
+      return;
+    }
+
+    const startDate = new Date(payload.created_at);
+    const endDate = new Date(startDate);
+    endDate.setMonth(endDate.getMonth() + level.termLengthMonths);
+
+    await this.prisma.member.update({
+      where: { id: memberId },
+      data: {
+        membershipTier: level.tier,
+        membershipStatus: 'ACTIVE',
+        termLengthMonths: level.termLengthMonths,
+        membershipStartDate: startDate,
+        membershipEndDate: endDate,
+        // Permanent once granted, per the client's own spec — never cleared
+        // by a later, different purchase.
+        isFoundingMember:
+          level.tier === MembershipTier.FOUNDING ? true : undefined,
+        originatingShopifyOrderId: String(payload.id),
+      },
+    });
+
+    await this.auditLog.log({
+      action: 'member.tier_activated',
+      targetType: 'Member',
+      targetId: memberId,
+      targetMemberId: memberId,
+      metadata: {
+        tier: level.tier,
+        shopifyOrderId: payload.id,
+        shopifyProductId: level.shopifyProductId,
+        termLengthMonths: level.termLengthMonths,
+      },
+    });
+
+    this.logger.log(
+      `Member ${memberId} activated to ${level.tier} from paid order ${payload.id}`,
+    );
   }
 }

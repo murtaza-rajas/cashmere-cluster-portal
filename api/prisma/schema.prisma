@@ -968,6 +968,18 @@ model MembershipLevel {
   periodLabel String?
   benefits    String?
 
+  // Added 2026-10-07 for auto-activation-on-payment (see
+  // ShopifyWebhooksService.handleOrderSync) — the real Shopify product this
+  // level maps to, and its term in months (6/12/60; periodLabel stays
+  // free-text display copy, this is the number the activation math actually
+  // uses). Deliberately NOT in UpdateMembershipLevelDto/the staff admin UI —
+  // a wrong value here silently breaks real paying customers' tier
+  // assignment, so it's set directly by a developer, not editable by a
+  // non-technical Club Manager through a free-text field. Null for
+  // NEWSLETTER/MONGOLIA — no Shopify product, no term.
+  shopifyProductId String? @unique
+  termLengthMonths Int?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
