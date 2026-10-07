@@ -224,6 +224,7 @@ model StaffUser {
   createdBenefits       Benefit[]             @relation("BenefitsCreatedBy")
   uploadedSiteImages    SiteImage[]           @relation("SiteImagesUploadedBy")
   createdEvents         Event[]               @relation("EventsCreatedBy")
+  createdExclusiveCollections ExclusiveCollection[] @relation("ExclusiveCollectionsCreatedBy")
   updatedCareGuides     CareGuide[]           @relation("CareGuidesUpdatedBy")
   createdDesigns        Design[]              @relation("DesignsCreatedBy")
   createdMongoliaStories MongoliaStory[]       @relation("MongoliaStoriesCreatedBy")
@@ -457,6 +458,42 @@ model SiteImage {
 enum EventLocationType {
   IN_PERSON
   ONLINE
+}
+
+// Exclusive Collections (member-facing `/exclusive-collections`) — an honest
+// placeholder since 2026-09-05, blocked on Shopify Storefront API
+// credentials because it was originally scoped to show real synced Shopify
+// collections/products. Re-scoped 2026-10-07 (client conversation, relayed
+// by Rick): staff submit their own collection pitches with a real photo
+// instead — same shape as Event/Benefit (staff CRUD, tiers, image upload),
+// not a Shopify-data-sync feature, so no API dependency at all. A dedicated
+// model rather than overloading Benefit with an optional image field: unlike
+// Benefit's `icon` (a fixed lucide icon name), this needs a real uploaded
+// photo, and conflating the two would make Benefit's single `icon` column
+// do two unrelated jobs depending on which feature is using the row.
+model ExclusiveCollection {
+  id String @id @default(uuid())
+
+  title       String
+  description String?
+
+  // Uploaded photo — same disk-storage pattern as Event/SiteImage.
+  imageUrl String?
+
+  // Which tiers see this collection. Empty = draft, visible to nobody yet —
+  // same convention as Benefit.tiers/Event.tiers.
+  tiers MembershipTier[]
+
+  active    Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  createdById String?
+  createdBy   StaffUser? @relation("ExclusiveCollectionsCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([active])
 }
 
 model Event {

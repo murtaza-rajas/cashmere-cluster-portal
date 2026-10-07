@@ -11,6 +11,7 @@ import { CareGuidesModule } from '../care-guides/care-guides.module';
 import { DesignsModule } from '../designs/designs.module';
 import { MongoliaModule } from '../mongolia/mongolia.module';
 import { StoriesModule } from '../stories/stories.module';
+import { ExclusiveCollectionsModule } from '../exclusive-collections/exclusive-collections.module';
 
 @Module({
   // StaffModule needed for the Members & Users admin routes below (StaffAuthGuard
@@ -28,6 +29,7 @@ import { StoriesModule } from '../stories/stories.module';
     DesignsModule,
     MongoliaModule,
     StoriesModule,
+    ExclusiveCollectionsModule,
   ],
   controllers: [MembersController],
   providers: [MembersService],

@@ -25,6 +25,7 @@ import { MembershipLevelsModule } from './membership-levels/membership-levels.mo
 import { NewsletterCampaignsModule } from './newsletter-campaigns/newsletter-campaigns.module';
 import { StoryCategoriesModule } from './story-categories/story-categories.module';
 import { ShopifyAdminModule } from './shopify-admin/shopify-admin.module';
+import { ExclusiveCollectionsModule } from './exclusive-collections/exclusive-collections.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { ShopifyAdminModule } from './shopify-admin/shopify-admin.module';
     NewsletterCampaignsModule,
     StoryCategoriesModule,
     ShopifyAdminModule,
+    ExclusiveCollectionsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

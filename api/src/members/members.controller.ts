@@ -35,6 +35,7 @@ import { CareGuidesService } from '../care-guides/care-guides.service';
 import { DesignsService } from '../designs/designs.service';
 import { MongoliaService } from '../mongolia/mongolia.service';
 import { StoriesService } from '../stories/stories.service';
+import { ExclusiveCollectionsService } from '../exclusive-collections/exclusive-collections.service';
 import { getScopedRegion } from '../staff/region-scope.util';
 import { imageOnlyFileFilter } from '../common/image-upload.util';
 import { SubmitMongoliaPhotoDto } from '../mongolia/dto/submit-mongolia-photo.dto';
@@ -55,6 +56,7 @@ export class MembersController {
     private readonly designs: DesignsService,
     private readonly mongolia: MongoliaService,
     private readonly stories: StoriesService,
+    private readonly exclusiveCollections: ExclusiveCollectionsService,
   ) {}
 
   // What the frontend calls on load to check login state — 401 if no/invalid
@@ -169,6 +171,17 @@ export class MembersController {
   myEvents(@Req() req: Request) {
     const member = req.user as Member;
     return this.events.findForMember(member.membershipTier, member.region);
+  }
+
+  // Exclusive Collections — real, staff-curated collection pitches (see
+  // ExclusiveCollectionsService), replacing the honest "coming soon"
+  // placeholder (re-scoped 2026-10-07 from "sync real Shopify data" to
+  // staff-authored content with a real photo, per the client). No region
+  // filter — international-only, no Mongolia equivalent.
+  @UseGuards(JwtAuthGuard)
+  @Get('me/exclusive-collections')
+  myExclusiveCollections(@Req() req: Request) {
+    return this.exclusiveCollections.findForMember((req.user as Member).membershipTier);
   }
 
   // Stories & Knowledge — real, staff-curated content (see StoriesService),

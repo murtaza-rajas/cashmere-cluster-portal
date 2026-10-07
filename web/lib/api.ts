@@ -152,6 +152,22 @@ export async function fetchMyEvents(): Promise<MemberEvent[]> {
   return res.json();
 }
 
+// Exclusive Collections (re-scoped 2026-10-07 from "sync real Shopify data"
+// to staff-authored collection pitches with a real photo) — already
+// filtered server-side to active rows visible to the member's own tier.
+export interface MemberExclusiveCollection {
+  id: string;
+  title: string;
+  description: string | null;
+  imageUrl: string | null;
+}
+
+export async function fetchMyExclusiveCollections(): Promise<MemberExclusiveCollection[]> {
+  const res = await apiFetch("/members/me/exclusive-collections");
+  if (!res.ok) throw new Error(`Unexpected response fetching exclusive collections: ${res.status}`);
+  return res.json();
+}
+
 // A single article section, in display order — see staff-api.ts's
 // StorySection for the type-to-field mapping.
 export type MemberStorySectionType = "TEXT" | "IMAGE" | "IMAGE_GALLERY" | "QUOTE";

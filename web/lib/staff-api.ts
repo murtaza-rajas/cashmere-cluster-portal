@@ -365,6 +365,85 @@ export async function deleteEventImage(id: string): Promise<void> {
   if (!res.ok) throw new Error(`Unexpected response removing event image: ${res.status}`);
 }
 
+// Exclusive Collections: re-scoped 2026-10-07 from "sync real Shopify data"
+// (blocked on Storefront API credentials since 2026-09-05) to staff-
+// authored collection pitches with a real photo, same shape as Events —
+// international-only, no `regions` field (unlike StaffEvent/StaffBenefit).
+export interface StaffExclusiveCollection {
+  id: string;
+  title: string;
+  description: string | null;
+  imageUrl: string | null;
+  tiers: MembershipTierValue[];
+  active: boolean;
+  sortOrder: number;
+  createdAt: string;
+}
+
+export interface ExclusiveCollectionInput {
+  title: string;
+  description?: string;
+  tiers: MembershipTierValue[];
+  sortOrder?: number;
+  active?: boolean;
+}
+
+export async function fetchExclusiveCollectionCatalog(): Promise<StaffExclusiveCollection[]> {
+  const res = await apiFetch("/exclusive-collection-catalog");
+  if (!res.ok) throw new Error(`Unexpected response fetching exclusive collections: ${res.status}`);
+  return res.json();
+}
+
+export async function createExclusiveCollection(dto: ExclusiveCollectionInput): Promise<StaffExclusiveCollection> {
+  const res = await apiFetch("/exclusive-collection-catalog", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(dto),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.message ?? `Unexpected response creating exclusive collection: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function updateExclusiveCollection(
+  id: string,
+  dto: Partial<ExclusiveCollectionInput>,
+): Promise<StaffExclusiveCollection> {
+  const res = await apiFetch(`/exclusive-collection-catalog/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(dto),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.message ?? `Unexpected response updating exclusive collection: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function deleteExclusiveCollection(id: string): Promise<void> {
+  const res = await apiFetch(`/exclusive-collection-catalog/${id}`, { method: "DELETE" });
+  if (!res.ok) throw new Error(`Unexpected response deleting exclusive collection: ${res.status}`);
+}
+
+export async function uploadExclusiveCollectionImage(id: string, file: File): Promise<StaffExclusiveCollection> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await apiFetch(`/exclusive-collection-catalog/${id}/image`, { method: "POST", body: formData });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.message ?? `Unexpected response uploading exclusive collection image: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function deleteExclusiveCollectionImage(id: string): Promise<void> {
+  const res = await apiFetch(`/exclusive-collection-catalog/${id}/image`, { method: "DELETE" });
+  if (!res.ok) throw new Error(`Unexpected response removing exclusive collection image: ${res.status}`);
+}
+
 export type CareGuideTopic = "WASHING" | "STORAGE" | "PILLING" | "REPAIRS" | "LONGEVITY";
 
 export interface StaffCareGuide {
