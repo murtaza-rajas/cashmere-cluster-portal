@@ -58,6 +58,19 @@ describe("getAccessLevel — Annual Member", () => {
   });
 });
 
+describe("getAccessLevel — 6-Month Member (added 2026-10-07, not covered by the PDF)", () => {
+  // Treated identically to Annual — inferred from the Explore Membership
+  // page's feature list being word-for-word the same between the two tiers,
+  // not an explicit client answer (see access.ts's own comment on this).
+  it.each(AREAS)("%s matches Annual's access level", (area) => {
+    expect(getAccessLevel("SIX_MONTH", area)).toBe(EXPECTED_FOUNDING_AND_ANNUAL[area]);
+  });
+
+  it("gets the same Design Lab preview access as Annual, not Founding's full access", () => {
+    expect(getAccessLevel("SIX_MONTH", "designLab")).toBe("preview");
+  });
+});
+
 describe("getAccessLevel — Newsletter Subscriber", () => {
   it.each(AREAS)("%s matches the PDF's access matrix", (area) => {
     expect(getAccessLevel("NEWSLETTER", area)).toBe(EXPECTED_NEWSLETTER[area]);
@@ -120,10 +133,11 @@ describe("getAccessLevel — restricted-page enforcement", () => {
     expect(getAccessLevel("NEWSLETTER", "myCollection")).toBe("none");
   });
 
-  it("Founding and Annual are never restricted from anything", () => {
+  it("Founding, Annual and 6-Month are never restricted from anything", () => {
     for (const area of AREAS) {
       expect(getAccessLevel("FOUNDING", area)).not.toBe("none");
       expect(getAccessLevel("ANNUAL", area)).not.toBe("none");
+      expect(getAccessLevel("SIX_MONTH", area)).not.toBe("none");
     }
   });
 });

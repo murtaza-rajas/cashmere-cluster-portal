@@ -5,12 +5,13 @@ import { AuditLogService } from '../audit-log/audit-log.service';
 import { UpdateMembershipLevelDto } from './dto/update-membership-level.dto';
 
 // One fixed row per MembershipTier, seeded once (prisma/seed.ts) — staff can
-// only update the existing 4, never create or delete a level. See
+// only update the existing 5, never create or delete a level. See
 // schema.prisma's comment on MembershipLevel for why "access" isn't a field
 // here.
 const TIER_ORDER: MembershipTier[] = [
   MembershipTier.FOUNDING,
   MembershipTier.ANNUAL,
+  MembershipTier.SIX_MONTH,
   MembershipTier.NEWSLETTER,
   MembershipTier.MONGOLIA,
 ];

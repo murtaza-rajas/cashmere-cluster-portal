@@ -32,7 +32,16 @@ datasource db {
 
 enum MembershipTier {
   FOUNDING   // First 1,500 paying members. Cap enforced via Shopify inventory, not here.
-  ANNUAL     // Paid, 1-year or 5-year term (see termLengthYears).
+  ANNUAL     // Paid, 1-year or 5-year term (see termLengthMonths).
+  // Added 2026-10-07 — client simplified away recurring billing 2026-10-05,
+  // replacing it with a one-time-payment 6-month tier (Norway only, label
+  // only, no technical region restriction per the client's own answer). Real
+  // live Shopify product exists; this is the internal representation of it.
+  // Access-wise treated identically to ANNUAL (web/lib/access.ts,
+  // designs.service.ts's canView) — inferred from the Explore Membership
+  // page's own feature list being word-for-word identical between the two
+  // tiers, not an explicit client answer; flag if that inference is wrong.
+  SIX_MONTH
   MONGOLIA   // Mongolia Community membership — separate price (free or ~$5/yr, TBD), scoped to
              // the `region` field below. Deliberately its own tier rather than reusing NEWSLETTER
              // or ANNUAL: it must never be inferred as carrying FOUNDING/ANNUAL's international
@@ -104,7 +113,11 @@ model Member {
   isFoundingMember Boolean @default(false)
 
   // Term tracking. Null for the free NEWSLETTER tier.
-  termLengthYears     Int?      // 1 or 5
+  // Renamed from termLengthYears 2026-10-07 — months, not years, so the
+  // 6-month tier fits without a second field. 6 (SIX_MONTH), 12 (ANNUAL), or
+  // 60 (FOUNDING). Confirmed unused in production (0 non-null rows) before
+  // renaming, so this is a clean rename, not a lossy one.
+  termLengthMonths    Int?
   membershipStartDate DateTime?
   membershipEndDate   DateTime?
 

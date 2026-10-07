@@ -37,6 +37,18 @@ const BENEFITS: {
   { tier: MembershipTier.ANNUAL, sortOrder: 5, icon: 'sparkles', title: 'Offers', description: 'Standard member offers' },
   { tier: MembershipTier.ANNUAL, sortOrder: 6, icon: 'calendar', title: 'Events', description: 'Selected member events' },
   { tier: MembershipTier.ANNUAL, sortOrder: 7, icon: 'crown', title: 'Other', description: '—' },
+  // Added 2026-10-07 — same access level as ANNUAL (see schema.prisma's
+  // MembershipTier comment), content drawn from the Explore Membership
+  // page's already-approved 6-Month copy (no discount terms for this tier,
+  // unlike Founding/Annual — not an oversight, the client's own copy omits one).
+  { tier: MembershipTier.SIX_MONTH, sortOrder: 0, icon: 'star', title: 'Term', description: '6-month membership' },
+  { tier: MembershipTier.SIX_MONTH, sortOrder: 1, icon: 'star', title: 'Status', description: 'Member status' },
+  { tier: MembershipTier.SIX_MONTH, sortOrder: 2, icon: 'gift', title: 'Welcome gift', description: 'Cashmere wrist warmers, €99 value' },
+  { tier: MembershipTier.SIX_MONTH, sortOrder: 3, icon: 'tag', title: 'Discount', description: '—' },
+  { tier: MembershipTier.SIX_MONTH, sortOrder: 4, icon: 'calendar', title: 'Early access', description: 'Selected products/collections' },
+  { tier: MembershipTier.SIX_MONTH, sortOrder: 5, icon: 'sparkles', title: 'Offers', description: 'Standard member offers' },
+  { tier: MembershipTier.SIX_MONTH, sortOrder: 6, icon: 'calendar', title: 'Events', description: 'Selected member events' },
+  { tier: MembershipTier.SIX_MONTH, sortOrder: 7, icon: 'crown', title: 'Other', description: '—' },
 ];
 
 // Membership Levels admin (client emails 2026-09-15) — the client's own
@@ -65,6 +77,17 @@ const MEMBERSHIP_LEVELS: {
     periodLabel: '1 year',
     priceEur: '300',
     priceUsd: '300',
+  },
+  {
+    // Added 2026-10-07, real pricing from the live Shopify product (1,900
+    // NOK) and the already-approved Explore Membership page (€160) — no USD
+    // figure has ever been given for this tier, stays null honestly rather
+    // than guessed, same pattern as Mongolia's unknown fields below.
+    tier: MembershipTier.SIX_MONTH,
+    displayName: '6-Month Member',
+    periodLabel: '6 months',
+    priceEur: '160',
+    priceUsd: null,
   },
   {
     tier: MembershipTier.NEWSLETTER,

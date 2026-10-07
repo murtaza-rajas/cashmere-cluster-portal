@@ -83,6 +83,11 @@ const NEWSLETTER_ACCESS: Record<PortalArea, AccessLevel> = {
 const ACCESS_MATRIX: Record<Tier, Record<PortalArea, AccessLevel>> = {
   FOUNDING: FULL_ACCESS,
   ANNUAL: ANNUAL_ACCESS,
+  // Added 2026-10-07 — not covered by the original PDF matrix (this tier
+  // didn't exist yet). Treated identically to ANNUAL: inferred from the
+  // Explore Membership page's feature list being word-for-word the same for
+  // both tiers, not an explicit client answer — flag if that's wrong.
+  SIX_MONTH: ANNUAL_ACCESS,
   NEWSLETTER: NEWSLETTER_ACCESS,
   // Not covered by the PDF (predates the Mongolia Community decision, Section 3a
   // of PROJECT_TRACKER.md). Client-confirmed 2026-09-07: Mongolia Founding

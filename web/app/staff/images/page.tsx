@@ -19,7 +19,7 @@ const SLOTS: { key: SiteImageSlot; label: string }[] = [
   { key: "CARE_REPAIR_HERO", label: "Care & Repair hero" },
   { key: "SIDEBAR_HELP", label: "Sidebar “Need Help?” photo" },
 ];
-const TIERS: MembershipTierValue[] = ["FOUNDING", "ANNUAL", "MONGOLIA", "NEWSLETTER"];
+const TIERS: MembershipTierValue[] = ["FOUNDING", "ANNUAL", "SIX_MONTH", "MONGOLIA", "NEWSLETTER"];
 
 // Club Manager or Content Manager per benefits.controller.ts's same reasoning
 // — server-side already enforces this on every /site-image-catalog endpoint,

@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import {
   formatMonthYear,
   formatMemberId,
+  formatTermLength,
   membershipTierLabel,
   fetchCurrentMember,
   fetchMemberOrders,
@@ -26,6 +27,20 @@ describe("formatMemberId", () => {
   });
 });
 
+describe("formatTermLength", () => {
+  // termLengthMonths is stored in months (renamed from termLengthYears
+  // 2026-10-07) specifically so the 6-month tier fits without a second
+  // field — these three cases are the three real terms in production.
+  it("shows whole years as 'N year(s)' for a multiple of 12", () => {
+    expect(formatTermLength(12)).toBe("1 year");
+    expect(formatTermLength(60)).toBe("5 years");
+  });
+
+  it("shows a non-whole-year term as 'N months'", () => {
+    expect(formatTermLength(6)).toBe("6 months");
+  });
+});
+
 describe("membershipTierLabel", () => {
   // isFoundingMember is a permanent flag independent of membershipTier (see
   // schema.prisma) and wins regardless of tier for INTERNATIONAL members —
@@ -42,6 +57,10 @@ describe("membershipTierLabel", () => {
 
   it("shows 'Newsletter Subscriber' for NEWSLETTER tier when not a Founding Member", () => {
     expect(membershipTierLabel("NEWSLETTER", false, "INTERNATIONAL")).toBe("Newsletter Subscriber");
+  });
+
+  it("shows '6-Month Member' for SIX_MONTH tier when not a Founding Member", () => {
+    expect(membershipTierLabel("SIX_MONTH", false, "INTERNATIONAL")).toBe("6-Month Member");
   });
 
   // Client-confirmed 2026-09-07: Mongolia has its own two levels ("Mongolia

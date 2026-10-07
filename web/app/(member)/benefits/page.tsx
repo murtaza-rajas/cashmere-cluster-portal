@@ -5,7 +5,7 @@ import { Sparkles } from "lucide-react";
 import { useMember } from "@/contexts/member-context";
 import { RequireAccess } from "@/components/require-access";
 import { getAccessLevel } from "@/lib/access";
-import { fetchMyBenefits, type Benefit } from "@/lib/api";
+import { fetchMyBenefits, membershipTierLabel, type Benefit } from "@/lib/api";
 import { resolveBenefitIcon } from "@/lib/benefit-icons";
 
 export default function BenefitsPage() {
@@ -47,15 +47,13 @@ export default function BenefitsPage() {
     );
   }
 
-  const tier = member.membershipTier === "FOUNDING" ? "FOUNDING" : "ANNUAL";
-
   return (
     <RequireAccess area="myBenefits">
       <div className="flex w-full flex-col gap-6">
         <div>
           <h1 className="font-serif text-3xl tracking-tight text-cashmere-text">My Benefits</h1>
           <p className="mt-1 text-cashmere-text-muted">
-            {tier === "FOUNDING" ? "As a Founding Member, you receive:" : "As an Annual Member, you receive:"}
+            As a {membershipTierLabel(member.membershipTier, member.isFoundingMember, member.region)}, you receive:
           </p>
         </div>
 
@@ -93,7 +91,7 @@ export default function BenefitsPage() {
           </div>
         )}
 
-        {tier === "FOUNDING" && (
+        {member.isFoundingMember && (
           <p className="rounded-lg bg-cashmere-accent/10 px-4 py-3 text-sm text-cashmere-accent-dark">
             Your Founding Member status is permanent — it stays with your account even if your paid term isn&apos;t
             renewed.

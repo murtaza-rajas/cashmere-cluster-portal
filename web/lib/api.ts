@@ -7,12 +7,12 @@ export interface Member {
   email: string;
   firstName: string | null;
   lastName: string | null;
-  membershipTier: "FOUNDING" | "ANNUAL" | "MONGOLIA" | "NEWSLETTER";
+  membershipTier: "FOUNDING" | "ANNUAL" | "SIX_MONTH" | "MONGOLIA" | "NEWSLETTER";
   membershipStatus: "ACTIVE" | "EXPIRED" | "CANCELLED";
   region: "INTERNATIONAL" | "MONGOLIA";
   language: "ENGLISH" | "MONGOLIAN";
   isFoundingMember: boolean;
-  termLengthYears: number | null;
+  termLengthMonths: number | null;
   membershipStartDate: string | null;
   membershipEndDate: string | null;
   createdAt: string;
@@ -301,6 +301,16 @@ export function formatMonthYear(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", { month: "long", year: "numeric" });
 }
 
+/** e.g. "6 months" / "1 year" / "5 years" — termLengthMonths is stored in months
+ * (not years) specifically so the 6-month tier fits without a second field. */
+export function formatTermLength(months: number): string {
+  if (months % 12 === 0) {
+    const years = months / 12;
+    return `${years} year${years > 1 ? "s" : ""}`;
+  }
+  return `${months} months`;
+}
+
 /**
  * Human-readable member ID (e.g. "CLUB-4F2A91") derived from the database UUID.
  * NOT the client's eventual sequential numbering scheme (e.g. "CLUB-00187" in the
@@ -328,6 +338,7 @@ export function membershipTierLabel(
   }
   if (isFoundingMember) return "Founding Member";
   if (tier === "ANNUAL") return "Annual Member";
+  if (tier === "SIX_MONTH") return "6-Month Member";
   return "Newsletter Subscriber";
 }
 

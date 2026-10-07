@@ -13,14 +13,14 @@ import { useMember } from "@/contexts/member-context";
 // Not gated behind RequireAccess — intended destination for Newsletter/
 // Mongolia members, harmless for anyone else to view.
 //
-// The 6-Month tier is informational copy only for now — MembershipTier has no
-// matching enum value yet (client asked 2026-10-05 what "Norway only" should
-// actually mean technically; not yet answered, see PROJECT_TRACKER.md), so
-// this never shows a "YOUR PLAN" badge and isn't wired into any access logic.
+// The 6-Month tier (added 2026-10-07 — MembershipTier.SIX_MONTH, see
+// schema.prisma) has "Norway only" as a plain label, no technical region
+// restriction (client confirmed 2026-10-05) — same access level as ANNUAL.
 //
-// No purchase buttons yet: that needs real Shopify products and Selling
-// Plans, which don't exist yet (Milestone 4). An honest "coming soon" note
-// instead of a broken or guessed checkout link — same reasoning as before,
+// No purchase buttons yet: the real Shopify products exist now (Milestone 4,
+// 2026-10-06/07), but the actual checkout/auto-activation wiring doesn't. An
+// honest "coming soon" note instead of a broken or guessed checkout link, same
+// reasoning as before,
 // now applied to four tiers instead of two.
 export default function ExploreMembershipPage() {
   const member = useMember();
@@ -54,7 +54,7 @@ export default function ExploreMembershipPage() {
           tagline="Six months of cashmere, stories and exclusive benefits."
           badge="Available in Norway only"
           gift="Welcome cashmere wrist warmers · value €99. Sent after one month."
-          current={false}
+          current={member.membershipTier === "SIX_MONTH"}
           features={[
             "Full Stories & Knowledge access",
             "Member offers and early access",

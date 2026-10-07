@@ -42,7 +42,7 @@ describe('Membership level catalog (e2e)', () => {
     return `clc_staff_session=${token}`;
   }
 
-  it('GET /membership-level-catalog: 401 with no session, 403 for a role without access, 200 with exactly four pre-seeded levels for Club Manager', async () => {
+  it('GET /membership-level-catalog: 401 with no session, 403 for a role without access, 200 with exactly five pre-seeded levels for Club Manager', async () => {
     await request(app.getHttpServer())
       .get('/membership-level-catalog')
       .expect(401);
@@ -58,9 +58,9 @@ describe('Membership level catalog (e2e)', () => {
       .set('Cookie', clubManagerCookie)
       .expect(200);
 
-    expect(res.body).toHaveLength(4);
+    expect(res.body).toHaveLength(5);
     const tiers = res.body.map((r: { tier: string }) => r.tier).sort();
-    expect(tiers).toEqual(['ANNUAL', 'FOUNDING', 'MONGOLIA', 'NEWSLETTER']);
+    expect(tiers).toEqual(['ANNUAL', 'FOUNDING', 'MONGOLIA', 'NEWSLETTER', 'SIX_MONTH']);
   });
 
   it('PATCH /membership-level-catalog/:tier updates fields and writes an audit entry, without touching other tiers', async () => {
@@ -71,7 +71,7 @@ describe('Membership level catalog (e2e)', () => {
     });
 
     // Bracket against a before/after count rather than an absolute length —
-    // ANNUAL is one of only 4 fixed, pre-seeded rows (never created fresh
+    // ANNUAL is one of only 5 fixed, pre-seeded rows (never created fresh
     // per test), so a repeated run accumulates audit entries against the
     // same targetId. Same fix as the 2026-09-15 orders.e2e-spec.ts finding.
     const auditCountBefore = await prisma.auditLog.count({

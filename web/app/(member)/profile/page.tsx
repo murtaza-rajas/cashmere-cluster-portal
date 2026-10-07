@@ -7,6 +7,7 @@ import { useMember } from "@/contexts/member-context";
 import {
   formatMemberId,
   formatMonthYear,
+  formatTermLength,
   membershipTierLabel,
   updateMemberProfile,
   requestMemberData,
@@ -42,7 +43,7 @@ export default function ProfilePage() {
           <Field label="Member since" value={formatMonthYear(member.createdAt)} />
           <Field
             label="Term length"
-            value={member.termLengthYears ? `${member.termLengthYears} year${member.termLengthYears > 1 ? "s" : ""}` : "—"}
+            value={member.termLengthMonths ? formatTermLength(member.termLengthMonths) : "—"}
           />
           {member.membershipStartDate && (
             <Field label="Current term started" value={formatMonthYear(member.membershipStartDate)} />

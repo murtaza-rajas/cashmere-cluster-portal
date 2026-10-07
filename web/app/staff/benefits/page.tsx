@@ -14,7 +14,7 @@ import {
 } from "@/lib/staff-api";
 import { BENEFIT_ICONS } from "@/lib/benefit-icons";
 
-const TIERS: BenefitInput["tiers"][number][] = ["FOUNDING", "ANNUAL", "MONGOLIA", "NEWSLETTER"];
+const TIERS: BenefitInput["tiers"][number][] = ["FOUNDING", "ANNUAL", "SIX_MONTH", "MONGOLIA", "NEWSLETTER"];
 const ICON_KEYS = Object.keys(BENEFIT_ICONS);
 
 const EMPTY_FORM: BenefitInput = {

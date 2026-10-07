@@ -30,7 +30,10 @@ const IMAGE_FIELD: Record<
 // here, not in web/lib/access.ts, since these gates must hold even if a
 // request bypasses the frontend entirely.
 function canView(tier: MembershipTier): boolean {
-  return tier === 'FOUNDING' || tier === 'ANNUAL';
+  // SIX_MONTH added 2026-10-07 — same Design Lab access as ANNUAL (preview:
+  // view/save, no vote — see canVote below), per schema.prisma's
+  // MembershipTier comment.
+  return tier === 'FOUNDING' || tier === 'ANNUAL' || tier === 'SIX_MONTH';
 }
 // Client email 2026-09-17, exact words: voting/saving stays open through
 // CURRENT and SELECTED_FOR_DEVELOPMENT ("this will allow us to continue

@@ -36,6 +36,7 @@ export class StaffDashboardService {
     const tiers: Array<keyof typeof current.byTier> = [
       'FOUNDING',
       'ANNUAL',
+      'SIX_MONTH',
       'NEWSLETTER',
       'MONGOLIA',
     ];

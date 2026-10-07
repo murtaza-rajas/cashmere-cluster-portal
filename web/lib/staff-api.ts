@@ -52,7 +52,7 @@ export type RegionValue = "INTERNATIONAL" | "MONGOLIA";
 export interface StaffBenefit {
   id: string;
   type: "BENEFIT" | "OFFER";
-  tiers: ("FOUNDING" | "ANNUAL" | "MONGOLIA" | "NEWSLETTER")[];
+  tiers: ("FOUNDING" | "ANNUAL" | "SIX_MONTH" | "MONGOLIA" | "NEWSLETTER")[];
   // Which regions see this row — added 2026-09-11 alongside Mongolia's
   // "Current Offers" reuse: tier alone can't tell a Mongolia Newsletter
   // member apart from an international one (both carry tier NEWSLETTER).
@@ -66,7 +66,7 @@ export interface StaffBenefit {
 }
 
 export type SiteImageSlot = "DASHBOARD_HERO" | "CARE_REPAIR_HERO" | "SIDEBAR_HELP";
-export type MembershipTierValue = "FOUNDING" | "ANNUAL" | "MONGOLIA" | "NEWSLETTER";
+export type MembershipTierValue = "FOUNDING" | "ANNUAL" | "SIX_MONTH" | "MONGOLIA" | "NEWSLETTER";
 
 export interface StaffSiteImage {
   id: string;
@@ -203,7 +203,7 @@ export async function fetchBenefitCatalog(type?: "BENEFIT" | "OFFER"): Promise<S
 
 export interface BenefitInput {
   type: "BENEFIT" | "OFFER";
-  tiers: ("FOUNDING" | "ANNUAL" | "MONGOLIA" | "NEWSLETTER")[];
+  tiers: ("FOUNDING" | "ANNUAL" | "SIX_MONTH" | "MONGOLIA" | "NEWSLETTER")[];
   // Omitted means "both regions" server-side — see schema.prisma's comment
   // on Benefit.regions.
   regions?: RegionValue[];

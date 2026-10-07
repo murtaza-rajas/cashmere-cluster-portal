@@ -22,7 +22,7 @@ import {
   StorySectionType,
 } from "@/lib/staff-api";
 
-const TIERS: StoryInput["tiers"][number][] = ["FOUNDING", "ANNUAL", "MONGOLIA", "NEWSLETTER"];
+const TIERS: StoryInput["tiers"][number][] = ["FOUNDING", "ANNUAL", "SIX_MONTH", "MONGOLIA", "NEWSLETTER"];
 
 const SECTION_TYPES: { type: StorySectionType; label: string; icon: typeof Type }[] = [
   { type: "TEXT", label: "Text", icon: Type },

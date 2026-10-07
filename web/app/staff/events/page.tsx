@@ -16,7 +16,7 @@ import {
   EventInput,
 } from "@/lib/staff-api";
 
-const TIERS: EventInput["tiers"][number][] = ["FOUNDING", "ANNUAL", "MONGOLIA", "NEWSLETTER"];
+const TIERS: EventInput["tiers"][number][] = ["FOUNDING", "ANNUAL", "SIX_MONTH", "MONGOLIA", "NEWSLETTER"];
 
 const EMPTY_FORM: EventInput = {
   title: "",

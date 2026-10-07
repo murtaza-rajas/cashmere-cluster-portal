@@ -13,7 +13,7 @@ import {
   NewsletterCampaignInput,
 } from "@/lib/staff-api";
 
-const TIERS: NewsletterCampaignInput["audienceTiers"][number][] = ["FOUNDING", "ANNUAL", "MONGOLIA", "NEWSLETTER"];
+const TIERS: NewsletterCampaignInput["audienceTiers"][number][] = ["FOUNDING", "ANNUAL", "SIX_MONTH", "MONGOLIA", "NEWSLETTER"];
 
 const EMPTY_FORM: NewsletterCampaignInput = {
   subject: "",

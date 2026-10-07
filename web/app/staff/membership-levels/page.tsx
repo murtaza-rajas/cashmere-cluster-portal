@@ -13,7 +13,7 @@ import {
 } from "@/lib/staff-api";
 import { getAccessLevel, AccessLevel, PortalArea } from "@/lib/access";
 
-const TIER_ORDER: MembershipTierValue[] = ["FOUNDING", "ANNUAL", "NEWSLETTER", "MONGOLIA"];
+const TIER_ORDER: MembershipTierValue[] = ["FOUNDING", "ANNUAL", "SIX_MONTH", "NEWSLETTER", "MONGOLIA"];
 
 const AREAS: { key: PortalArea; label: string }[] = [
   { key: "dashboard", label: "Dashboard" },
