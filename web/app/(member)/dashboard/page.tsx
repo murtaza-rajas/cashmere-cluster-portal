@@ -76,7 +76,7 @@ function FullDashboard({ displayName }: { displayName: string }) {
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="flex flex-col overflow-hidden rounded-2xl border border-cashmere-border bg-white sm:relative sm:block sm:h-56">
+      <section className="flex flex-col overflow-hidden rounded-2xl border border-cashmere-border bg-white sm:relative sm:block sm:aspect-[21/6]">
         {/* Desktop (sm+): the mockup is one continuous photo bleeding the full
             card width, with the text sitting on a soft white gradient fade
             over the photo's left side — not a hard-split two-column layout
@@ -86,9 +86,23 @@ function FullDashboard({ displayName }: { displayName: string }) {
             simpler stacked text-then-photo pattern instead — the mockup is a
             desktop composition and a full-bleed text-over-photo treatment at
             narrow widths risks illegible text depending on what the photo's
-            crop puts behind it. */}
+            crop puts behind it.
+
+            A fixed-pixel height here (sm:h-56, what this used to be) was a
+            real bug the client reported with two screenshots: this section's
+            width scales with the viewport (no max-width), so object-cover
+            against a fixed height crops progressively more of the image's
+            top/below as the window widens — the wider the box gets relative
+            to its own fixed height, the more the image has to scale up to
+            cover it, pushing more of its height outside the frame (here,
+            literally cutting off the top of the person's head on a wide
+            screen). An aspect-ratio keeps height scaling proportionally with
+            width instead, so the crop stays the same at every width — the
+            general fix for "banners crop differently depending on window
+            size" sites like National Geographic get right and this engagement's
+            own sites have been getting wrong (client email 2026-10-07). */}
         <div className="relative hidden sm:block sm:h-full">
-          <Image src={heroSrc} alt="" fill className="object-cover object-right" />
+          <Image src={heroSrc} alt="" fill className="object-cover object-[75%_20%]" />
           <div className="absolute inset-0 bg-gradient-to-r from-white from-10% via-white/85 via-40% to-transparent to-70%" />
         </div>
         <div className="flex flex-1 flex-col justify-center p-8 sm:absolute sm:inset-y-0 sm:left-0 sm:w-3/5">

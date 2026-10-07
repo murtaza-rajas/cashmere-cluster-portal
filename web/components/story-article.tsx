@@ -31,10 +31,22 @@ function StorySectionBlock({ section }: { section: StoryArticleSection }) {
         <p className="whitespace-pre-line text-cashmere-text-muted">{section.text}</p>
       ) : null;
     case "IMAGE":
+      // Natural proportions, not a cropped box (client email 2026-10-07:
+      // "Article images should generally retain their original
+      // proportions" — distinct from banners, which keep controlled
+      // cropping). A fixed-height + object-cover box (what this used to be)
+      // always crops something; width/height here are just placeholder
+      // values satisfying next/image's required props — height: auto in the
+      // className means the browser sizes the element from the real image's
+      // own intrinsic aspect ratio once it loads, not from these numbers.
       return section.imageUrl ? (
-        <div className="relative h-72 w-full overflow-hidden rounded-2xl sm:h-96">
-          <Image src={section.imageUrl} alt="" fill className="object-cover" />
-        </div>
+        <Image
+          src={section.imageUrl}
+          alt=""
+          width={1600}
+          height={900}
+          className="h-auto w-full rounded-2xl"
+        />
       ) : null;
     case "IMAGE_GALLERY":
       return section.galleryImageUrls && section.galleryImageUrls.length > 0 ? (
@@ -63,10 +75,19 @@ function StorySectionBlock({ section }: { section: StoryArticleSection }) {
 export function StoryArticle({ story }: { story: StoryArticleData }) {
   return (
     <article className="flex flex-col gap-6">
+      {/* Natural proportions, same reasoning as the in-body IMAGE section
+          above — this is the article's own main photo (client's requested
+          layout, item 4: "Main image"), not a decorative banner, so it
+          keeps its real shape rather than being cropped into a fixed box. */}
       {story.heroImageUrl && (
-        <div className="relative h-72 w-full overflow-hidden rounded-2xl sm:h-96">
-          <Image src={story.heroImageUrl} alt="" fill className="object-cover" />
-        </div>
+        <Image
+          src={story.heroImageUrl}
+          alt=""
+          width={1600}
+          height={900}
+          className="h-auto w-full rounded-2xl"
+          priority
+        />
       )}
 
       <div className="rounded-2xl border border-cashmere-border bg-white p-8">
