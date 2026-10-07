@@ -6,6 +6,7 @@ import { StaffService } from './staff.service';
 import { StaffAuthService } from './staff-auth.service';
 import { StaffJwtStrategy } from './strategies/staff-jwt.strategy';
 import { StaffController } from './staff.controller';
+import { StaffDirectoryController } from './staff-directory.controller';
 import { RolesGuard } from './guards/roles.guard';
 
 @Module({
@@ -23,7 +24,7 @@ import { RolesGuard } from './guards/roles.guard';
       }),
     }),
   ],
-  controllers: [StaffController],
+  controllers: [StaffController, StaffDirectoryController],
   providers: [StaffService, StaffAuthService, StaffJwtStrategy, RolesGuard],
   // RolesGuard exported alongside StaffService (its own dependency) so other feature
   // modules can protect their own admin routes with it — see its comment: "reference

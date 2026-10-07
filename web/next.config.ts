@@ -30,22 +30,29 @@ const nextConfig: NextConfig = {
   // 404 JSON instead of rendering the page). Listing only the real backend sub-paths
   // here avoids that; none of them collide with the frontend's own /staff/* segments.
   //
-  // NOT YET FIXED, flagged rather than guessed at: GET/POST /staff itself (the staff
-  // list/create endpoint) is the one genuinely irreducible collision — the bare
-  // "/staff" path means both a real backend endpoint AND the frontend's own staff
-  // home page, and Next always serves the (non-dynamic) page first for a plain GET.
-  // Doesn't reproduce in local dev (NEXT_PUBLIC_API_URL points straight at
-  // localhost:3000, bypassing this proxy entirely — see .env.local), but will once
-  // this is tested through the single-tunnel/production-style setup this proxy exists
-  // for. Needs a real decision (most likely: namespacing all backend API routes under
-  // a prefix like /api/* that no frontend page will ever occupy) before that happens —
-  // see PROJECT_TRACKER.md.
+  // FIXED 2026-10-07 (was flagged here, unfixed, since 2026-09): GET/POST /staff
+  // itself (the staff list/create endpoint) was the one genuinely irreducible
+  // collision — the bare "/staff" path meant both a real backend endpoint AND the
+  // frontend's own staff home page, and Next always serves the (non-dynamic) page
+  // first for a plain GET. Didn't reproduce in local dev (NEXT_PUBLIC_API_URL points
+  // straight at localhost:3000, bypassing this proxy entirely — see .env.local), so
+  // it sat unfixed until a real client report of "unexpected character at line 1
+  // column 1" (apiFetch trying to JSON-parse the page's own HTML) confirmed it live.
+  // Fixed by moving those two backend routes off /staff entirely, to their own
+  // top-level /staff-directory controller (staff-directory.controller.ts) — matching
+  // the existing -catalog/-directory convention used everywhere else in this app for
+  // the same reason, rather than the broader /api/* namespacing this comment used to
+  // propose (unnecessary for one endpoint, and would have meant touching every
+  // existing rewrite below).
   async rewrites() {
     const apiOrigin = process.env.API_PROXY_TARGET ?? "http://localhost:3000";
     return [
       { source: "/auth/:path*", destination: `${apiOrigin}/auth/:path*` },
       { source: "/members/:path*", destination: `${apiOrigin}/members/:path*` },
       { source: "/staff/me", destination: `${apiOrigin}/staff/me` },
+      // Staff list/create (StaffDirectoryController) — deliberately NOT under
+      // /staff/* at all, see the block comment above for why.
+      { source: "/staff-directory", destination: `${apiOrigin}/staff-directory` },
       // Staff preview-login links (create-staff-preview-link.js) — same collision
       // risk as every other /staff/* backend route, no frontend page at this path
       // so listing it here is safe.

@@ -139,14 +139,19 @@ export async function fetchCurrentStaff(): Promise<StaffUser | null> {
   return res.json();
 }
 
+// /staff-directory, not /staff — the bare /staff path collides with the
+// frontend's own /staff page in production (same-origin rewrite proxy,
+// Next.js resolves its own non-dynamic page before the backend rewrite ever
+// applies), so GET /staff returned the page's HTML, not JSON. See
+// staff-directory.controller.ts's comment for the full story.
 export async function fetchStaffDirectory(): Promise<StaffUser[]> {
-  const res = await apiFetch("/staff");
+  const res = await apiFetch("/staff-directory");
   if (!res.ok) throw new Error(`Unexpected response fetching staff directory: ${res.status}`);
   return res.json();
 }
 
 export async function createStaffUser(params: { email: string; name: string }): Promise<StaffUser> {
-  const res = await apiFetch("/staff", {
+  const res = await apiFetch("/staff-directory", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(params),
