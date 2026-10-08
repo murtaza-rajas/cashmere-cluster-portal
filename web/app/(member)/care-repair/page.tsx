@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { Droplets, Archive, CircleDot, Scissors, Clock } from "lucide-react";
+import { Droplets, Archive, CircleDot, Scissors, Clock, X } from "lucide-react";
 import { useMember } from "@/contexts/member-context";
 import { RequireAccess } from "@/components/require-access";
 import { getAccessLevel } from "@/lib/access";
 import { fetchMySiteImages, fetchMyCareGuides, type CareGuide } from "@/lib/api";
+import { renderSimpleMarkdown } from "@/lib/simple-markdown";
 
 // Topics are the client's own confirmed list (PROJECT_TRACKER.md Section 3c,
 // "Care & Repair"): washing, storage, pilling, simple repairs, longevity —
@@ -34,6 +35,7 @@ export default function CareRepairPage() {
   const isPreview = getAccessLevel(member.membershipTier, "careRepair") === "preview";
   const [heroSrc, setHeroSrc] = useState(DEFAULT_CARE_REPAIR_HERO);
   const [guides, setGuides] = useState<Record<string, string | null>>({});
+  const [expandedTopic, setExpandedTopic] = useState<CareGuide["topic"] | null>(null);
 
   useEffect(() => {
     // Staff-uploaded, tier-specific hero photo (Milestone 5) — falls back to
@@ -69,25 +71,66 @@ export default function CareRepairPage() {
           </div>
         </div>
 
+        {/* Each card stays a short, scannable teaser regardless of how long
+            the real guide is (client email 2026-10-08: readable even for
+            "those who aren't keen on reading long blocks of text") — the
+            full guide opens below on demand instead of being crammed into a
+            fixed-width grid cell. */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {TOPICS.map(({ topic, icon: Icon, title, description }) => {
             const body = guides[topic];
+            const isExpanded = expandedTopic === topic;
             return (
-              <div key={topic} className="flex flex-col gap-3 rounded-2xl border border-cashmere-border bg-white p-6">
+              <button
+                key={topic}
+                type="button"
+                disabled={!body}
+                onClick={() => setExpandedTopic(isExpanded ? null : topic)}
+                className={`flex flex-col items-start gap-3 rounded-2xl border bg-white p-6 text-left transition-colors ${
+                  isExpanded ? "border-cashmere-accent ring-1 ring-cashmere-accent" : "border-cashmere-border"
+                } ${body ? "cursor-pointer hover:border-cashmere-accent" : "cursor-default"}`}
+              >
                 <Icon size={22} strokeWidth={1.5} className="text-cashmere-accent" />
                 <p className="font-medium text-cashmere-text">{title}</p>
                 <p className="text-sm text-cashmere-text-muted">{description}</p>
                 {body ? (
-                  <p className="mt-auto pt-2 text-sm text-cashmere-text">{body}</p>
+                  <span className="mt-auto pt-2 text-xs font-semibold uppercase tracking-wide text-cashmere-accent-dark">
+                    {isExpanded ? "Hide guide" : "Read full guide →"}
+                  </span>
                 ) : (
-                  <p className="mt-auto pt-2 text-xs font-medium uppercase tracking-wide text-cashmere-text-muted">
+                  <span className="mt-auto pt-2 text-xs font-medium uppercase tracking-wide text-cashmere-text-muted">
                     Guide coming soon
-                  </p>
+                  </span>
                 )}
-              </div>
+              </button>
             );
           })}
         </div>
+
+        {/* Full-width reading view — generous line length/spacing, real
+            headings from the staff-written content, matching the same
+            readability principles as the Stories & Knowledge rework
+            (client's National Geographic reference, 2026-10-07). */}
+        {expandedTopic && guides[expandedTopic] && (
+          <div className="rounded-2xl border border-cashmere-border bg-white p-6 sm:p-8">
+            <div className="flex items-start justify-between gap-4">
+              <h2 className="font-serif text-2xl tracking-tight text-cashmere-text">
+                {TOPICS.find((t) => t.topic === expandedTopic)?.title}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setExpandedTopic(null)}
+                aria-label="Close guide"
+                className="shrink-0 rounded-full p-1.5 text-cashmere-text-muted hover:bg-cashmere-border/60"
+              >
+                <X size={18} strokeWidth={1.75} />
+              </button>
+            </div>
+            <div className="mt-4 flex max-w-[65ch] flex-col gap-4">
+              {renderSimpleMarkdown(guides[expandedTopic]!)}
+            </div>
+          </div>
+        )}
 
         {isPreview && (
           <div className="rounded-2xl border border-cashmere-border bg-cashmere-sidebar/60 p-6 text-center">
