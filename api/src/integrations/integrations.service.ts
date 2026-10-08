@@ -45,10 +45,21 @@ export class IntegrationsService {
         lastGdprWebhookAt: lastGdprWebhook?.requestedAt ?? null,
       },
       database: { healthy: databaseHealthy },
+      // Built 2026-10-08 (the Mailchimp-only-subscriber login piece,
+      // PROJECT_TRACKER.md Section 3b) — presence only, never the key/
+      // audience id themselves. audienceIdConfigured is called out
+      // separately from apiKeyConfigured since the API key alone was
+      // present for weeks before the real audience id was ever supplied —
+      // same "don't claim more than what's actually configured" discipline
+      // as the Shopify block above.
+      mailchimp: {
+        built: true,
+        apiKeyConfigured: Boolean(process.env.MAILCHIMP_API_KEY),
+        audienceIdConfigured: Boolean(process.env.MAILCHIMP_AUDIENCE_ID),
+      },
       // Decided (CLAUDE.md/PROJECT_TRACKER.md Section 4) but not yet built —
-      // no env var or code path exists for either, so there's nothing real to
-      // report beyond that.
-      mailchimp: { built: false },
+      // no env var or code path exists, so there's nothing real to report
+      // beyond that.
       cms: { built: false },
     };
   }

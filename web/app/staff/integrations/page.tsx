@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useStaff, staffHasAnyRole } from "@/contexts/staff-context";
-import { fetchIntegrationsStatus, IntegrationsStatus } from "@/lib/staff-api";
+import { fetchIntegrationsStatus, triggerMailchimpSync, IntegrationsStatus, MailchimpSyncResult } from "@/lib/staff-api";
 
 type LoadState =
   | { status: "loading" }
@@ -46,6 +46,9 @@ export default function IntegrationsPage() {
   const router = useRouter();
   const canView = staffHasAnyRole(staff, ["Technical Administrator"]);
   const [state, setState] = useState<LoadState>({ status: "loading" });
+  const [syncState, setSyncState] = useState<
+    { status: "idle" } | { status: "syncing" } | { status: "done"; result: MailchimpSyncResult } | { status: "error"; message: string }
+  >({ status: "idle" });
 
   useEffect(() => {
     if (!canView) {
@@ -58,6 +61,16 @@ export default function IntegrationsPage() {
   }, [canView, router]);
 
   if (!canView) return null;
+
+  async function handleMailchimpSync() {
+    setSyncState({ status: "syncing" });
+    try {
+      const result = await triggerMailchimpSync();
+      setSyncState({ status: "done", result });
+    } catch (err) {
+      setSyncState({ status: "error", message: (err as Error).message });
+    }
+  }
 
   return (
     <div className="flex w-full flex-col gap-6">
@@ -131,11 +144,63 @@ export default function IntegrationsPage() {
           <section className="rounded-2xl border border-cashmere-border bg-white p-6">
             <div className="flex items-center justify-between">
               <h2 className="font-medium text-cashmere-text">Mailchimp</h2>
-              <NotBuiltBadge />
+              <div className="flex gap-2">
+                <StatusBadge
+                  ok={Boolean(state.data.mailchimp.apiKeyConfigured)}
+                  okLabel="API key set"
+                  notOkLabel="API key missing"
+                />
+                <StatusBadge
+                  ok={Boolean(state.data.mailchimp.audienceIdConfigured)}
+                  okLabel="Audience ID set"
+                  notOkLabel="Audience ID missing"
+                />
+              </div>
             </div>
             <p className="mt-2 text-sm text-cashmere-text-muted">
-              Chosen as the email/newsletter platform, but the integration isn&apos;t built yet.
+              Creates a bare Shopify customer record (no email sent, no marketing consent touched) for every
+              subscribed Mailchimp member who doesn&apos;t already have one — so they can log in with the existing
+              passwordless Shopify sign-in. Run this whenever new subscribers should be able to log in; it&apos;s
+              never automatic.
             </p>
+
+            <div className="mt-4 border-t border-cashmere-border pt-4">
+              <button
+                type="button"
+                onClick={handleMailchimpSync}
+                disabled={syncState.status === "syncing"}
+                className="rounded-full bg-cashmere-accent px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-cashmere-accent-dark disabled:opacity-60"
+              >
+                {syncState.status === "syncing" ? "Syncing…" : "Sync Mailchimp subscribers now"}
+              </button>
+
+              {syncState.status === "done" && (
+                <div className="mt-3 rounded-lg bg-cashmere-sidebar/60 px-4 py-3 text-sm text-cashmere-text">
+                  <p>
+                    {syncState.result.totalSubscribers} subscribed member{syncState.result.totalSubscribers === 1 ? "" : "s"} checked —{" "}
+                    <strong>{syncState.result.created}</strong> new Shopify customer{syncState.result.created === 1 ? "" : "s"} created,{" "}
+                    {syncState.result.alreadyExisted} already had one.
+                  </p>
+                  {syncState.result.failed.length > 0 && (
+                    <div className="mt-2 text-red-700">
+                      <p className="font-medium">{syncState.result.failed.length} failed:</p>
+                      <ul className="mt-1 list-disc pl-5">
+                        {syncState.result.failed.map((f) => (
+                          <li key={f.email}>
+                            {f.email} — {f.reason}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+              {syncState.status === "error" && (
+                <p className="mt-3 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+                  Could not run the sync ({syncState.message}).
+                </p>
+              )}
+            </div>
           </section>
 
           <section className="rounded-2xl border border-cashmere-border bg-white p-6">

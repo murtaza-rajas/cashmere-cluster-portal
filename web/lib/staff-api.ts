@@ -546,13 +546,34 @@ export interface IntegrationsStatus {
     lastGdprWebhookAt: string | null;
   };
   database: { healthy: boolean };
-  mailchimp: { built: boolean };
+  // apiKeyConfigured/audienceIdConfigured added 2026-10-08 alongside the
+  // real Mailchimp-sync feature — presence only, never the values.
+  mailchimp: { built: boolean; apiKeyConfigured?: boolean; audienceIdConfigured?: boolean };
   cms: { built: boolean };
 }
 
 export async function fetchIntegrationsStatus(): Promise<IntegrationsStatus> {
   const res = await apiFetch("/integrations/status");
   if (!res.ok) throw new Error(`Unexpected response fetching integrations status: ${res.status}`);
+  return res.json();
+}
+
+export interface MailchimpSyncResult {
+  totalSubscribers: number;
+  created: number;
+  alreadyExisted: number;
+  failed: { email: string; reason: string }[];
+}
+
+// Staff-triggered — creates real Shopify customer records for Mailchimp
+// subscribers who don't have one yet, see mailchimp.service.ts's own comment
+// for why this is a deliberate button click, not an automatic sync.
+export async function triggerMailchimpSync(): Promise<MailchimpSyncResult> {
+  const res = await apiFetch("/integrations/mailchimp-sync", { method: "POST" });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.message ?? `Unexpected response syncing Mailchimp: ${res.status}`);
+  }
   return res.json();
 }
 

@@ -68,6 +68,11 @@ services:
       # Same gap, same fix — present in .env since 2026-10-05 but never
       # actually reaching the container until now.
       MAILCHIMP_API_KEY: ${MAILCHIMP_API_KEY:-placeholder}
+      # Added 2026-10-08 alongside MailchimpService — listed here from the
+      # start specifically because the gap above (a key sitting unused in
+      # .env for days before anyone noticed) has now happened three separate
+      # times this engagement. Not derivable from the API key itself.
+      MAILCHIMP_AUDIENCE_ID: ${MAILCHIMP_AUDIENCE_ID:-placeholder}
       # Optional (session-cookie.util.ts reads it with .get, not .getOrThrow)
       # so its absence never crashed anything, unlike the vars above — but it
       # was silently not applying either. Blank default matches .env.example's
