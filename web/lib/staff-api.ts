@@ -34,6 +34,9 @@ export interface MemberSummary {
   region: Member["region"];
   language: Member["language"];
   isFoundingMember: boolean;
+  // Set only by the Mailchimp sync: true = subscribed, false = unsubscribed
+  // since, null = never seen in the newsletter audience.
+  newsletterSubscribed: boolean | null;
   createdAt: string;
 }
 
@@ -560,21 +563,36 @@ export async function fetchIntegrationsStatus(): Promise<IntegrationsStatus> {
 
 export interface MailchimpSyncResult {
   totalSubscribers: number;
-  created: number;
-  alreadyExisted: number;
+  shopifyCustomersCreated: number;
+  membersCreated: number;
+  membersMarkedSubscribed: number;
+  membersMarkedUnsubscribed: number;
   failed: { email: string; reason: string }[];
 }
 
-// Staff-triggered — creates real Shopify customer records for Mailchimp
-// subscribers who don't have one yet, see mailchimp.service.ts's own comment
-// for why this is a deliberate button click, not an automatic sync.
-export async function triggerMailchimpSync(): Promise<MailchimpSyncResult> {
-  const res = await apiFetch("/integrations/mailchimp-sync", { method: "POST" });
+export type MailchimpSyncStatus =
+  | { state: "idle" }
+  | { state: "running"; startedAt: string }
+  | { state: "finished"; startedAt: string; finishedAt: string; result: MailchimpSyncResult }
+  | { state: "failed"; startedAt: string; finishedAt: string; error: string };
+
+async function mailchimpSyncRequest(method: "GET" | "POST"): Promise<MailchimpSyncStatus> {
+  const res = await apiFetch("/integrations/mailchimp-sync", { method });
   if (!res.ok) {
     const body = await res.json().catch(() => null);
-    throw new Error(body?.message ?? `Unexpected response syncing Mailchimp: ${res.status}`);
+    throw new Error(body?.message ?? `Unexpected response from Mailchimp sync: ${res.status}`);
   }
   return res.json();
+}
+
+// Starts the sync in the background (it can take minutes); poll
+// fetchMailchimpSyncStatus for progress and the result.
+export function startMailchimpSync(): Promise<MailchimpSyncStatus> {
+  return mailchimpSyncRequest("POST");
+}
+
+export function fetchMailchimpSyncStatus(): Promise<MailchimpSyncStatus> {
+  return mailchimpSyncRequest("GET");
 }
 
 export interface DashboardStatEntry {

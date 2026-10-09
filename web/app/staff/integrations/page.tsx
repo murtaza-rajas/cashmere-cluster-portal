@@ -1,9 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useStaff, staffHasAnyRole } from "@/contexts/staff-context";
-import { fetchIntegrationsStatus, triggerMailchimpSync, IntegrationsStatus, MailchimpSyncResult } from "@/lib/staff-api";
+import {
+  fetchIntegrationsStatus,
+  fetchMailchimpSyncStatus,
+  startMailchimpSync,
+  IntegrationsStatus,
+  MailchimpSyncStatus,
+} from "@/lib/staff-api";
 
 type LoadState =
   | { status: "loading" }
@@ -46,9 +52,17 @@ export default function IntegrationsPage() {
   const router = useRouter();
   const canView = staffHasAnyRole(staff, ["Technical Administrator"]);
   const [state, setState] = useState<LoadState>({ status: "loading" });
-  const [syncState, setSyncState] = useState<
-    { status: "idle" } | { status: "syncing" } | { status: "done"; result: MailchimpSyncResult } | { status: "error"; message: string }
-  >({ status: "idle" });
+  const [sync, setSync] = useState<MailchimpSyncStatus | null>(null);
+  const [syncError, setSyncError] = useState<string | null>(null);
+
+  const refreshSync = useCallback(() => {
+    fetchMailchimpSyncStatus()
+      .then((status) => {
+        setSync(status);
+        setSyncError(null);
+      })
+      .catch((err: Error) => setSyncError(err.message));
+  }, []);
 
   useEffect(() => {
     if (!canView) {
@@ -58,19 +72,28 @@ export default function IntegrationsPage() {
     fetchIntegrationsStatus()
       .then((data) => setState({ status: "loaded", data }))
       .catch((err: Error) => setState({ status: "error", message: err.message }));
-  }, [canView, router]);
+    refreshSync();
+  }, [canView, router, refreshSync]);
+
+  // The sync runs in the background on the server (a first run can take
+  // minutes) — poll while it's running.
+  useEffect(() => {
+    if (sync?.state !== "running") return;
+    const timer = setInterval(refreshSync, 3000);
+    return () => clearInterval(timer);
+  }, [sync?.state, refreshSync]);
 
   if (!canView) return null;
 
   async function handleMailchimpSync() {
-    setSyncState({ status: "syncing" });
     try {
-      const result = await triggerMailchimpSync();
-      setSyncState({ status: "done", result });
+      setSync(await startMailchimpSync());
+      setSyncError(null);
     } catch (err) {
-      setSyncState({ status: "error", message: (err as Error).message });
+      setSyncError((err as Error).message);
     }
   }
+
 
   return (
     <div className="flex w-full flex-col gap-6">
@@ -158,34 +181,37 @@ export default function IntegrationsPage() {
               </div>
             </div>
             <p className="mt-2 text-sm text-cashmere-text-muted">
-              Creates a bare Shopify customer record (no email sent, no marketing consent touched) for every
-              subscribed Mailchimp member who doesn&apos;t already have one — so they can log in with the existing
-              passwordless Shopify sign-in. Run this whenever new subscribers should be able to log in; it&apos;s
-              never automatic.
+              Adds every subscribed Mailchimp contact as a Newsletter member (visible in Members &amp; Users, counted
+              on the dashboard) and creates a bare Shopify customer record so they can log in — no email is sent and
+              marketing consent isn&apos;t touched. Existing members are matched, never duplicated or downgraded.
+              Anyone who has since unsubscribed is marked unsubscribed; nothing is deleted. Never automatic.
             </p>
 
             <div className="mt-4 border-t border-cashmere-border pt-4">
               <button
                 type="button"
                 onClick={handleMailchimpSync}
-                disabled={syncState.status === "syncing"}
+                disabled={sync?.state === "running"}
                 className="rounded-full bg-cashmere-accent px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-cashmere-accent-dark disabled:opacity-60"
               >
-                {syncState.status === "syncing" ? "Syncing…" : "Sync Mailchimp subscribers now"}
+                {sync?.state === "running" ? "Syncing… (this can take a few minutes)" : "Sync Mailchimp subscribers now"}
               </button>
 
-              {syncState.status === "done" && (
+              {sync?.state === "finished" && (
                 <div className="mt-3 rounded-lg bg-cashmere-sidebar/60 px-4 py-3 text-sm text-cashmere-text">
-                  <p>
-                    {syncState.result.totalSubscribers} subscribed member{syncState.result.totalSubscribers === 1 ? "" : "s"} checked —{" "}
-                    <strong>{syncState.result.created}</strong> new Shopify customer{syncState.result.created === 1 ? "" : "s"} created,{" "}
-                    {syncState.result.alreadyExisted} already had one.
-                  </p>
-                  {syncState.result.failed.length > 0 && (
+                  <p className="text-xs text-cashmere-text-muted">Last run {formatTimestamp(sync.finishedAt)}</p>
+                  <ul className="mt-1 flex flex-col gap-0.5">
+                    <li>{sync.result.totalSubscribers} subscribed contacts in Mailchimp</li>
+                    <li><strong>{sync.result.membersCreated}</strong> new Newsletter members added</li>
+                    <li>{sync.result.shopifyCustomersCreated} new Shopify customer records created (no email sent)</li>
+                    <li>{sync.result.membersMarkedSubscribed} existing members marked as subscribed</li>
+                    <li>{sync.result.membersMarkedUnsubscribed} members marked as unsubscribed</li>
+                  </ul>
+                  {sync.result.failed.length > 0 && (
                     <div className="mt-2 text-red-700">
-                      <p className="font-medium">{syncState.result.failed.length} failed:</p>
+                      <p className="font-medium">{sync.result.failed.length} failed:</p>
                       <ul className="mt-1 list-disc pl-5">
-                        {syncState.result.failed.map((f) => (
+                        {sync.result.failed.map((f) => (
                           <li key={f.email}>
                             {f.email} — {f.reason}
                           </li>
@@ -195,9 +221,14 @@ export default function IntegrationsPage() {
                   )}
                 </div>
               )}
-              {syncState.status === "error" && (
+              {sync?.state === "failed" && (
                 <p className="mt-3 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
-                  Could not run the sync ({syncState.message}).
+                  The last sync failed ({sync.error}).
+                </p>
+              )}
+              {syncError && (
+                <p className="mt-3 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+                  Could not run the sync ({syncError}).
                 </p>
               )}
             </div>

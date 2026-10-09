@@ -142,6 +142,7 @@ export class MembersService {
         region: true,
         language: true,
         isFoundingMember: true,
+        newsletterSubscribed: true,
         createdAt: true,
       },
     });

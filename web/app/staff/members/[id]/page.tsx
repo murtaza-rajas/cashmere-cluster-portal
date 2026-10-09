@@ -73,6 +73,16 @@ export default function StaffMemberDetailPage() {
               <Field label="Region" value={state.detail.member.region} />
               <Field label="Language" value={state.detail.member.language} />
               <Field label="Status" value={state.detail.member.membershipStatus} />
+              <Field
+                label="Newsletter"
+                value={
+                  state.detail.member.newsletterSubscribed === true
+                    ? "Subscribed"
+                    : state.detail.member.newsletterSubscribed === false
+                      ? "Unsubscribed"
+                      : "Not in newsletter audience"
+                }
+              />
             </dl>
           </section>
 

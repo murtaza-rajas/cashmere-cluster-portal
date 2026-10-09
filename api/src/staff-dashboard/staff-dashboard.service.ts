@@ -24,7 +24,11 @@ export class StaffDashboardService {
   // a fabricated 0% or a divide-by-zero Infinity.
   async getStats() {
     const members = await this.prisma.member.findMany({
-      select: { createdAt: true, membershipTier: true },
+      select: {
+        createdAt: true,
+        membershipTier: true,
+        newsletterSubscribed: true,
+      },
     });
     const startOfThisMonth = startOfMonthOffset(new Date(), 0);
 
@@ -73,7 +77,11 @@ export class StaffDashboardService {
       startOfMonthOffset(now, months - 1 - i),
     );
     const members = await this.prisma.member.findMany({
-      select: { createdAt: true, membershipTier: true },
+      select: {
+        createdAt: true,
+        membershipTier: true,
+        newsletterSubscribed: true,
+      },
     });
 
     return boundaries.map((periodStart, idx) => {
@@ -183,9 +191,17 @@ function startOfMonthOffset(now: Date, monthsAgo: number): Date {
   );
 }
 
-function groupByTier(members: { membershipTier: string }[]) {
+// A Newsletter-level member who has unsubscribed in Mailchimp stays a member
+// (counted in total) but is not counted as a Newsletter member — client rule
+// 2026-10-09.
+function groupByTier(
+  members: { membershipTier: string; newsletterSubscribed: boolean | null }[],
+) {
   const byTier: Record<string, number> = {};
   for (const m of members) {
+    if (m.membershipTier === 'NEWSLETTER' && m.newsletterSubscribed === false) {
+      continue;
+    }
     byTier[m.membershipTier] = (byTier[m.membershipTier] ?? 0) + 1;
   }
   return { total: members.length, byTier };

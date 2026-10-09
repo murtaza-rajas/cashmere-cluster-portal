@@ -36,8 +36,19 @@ export class ReportsService {
   // likely more meaningful than a raw membershipTier='FOUNDING' count, since
   // Founding status is a permanent flag independent of current tier.
   async getTierBreakdown() {
+    // Same rule as the staff dashboard: unsubscribed Newsletter-level members
+    // aren't counted as Newsletter members.
     const rows = await this.prisma.member.groupBy({
       by: ['membershipTier'],
+      // Spelled out rather than NOT{tier, false}: with a nullable column, SQL's
+      // NOT(true AND NULL) is NULL and would drop never-synced members too.
+      where: {
+        OR: [
+          { membershipTier: { not: 'NEWSLETTER' } },
+          { newsletterSubscribed: null },
+          { newsletterSubscribed: true },
+        ],
+      },
       _count: true,
     });
     const foundingMemberCount = await this.prisma.member.count({

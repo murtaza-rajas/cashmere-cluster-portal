@@ -124,6 +124,12 @@ model Member {
   // The Shopify order that granted the current paid term, for support/audit reference.
   originatingShopifyOrderId String?
 
+  // Mailchimp newsletter status, set only by the Mailchimp sync. null = never
+  // seen in the audience; false = was subscribed, has since unsubscribed (kept
+  // as a member, excluded from the Newsletter count — client rule 2026-10-09).
+  // Independent of membershipTier: unsubscribing never touches a paid tier.
+  newsletterSubscribed Boolean?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

@@ -12,6 +12,7 @@ export interface Member {
   region: "INTERNATIONAL" | "MONGOLIA";
   language: "ENGLISH" | "MONGOLIAN";
   isFoundingMember: boolean;
+  newsletterSubscribed?: boolean | null;
   termLengthMonths: number | null;
   membershipStartDate: string | null;
   membershipEndDate: string | null;

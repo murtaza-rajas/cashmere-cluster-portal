@@ -91,6 +91,7 @@ export default function StaffMembersPage() {
                   <th className="whitespace-nowrap px-6 py-3 font-medium">Name</th>
                   <th className="whitespace-nowrap px-6 py-3 font-medium">Email</th>
                   <th className="whitespace-nowrap px-6 py-3 font-medium">Membership</th>
+                  <th className="whitespace-nowrap px-6 py-3 font-medium">Newsletter</th>
                   <th className="whitespace-nowrap px-6 py-3 font-medium">Joined</th>
                 </tr>
               </thead>
@@ -104,9 +105,14 @@ export default function StaffMembersPage() {
                     <td className="whitespace-nowrap px-6 py-4 font-medium text-cashmere-text">
                       {m.firstName ?? "—"} {m.lastName ?? ""}
                     </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-cashmere-text-muted">{m.email}</td>
+                    <td className="max-w-[16rem] truncate whitespace-nowrap px-6 py-4 text-cashmere-text-muted" title={m.email}>
+                      {m.email}
+                    </td>
                     <td className="whitespace-nowrap px-6 py-4 text-cashmere-text-muted">
                       {membershipTierLabel(m.membershipTier, m.isFoundingMember, m.region)}
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4 text-cashmere-text-muted">
+                      {newsletterLabel(m.newsletterSubscribed)}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-cashmere-text-muted">
                       {new Date(m.createdAt).toLocaleDateString("en-US", { month: "short", year: "numeric" })}
@@ -120,4 +126,10 @@ export default function StaffMembersPage() {
       )}
     </div>
   );
+}
+
+function newsletterLabel(subscribed: boolean | null): string {
+  if (subscribed === true) return "Subscribed";
+  if (subscribed === false) return "Unsubscribed";
+  return "—";
 }
