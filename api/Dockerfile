@@ -11,6 +11,10 @@ RUN npm ci
 
 FROM node:22-slim AS builder
 WORKDIR /app
+# Without openssl, `prisma generate` can't detect the libssl version and falls back
+# to an openssl-1.1.x engine guess (logged as a warning on every script run in prod).
+RUN apt-get update -y && apt-get install -y --no-install-recommends openssl \
+    && rm -rf /var/lib/apt/lists/*
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npx prisma generate
@@ -19,6 +23,11 @@ RUN npm run build
 FROM node:22-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
+
+# Must match the builder stage — the Prisma engine copied from there is built for
+# the openssl version detected there.
+RUN apt-get update -y && apt-get install -y --no-install-recommends openssl \
+    && rm -rf /var/lib/apt/lists/*
 
 RUN groupadd --system --gid 1001 nestjs \
     && useradd --system --uid 1001 --gid nestjs nestjs

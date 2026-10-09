@@ -348,9 +348,9 @@ export default function DesignLabAdminPage() {
                   return (
                     <div key={slot} className="flex flex-col gap-2">
                       <p className="text-xs uppercase tracking-wide text-cashmere-text-muted">{label}</p>
-                      <div className="relative h-28 w-full overflow-hidden rounded-lg bg-cashmere-sidebar/60">
+                      <div className="relative aspect-[4/3] w-full overflow-hidden rounded-lg bg-cashmere-sidebar/60">
                         {url ? (
-                          <Image src={url} alt="" fill className="object-cover" />
+                          <Image src={url} alt="" fill className="object-contain" />
                         ) : (
                           <div className="flex h-full items-center justify-center text-[10px] text-cashmere-text-muted">
                             No photo
