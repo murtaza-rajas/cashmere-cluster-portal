@@ -38,11 +38,17 @@ export default function Home() {
             full-bleed. */}
         <div className="relative flex w-full flex-col items-center px-6">
           <div className="flex flex-col items-center gap-3 text-center">
-            <div className="flex font-serif text-6xl leading-none text-cashmere-navy">
-              <span className="-mr-2">C</span>
-              <span className="mt-3 -ml-2">L</span>
-            </div>
-            <p className="text-sm font-semibold tracking-[0.3em] text-cashmere-navy">CASHMERE LOVERS&rsquo; CLUB</p>
+            {/* The client's real logo (monogram + wordmark), background made
+                transparent from the PNG he supplied. Swap for an SVG if he
+                sends the original artwork. */}
+            <Image
+              src="/images/clc-logo.png"
+              alt="Cashmere Lovers' Club"
+              width={474}
+              height={240}
+              priority
+              className="h-auto w-56 sm:w-64"
+            />
             <HeartDivider className="mt-1 w-48" />
           </div>
 
