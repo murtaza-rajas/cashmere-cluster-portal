@@ -155,6 +155,11 @@ export default function PrivacyPolicyPage() {
             basis="Consent where required. Any exceptions for existing customer relationships are used only where the applicable conditions are met."
           />
           <LegalBasisItem
+            title="Registering newsletter subscribers as Newsletter Members"
+            body="We use subscribers’ names and email addresses to create a Newsletter Member profile and a basic customer record so they can access the portal."
+            basis="Legitimate interest."
+          />
+          <LegalBasisItem
             title="Responding to enquiries"
             body="We use contact details and messages to answer questions and help you with your membership."
             basis="Performance of the agreement or our legitimate interest in responding to enquiries."
@@ -177,8 +182,10 @@ export default function PrivacyPolicyPage() {
             consent to marketing.
           </p>
           <p>
-            If existing newsletter subscribers are registered as Newsletter Members, this will not in itself change
-            their marketing consent or automatically activate a Shopify customer account.
+            Newsletter subscribers are registered as Newsletter Members using the name and email address held by our
+            newsletter provider, including a basic customer record in our online store so they can log in. No
+            message is sent and marketing consent is not changed. If you unsubscribe, your newsletter status is
+            removed; your profile is not deleted automatically, and you can ask us to delete it at any time.
           </p>
           <p>Registration does not authorise the use of their information for new marketing purposes without a valid legal basis.</p>
           <p>Access to the membership portal requires the applicable login or verification process.</p>
