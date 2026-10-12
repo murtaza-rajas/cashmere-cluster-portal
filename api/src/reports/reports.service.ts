@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { REAL_MEMBERS_ONLY } from '../common/membership-access';
 
 // Query plan for all four buildable KPIs comes directly from
 // app/docs/kpi-reporting-design.md (Milestone 1 deliverable) — this service
@@ -19,6 +20,7 @@ export class ReportsService {
   async getMemberTotals() {
     const rows = await this.prisma.member.groupBy({
       by: ['membershipStatus'],
+      where: REAL_MEMBERS_ONLY,
       _count: true,
     });
     return {
@@ -43,6 +45,7 @@ export class ReportsService {
       // Spelled out rather than NOT{tier, false}: with a nullable column, SQL's
       // NOT(true AND NULL) is NULL and would drop never-synced members too.
       where: {
+        ...REAL_MEMBERS_ONLY,
         OR: [
           { membershipTier: { not: 'NEWSLETTER' } },
           { newsletterSubscribed: null },
@@ -52,7 +55,7 @@ export class ReportsService {
       _count: true,
     });
     const foundingMemberCount = await this.prisma.member.count({
-      where: { isFoundingMember: true },
+      where: { isFoundingMember: true, ...REAL_MEMBERS_ONLY },
     });
     return {
       byTier: Object.fromEntries(rows.map((r) => [r.membershipTier, r._count])),
@@ -72,7 +75,7 @@ export class ReportsService {
     const earliestStart = bucketStarts[0];
 
     const members = await this.prisma.member.findMany({
-      where: { createdAt: { gte: earliestStart } },
+      where: { createdAt: { gte: earliestStart }, ...REAL_MEMBERS_ONLY },
       select: { createdAt: true },
     });
 

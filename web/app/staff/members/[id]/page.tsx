@@ -55,6 +55,11 @@ export default function StaffMemberDetailPage() {
             <h1 className="font-serif text-3xl tracking-tight text-cashmere-text">
               {state.detail.member.firstName ?? state.detail.member.email} {state.detail.member.lastName ?? ""}
             </h1>
+            {state.detail.member.shopifyCustomerId?.startsWith("demo-") && (
+              <p className="mt-2 w-fit rounded-full bg-cashmere-sidebar px-3 py-1 text-xs text-cashmere-text-muted">
+                Demo account for previews — not counted in the dashboard or reports
+              </p>
+            )}
             <p className="mt-1 text-sm font-semibold uppercase tracking-wide text-cashmere-accent">
               {membershipTierLabel(
                 state.detail.member.membershipTier,

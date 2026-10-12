@@ -104,6 +104,7 @@ export default function StaffMembersPage() {
                   >
                     <td className="whitespace-nowrap px-6 py-4 font-medium text-cashmere-text">
                       {m.firstName ?? "—"} {m.lastName ?? ""}
+                      {m.isDemo && <DemoTag />}
                     </td>
                     <td className="max-w-[16rem] truncate whitespace-nowrap px-6 py-4 text-cashmere-text-muted" title={m.email}>
                       {m.email}
@@ -132,4 +133,15 @@ function newsletterLabel(subscribed: boolean | null): string {
   if (subscribed === true) return "Subscribed";
   if (subscribed === false) return "Unsubscribed";
   return "—";
+}
+
+function DemoTag() {
+  return (
+    <span
+      className="ml-2 rounded-full bg-cashmere-sidebar px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-cashmere-text-muted"
+      title="Demo account for previews — not counted in the dashboard or reports"
+    >
+      Demo
+    </span>
+  );
 }

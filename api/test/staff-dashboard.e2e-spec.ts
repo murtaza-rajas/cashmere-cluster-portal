@@ -26,20 +26,28 @@ describe('Staff Dashboard (e2e)', () => {
   });
 
   async function staffCookieFor(roleName: string): Promise<string> {
-    const role = await prisma.role.findUniqueOrThrow({ where: { name: roleName } });
+    const role = await prisma.role.findUniqueOrThrow({
+      where: { name: roleName },
+    });
     const staff = await prisma.staffUser.create({
       data: {
         email: `staff-dashboard-e2e-${roleName.replace(/\s+/g, '-')}-${Date.now()}-${Math.random()}@example.com`,
         name: `Test ${roleName}`,
       },
     });
-    await prisma.staffRoleAssignment.create({ data: { staffUserId: staff.id, roleId: role.id } });
-    const token = jwt.sign({ sub: staff.id }, process.env.STAFF_JWT_SECRET!, { expiresIn: '1h' });
+    await prisma.staffRoleAssignment.create({
+      data: { staffUserId: staff.id, roleId: role.id },
+    });
+    const token = jwt.sign({ sub: staff.id }, process.env.STAFF_JWT_SECRET!, {
+      expiresIn: '1h',
+    });
     return `clc_staff_session=${token}`;
   }
 
   it('GET /staff-dashboard/stats: 401 with no session, 200 for ANY authenticated role (no @Roles gate) and reflects a real new member', async () => {
-    await request(app.getHttpServer()).get('/staff-dashboard/stats').expect(401);
+    await request(app.getHttpServer())
+      .get('/staff-dashboard/stats')
+      .expect(401);
 
     // Analytics Viewer is deliberately not the role under test for the other
     // dashboard endpoints — proving even a narrowly-scoped role like Content
@@ -79,12 +87,14 @@ describe('Staff Dashboard (e2e)', () => {
     // here, same class as reports.e2e-spec.ts's). Bracketing against
     // prisma.member.count() taken immediately before/after tolerates that
     // without weakening what's actually being proven.
-    const countBefore = await prisma.member.count();
+    // Demo/preview accounts aren't counted by the dashboard.
+    const realMembers = { NOT: { shopifyCustomerId: { startsWith: 'demo-' } } };
+    const countBefore = await prisma.member.count({ where: realMembers });
     const res = await request(app.getHttpServer())
       .get('/staff-dashboard/growth?months=6')
       .set('Cookie', cookie)
       .expect(200);
-    const countAfter = await prisma.member.count();
+    const countAfter = await prisma.member.count({ where: realMembers });
 
     expect(res.body).toHaveLength(6);
     for (let i = 1; i < res.body.length; i++) {
@@ -119,7 +129,9 @@ describe('Staff Dashboard (e2e)', () => {
     // rows in parallel Jest workers can legitimately land a newer row ahead
     // of this one; a generous limit plus a unique email is what actually
     // proves this endpoint surfaced our real insert, not its exact rank.
-    const row = res.body.find((m: { name: string }) => m.name === 'Recent Tester');
+    const row = res.body.find(
+      (m: { name: string }) => m.name === 'Recent Tester',
+    );
     expect(row).toBeDefined();
     expect(row.tier).toBe('ANNUAL');
     expect(row.region).toBe('INTERNATIONAL');
@@ -195,5 +207,52 @@ describe('Staff Dashboard (e2e)', () => {
     expect(after.body.gdprRequestsPending).toBeGreaterThanOrEqual(
       before.body.gdprRequestsPending + 1,
     );
+  });
+
+  it('demo/preview accounts are left out of dashboard counts and recent members, and flagged in Members & Users', async () => {
+    const cookie = await staffCookieFor('Super Administrator');
+    const email = `staff-dashboard-e2e-demo-${Date.now()}@example.com`;
+    const demo = await prisma.member.create({
+      data: {
+        shopifyCustomerId: `demo-${email}`,
+        email,
+        membershipTier: 'FOUNDING',
+        isFoundingMember: true,
+      },
+    });
+
+    // Other spec files add members concurrently: compare against the DB's own
+    // count of non-demo members, retrying until it's stable across the request.
+    let last: unknown;
+    let matched = false;
+    for (let attempt = 0; attempt < 10 && !matched; attempt++) {
+      const real = () =>
+        prisma.member.count({
+          where: { NOT: { shopifyCustomerId: { startsWith: 'demo-' } } },
+        });
+      const before = await real();
+      const res = await request(app.getHttpServer())
+        .get('/staff-dashboard/stats')
+        .set('Cookie', cookie)
+        .expect(200);
+      const after = await real();
+      last = { db: before, dashboard: res.body.total.count };
+      matched = before === after && res.body.total.count === before;
+    }
+    expect(matched ? 'ok' : last).toBe('ok');
+
+    const recent = await request(app.getHttpServer())
+      .get('/staff-dashboard/recent-members?limit=50')
+      .set('Cookie', cookie)
+      .expect(200);
+    expect(recent.body.map((m: { id: string }) => m.id)).not.toContain(demo.id);
+
+    const list = await request(app.getHttpServer())
+      .get(`/members?search=${encodeURIComponent(email)}`)
+      .set('Cookie', cookie)
+      .expect(200);
+    expect(list.body).toHaveLength(1);
+    expect(list.body[0].isDemo).toBe(true);
+    expect(list.body[0].shopifyCustomerId).toBeUndefined();
   });
 });

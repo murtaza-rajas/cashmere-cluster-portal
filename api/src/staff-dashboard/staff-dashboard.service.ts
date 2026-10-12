@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { REAL_MEMBERS_ONLY } from '../common/membership-access';
 
 // Aggregates real data across Members, MemberOrderCache and
 // DataSubjectRequest for the staff Dashboard landing page (client's
@@ -24,6 +25,7 @@ export class StaffDashboardService {
   // a fabricated 0% or a divide-by-zero Infinity.
   async getStats() {
     const members = await this.prisma.member.findMany({
+      where: REAL_MEMBERS_ONLY,
       select: {
         createdAt: true,
         membershipTier: true,
@@ -77,6 +79,7 @@ export class StaffDashboardService {
       startOfMonthOffset(now, months - 1 - i),
     );
     const members = await this.prisma.member.findMany({
+      where: REAL_MEMBERS_ONLY,
       select: {
         createdAt: true,
         membershipTier: true,
@@ -103,6 +106,7 @@ export class StaffDashboardService {
 
   async getRecentMembers(limit: number) {
     const members = await this.prisma.member.findMany({
+      where: REAL_MEMBERS_ONLY,
       orderBy: { createdAt: 'desc' },
       take: limit,
       select: {
@@ -135,6 +139,7 @@ export class StaffDashboardService {
   async getRecentActivity(limit: number) {
     const [members, orders] = await Promise.all([
       this.prisma.member.findMany({
+        where: REAL_MEMBERS_ONLY,
         orderBy: { createdAt: 'desc' },
         take: limit,
         select: {

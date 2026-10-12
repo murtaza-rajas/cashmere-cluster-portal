@@ -26,3 +26,15 @@ export function plainExcerpt(text: string | null, maxLength = 180): string {
   const cut = plain.slice(0, maxLength);
   return `${cut.slice(0, Math.max(cut.lastIndexOf(' '), 0)) || cut}…`;
 }
+
+// Demo/preview accounts (scripts/create-member-preview-link.* — Shopify id
+// "demo-<email>") are real rows so preview links work, but they aren't real
+// members: excluded from every dashboard/report count, flagged in lists.
+export const DEMO_ID_PREFIX = 'demo-';
+export const REAL_MEMBERS_ONLY = {
+  NOT: { shopifyCustomerId: { startsWith: DEMO_ID_PREFIX } },
+} as const;
+
+export function isDemoMember(member: { shopifyCustomerId: string }): boolean {
+  return member.shopifyCustomerId.startsWith(DEMO_ID_PREFIX);
+}

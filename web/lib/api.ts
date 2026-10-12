@@ -13,6 +13,8 @@ export interface Member {
   language: "ENGLISH" | "MONGOLIAN";
   isFoundingMember: boolean;
   newsletterSubscribed?: boolean | null;
+  // Present on staff member-detail responses.
+  shopifyCustomerId?: string;
   termLengthMonths: number | null;
   membershipStartDate: string | null;
   membershipEndDate: string | null;

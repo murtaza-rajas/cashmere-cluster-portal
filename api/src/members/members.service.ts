@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { isDemoMember } from '../common/membership-access';
 import { Gender, MembershipTier, Prisma, Region } from '@prisma/client';
 import { ExternalIdentity } from '../auth/interfaces/identity-provider.interface';
 import { AuditLogService } from '../audit-log/audit-log.service';
@@ -115,7 +116,10 @@ export class MembersService {
   // across email/first/last name. No pagination yet (matches the simplicity
   // level of the rest of the admin backend so far — findAll() on StaffService
   // has none either); worth adding once real member volume makes that matter.
-  findAllForStaff(search: string | undefined, scopedRegion: Region | null) {
+  async findAllForStaff(
+    search: string | undefined,
+    scopedRegion: Region | null,
+  ) {
     const where: Prisma.MemberWhereInput = {
       ...(search
         ? {
@@ -129,7 +133,7 @@ export class MembersService {
       ...(scopedRegion ? { region: scopedRegion } : {}),
     };
 
-    return this.prisma.member.findMany({
+    const members = await this.prisma.member.findMany({
       where,
       orderBy: { createdAt: 'desc' },
       select: {
@@ -144,8 +148,14 @@ export class MembersService {
         isFoundingMember: true,
         newsletterSubscribed: true,
         createdAt: true,
+        shopifyCustomerId: true,
       },
     });
+    // isDemo instead of the raw Shopify id, which staff lists don't need.
+    return members.map(({ shopifyCustomerId, ...m }) => ({
+      ...m,
+      isDemo: isDemoMember({ shopifyCustomerId }),
+    }));
   }
 
   // Read-only summary cache (see schema.prisma) — kept in sync via Shopify order

@@ -37,6 +37,8 @@ export interface MemberSummary {
   // Set only by the Mailchimp sync: true = subscribed, false = unsubscribed
   // since, null = never seen in the newsletter audience.
   newsletterSubscribed: boolean | null;
+  // Demo/preview account (excluded from dashboard and report counts).
+  isDemo: boolean;
   createdAt: string;
 }
 
