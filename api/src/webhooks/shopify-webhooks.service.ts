@@ -9,6 +9,15 @@ import {
   ShopifyShopRedactPayload,
 } from './types/shopify-webhook-payloads';
 
+// Free tiers (Newsletter, Mongolia) rank 0 — any paid purchase replaces them.
+const TIER_RANK: Record<MembershipTier, number> = {
+  NEWSLETTER: 0,
+  MONGOLIA: 0,
+  SIX_MONTH: 1,
+  ANNUAL: 2,
+  FOUNDING: 3,
+};
+
 @Injectable()
 export class ShopifyWebhooksService {
   private readonly logger = new Logger(ShopifyWebhooksService.name);
@@ -202,25 +211,23 @@ export class ShopifyWebhooksService {
   }
 
   /**
-   * Auto-activation-on-payment (Milestone 4, built 2026-10-07 once real
-   * Shopify products/variant IDs existed to match against). Fires from both
-   * orders/create (an instant payment method) and orders/updated (pending →
-   * paid later) — whichever delivery first reports `paid` triggers this, and
-   * re-delivery of an already-processed paid order is a harmless no-op (same
-   * values written again).
+   * Auto-activation-on-payment. Fires from orders/create and orders/updated
+   * — whichever delivery first reports `paid`.
    *
-   * Matches on product_id, not a specific variant — each real membership
-   * product (Founding/Annual/6-Month) has exactly one variant ("Default
-   * Title"), so the product itself is the real identity of what was bought.
+   * Matches on product_id (each membership product has exactly one variant).
    * MembershipLevel.shopifyProductId is the mapping (developer-set, not
-   * staff-editable — see schema.prisma's comment on why).
+   * staff-editable — see schema.prisma).
    *
-   * Deliberately one-way: this activates/extends a membership, it never
-   * downgrades or deactivates one on a refund/cancellation — that lifecycle
-   * was never scoped and isn't built here. If an order somehow contains more
-   * than one membership-product line item (not a real purchase flow Explore
-   * Membership offers — one plan at a time), the first match wins; this
-   * isn't trying to handle that as a real case.
+   * Rules (2026-10-12):
+   * - Each order counts once. Shopify re-sends orders/updated on every change
+   *   to the order (fulfilment, notes, tags), so an already-applied order is
+   *   skipped — otherwise every re-delivery would extend the term again.
+   * - Never downgrade: the member keeps the higher of their current active
+   *   level and the purchased one (a Founding member buying Annual stays
+   *   Founding).
+   * - Extend, don't reset: if their paid membership hasn't ended, the
+   *   purchased term is added to the current end date.
+   * - One-way: refunds/cancellations never deactivate (never scoped).
    */
   private async activateMembershipFromOrder(
     memberId: string,
@@ -231,16 +238,51 @@ export class ShopifyWebhooksService {
       return;
     }
 
-    const startDate = new Date(payload.created_at);
-    const endDate = new Date(startDate);
+    const alreadyApplied = await this.prisma.auditLog.findFirst({
+      where: {
+        action: 'member.tier_activated',
+        targetMemberId: memberId,
+        metadata: { path: ['shopifyOrderId'], equals: payload.id },
+      },
+      select: { id: true },
+    });
+    if (alreadyApplied) return;
+
+    const member = await this.prisma.member.findUniqueOrThrow({
+      where: { id: memberId },
+    });
+
+    const purchasedAt = new Date(payload.created_at);
+    // A paid tier with no end date (e.g. granted by hand) counts as active.
+    const currentPaidActive =
+      member.membershipStatus === 'ACTIVE' &&
+      TIER_RANK[member.membershipTier] > 0 &&
+      (member.membershipEndDate === null ||
+        member.membershipEndDate > purchasedAt);
+
+    const keepCurrentTier =
+      currentPaidActive &&
+      TIER_RANK[member.membershipTier] >= TIER_RANK[level.tier];
+    const tier = keepCurrentTier ? member.membershipTier : level.tier;
+
+    const startDate = currentPaidActive
+      ? (member.membershipStartDate ?? purchasedAt)
+      : purchasedAt;
+    const endDate = new Date(
+      currentPaidActive && member.membershipEndDate
+        ? member.membershipEndDate
+        : purchasedAt,
+    );
     endDate.setMonth(endDate.getMonth() + level.termLengthMonths);
 
     await this.prisma.member.update({
       where: { id: memberId },
       data: {
-        membershipTier: level.tier,
+        membershipTier: tier,
         membershipStatus: 'ACTIVE',
-        termLengthMonths: level.termLengthMonths,
+        termLengthMonths: keepCurrentTier
+          ? member.termLengthMonths
+          : level.termLengthMonths,
         membershipStartDate: startDate,
         membershipEndDate: endDate,
         // Permanent once granted, per the client's own spec — never cleared
@@ -257,15 +299,18 @@ export class ShopifyWebhooksService {
       targetId: memberId,
       targetMemberId: memberId,
       metadata: {
-        tier: level.tier,
+        tier,
+        purchasedTier: level.tier,
+        extended: currentPaidActive,
         shopifyOrderId: payload.id,
         shopifyProductId: level.shopifyProductId,
         termLengthMonths: level.termLengthMonths,
+        membershipEndDate: endDate.toISOString(),
       },
     });
 
     this.logger.log(
-      `Member ${memberId} activated to ${level.tier} from paid order ${payload.id}`,
+      `Member ${memberId} ${currentPaidActive ? 'extended' : 'activated'} as ${tier} from paid order ${payload.id}`,
     );
   }
 

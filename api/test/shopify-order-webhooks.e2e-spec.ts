@@ -302,6 +302,150 @@ describe('Shopify order-sync webhooks — auto-activation-on-payment (e2e)', () 
     expect((audit!.metadata as { tier: string }).tier).toBe('FOUNDING');
   });
 
+  // Helpers for the purchase-rule tests below.
+  async function memberWith(state: {
+    tier: 'FOUNDING' | 'ANNUAL' | 'NEWSLETTER';
+    start?: string;
+    end?: string;
+    term?: number;
+  }) {
+    const externalId = `${Date.now()}${Math.floor(Math.random() * 1e6)}`;
+    const m = await members.findOrCreateFromIdentity({
+      providerId: 'shopify',
+      externalId,
+      email: `rules-e2e-${externalId}@example.com`,
+    });
+    await prisma.member.update({
+      where: { id: m.id },
+      data: {
+        membershipTier: state.tier,
+        isFoundingMember: state.tier === 'FOUNDING',
+        membershipStartDate: state.start ? new Date(state.start) : null,
+        membershipEndDate: state.end ? new Date(state.end) : null,
+        termLengthMonths: state.term ?? null,
+      },
+    });
+    return { id: m.id, externalId };
+  }
+
+  function paidOrder(
+    externalId: string,
+    productId: string,
+    createdAt: string,
+    orderId = Date.now() + Math.floor(Math.random() * 1e6),
+  ) {
+    return {
+      id: orderId,
+      name: `#R${orderId}`,
+      total_price: '1.00',
+      currency: 'NOK',
+      financial_status: 'paid',
+      created_at: createdAt,
+      customer: { id: externalId },
+      line_items: [
+        {
+          id: 1,
+          product_id: Number(productId),
+          title: 'Membership',
+          variant_title: null,
+          quantity: 1,
+          price: '1.00',
+        },
+      ],
+    };
+  }
+
+  it('a Founding member who buys Annual stays Founding, with the year added to their end date', async () => {
+    const { id, externalId } = await memberWith({
+      tier: 'FOUNDING',
+      start: '2026-11-01T00:00:00Z',
+      end: '2031-11-01T00:00:00Z',
+      term: 60,
+    });
+    await post(
+      '/webhooks/shopify/orders/create',
+      paidOrder(externalId, annualProductId, '2027-03-01T00:00:00Z'),
+    ).expect(200);
+
+    const m = await prisma.member.findUniqueOrThrow({ where: { id } });
+    expect(m.membershipTier).toBe('FOUNDING');
+    expect(m.isFoundingMember).toBe(true);
+    expect(m.termLengthMonths).toBe(60);
+    expect(m.membershipStartDate?.toISOString()).toBe('2026-11-01T00:00:00.000Z');
+    expect(m.membershipEndDate?.toISOString()).toBe('2032-11-01T00:00:00.000Z');
+  });
+
+  it('renewing Annual before it ends extends from the current end date', async () => {
+    const { id, externalId } = await memberWith({
+      tier: 'ANNUAL',
+      start: '2026-11-01T00:00:00Z',
+      end: '2027-11-01T00:00:00Z',
+      term: 12,
+    });
+    await post(
+      '/webhooks/shopify/orders/create',
+      paidOrder(externalId, annualProductId, '2027-10-01T00:00:00Z'),
+    ).expect(200);
+
+    const m = await prisma.member.findUniqueOrThrow({ where: { id } });
+    expect(m.membershipTier).toBe('ANNUAL');
+    expect(m.membershipStartDate?.toISOString()).toBe('2026-11-01T00:00:00.000Z');
+    expect(m.membershipEndDate?.toISOString()).toBe('2028-11-01T00:00:00.000Z');
+  });
+
+  it('an active Annual member who buys Founding is upgraded, keeping their remaining time', async () => {
+    const { id, externalId } = await memberWith({
+      tier: 'ANNUAL',
+      start: '2026-11-01T00:00:00Z',
+      end: '2027-11-01T00:00:00Z',
+      term: 12,
+    });
+    await post(
+      '/webhooks/shopify/orders/create',
+      paidOrder(externalId, foundingProductId, '2027-05-01T00:00:00Z'),
+    ).expect(200);
+
+    const m = await prisma.member.findUniqueOrThrow({ where: { id } });
+    expect(m.membershipTier).toBe('FOUNDING');
+    expect(m.isFoundingMember).toBe(true);
+    expect(m.termLengthMonths).toBe(60);
+    expect(m.membershipEndDate?.toISOString()).toBe('2032-11-01T00:00:00.000Z');
+  });
+
+  it('after a membership has ended, a new purchase starts fresh from the purchase date', async () => {
+    const { id, externalId } = await memberWith({
+      tier: 'ANNUAL',
+      start: '2026-11-01T00:00:00Z',
+      end: '2027-11-01T00:00:00Z',
+      term: 12,
+    });
+    await post(
+      '/webhooks/shopify/orders/create',
+      paidOrder(externalId, annualProductId, '2028-02-01T00:00:00Z'),
+    ).expect(200);
+
+    const m = await prisma.member.findUniqueOrThrow({ where: { id } });
+    expect(m.membershipStartDate?.toISOString()).toBe('2028-02-01T00:00:00.000Z');
+    expect(m.membershipEndDate?.toISOString()).toBe('2029-02-01T00:00:00.000Z');
+  });
+
+  it('the same paid order delivered again (orders/updated) is only counted once', async () => {
+    const { id, externalId } = await memberWith({ tier: 'NEWSLETTER' });
+    const order = paidOrder(externalId, annualProductId, '2026-11-01T00:00:00Z');
+    await post('/webhooks/shopify/orders/create', order).expect(200);
+    await post('/webhooks/shopify/orders/updated', order).expect(200);
+    await post('/webhooks/shopify/orders/updated', order).expect(200);
+
+    const m = await prisma.member.findUniqueOrThrow({ where: { id } });
+    expect(m.membershipTier).toBe('ANNUAL');
+    expect(m.membershipEndDate?.toISOString()).toBe('2027-11-01T00:00:00.000Z');
+    expect(
+      await prisma.auditLog.count({
+        where: { action: 'member.tier_activated', targetMemberId: id },
+      }),
+    ).toBe(1);
+  });
+
   it('a paid membership order from someone who never logged in creates their member and activates it', async () => {
     const customerId = Date.now() + 700;
     const shopifyOrderId = Date.now() + 701;
