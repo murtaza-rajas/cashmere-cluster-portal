@@ -121,16 +121,18 @@ describe('Care guide catalog (e2e)', () => {
       .expect(400);
   });
 
-  it('GET /members/me/care-guides: 401 with no session, 200 with all five topics (including the real body just set above) for a real member', async () => {
+  it('GET /members/me/care-guides: 401 with no session; full guides for a paid member, locked previews (no body) for a Newsletter member', async () => {
     await request(app.getHttpServer())
       .get('/members/me/care-guides')
       .expect(401);
 
     const contentManagerCookie = await staffCookieFor('Content Manager');
+    const longBody =
+      '## Storing cashmere\n\n**Fold, never hang.** Keep pieces folded in a drawer or on a shelf, away from direct light, and use cedar to keep moths away. Before storing for the season, wash and dry each piece completely.';
     await request(app.getHttpServer())
       .patch('/care-guide-catalog/STORAGE')
       .set('Cookie', contentManagerCookie)
-      .send({ body: 'Store folded, away from direct light.' })
+      .send({ body: longBody })
       .expect(200);
 
     const externalId = `care-guides-e2e-member-${Date.now()}`;
@@ -140,17 +142,35 @@ describe('Care guide catalog (e2e)', () => {
       email: `${externalId}@example.com`,
     });
 
-    const res = await request(app.getHttpServer())
+    // Newsletter (the default for a new member): preview only.
+    const locked = await request(app.getHttpServer())
       .get('/members/me/care-guides')
       .set('Cookie', sessionCookieFor(member.id))
       .expect(200);
-
-    expect(res.body).toHaveLength(5);
-    const storage = res.body.find(
+    expect(locked.body).toHaveLength(5);
+    const lockedStorage = locked.body.find(
       (r: { topic: string }) => r.topic === 'STORAGE',
     );
-    expect(storage.body).toBe('Store folded, away from direct light.');
-    // Member-facing rows are the narrow {topic, body} shape only.
-    expect(storage.id).toBeUndefined();
+    expect(lockedStorage.locked).toBe(true);
+    expect(lockedStorage.body).toBeNull();
+    expect(lockedStorage.preview).toMatch(/^Storing cashmere Fold, never hang\./);
+    expect(lockedStorage.preview.length).toBeLessThan(longBody.length);
+    expect(JSON.stringify(locked.body)).not.toContain('wash and dry each piece');
+
+    // Paid member: the real guide.
+    await prisma.member.update({
+      where: { id: member.id },
+      data: { membershipTier: 'ANNUAL' },
+    });
+    const full = await request(app.getHttpServer())
+      .get('/members/me/care-guides')
+      .set('Cookie', sessionCookieFor(member.id))
+      .expect(200);
+    const fullStorage = full.body.find(
+      (r: { topic: string }) => r.topic === 'STORAGE',
+    );
+    expect(fullStorage.locked).toBe(false);
+    expect(fullStorage.body).toBe(longBody);
+    expect(fullStorage.id).toBeUndefined();
   });
 });

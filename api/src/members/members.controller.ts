@@ -103,7 +103,9 @@ export class MembersController {
   createDataRequest(@Body() dto: CreateRequestDto, @Req() req: Request) {
     return this.dataSubjectRequests.createFromMember(
       (req.user as Member).id,
-      dto.type === 'DELETION' ? DataSubjectRequestType.DELETION : DataSubjectRequestType.ACCESS,
+      dto.type === 'DELETION'
+        ? DataSubjectRequestType.DELETION
+        : DataSubjectRequestType.ACCESS,
     );
   }
 
@@ -181,7 +183,9 @@ export class MembersController {
   @UseGuards(JwtAuthGuard)
   @Get('me/exclusive-collections')
   myExclusiveCollections(@Req() req: Request) {
-    return this.exclusiveCollections.findForMember((req.user as Member).membershipTier);
+    return this.exclusiveCollections.findForMember(
+      (req.user as Member).membershipTier,
+    );
   }
 
   // Stories & Knowledge — real, staff-curated content (see StoriesService),
@@ -196,6 +200,16 @@ export class MembersController {
 
   // Homepage "Latest News & Updates" curation (client email 2026-09-22) —
   // replaces the dashboard's previous static placeholder text.
+  // Every story this member can see or unlock by upgrading — locked ones as
+  // teaser only (StoriesService.findPreviewsForMember).
+  @UseGuards(JwtAuthGuard)
+  @Get('me/stories/previews')
+  myStoryPreviews(@Req() req: Request) {
+    return this.stories.findPreviewsForMember(
+      (req.user as Member).membershipTier,
+    );
+  }
+
   @UseGuards(JwtAuthGuard)
   @Get('me/stories/featured')
   myFeaturedStories(@Req() req: Request) {
@@ -209,8 +223,10 @@ export class MembersController {
   // level via lib/access.ts, not per-guide.
   @UseGuards(JwtAuthGuard)
   @Get('me/care-guides')
-  myCareGuides() {
-    return this.careGuides.findAllForMember();
+  myCareGuides(@Req() req: Request) {
+    return this.careGuides.findAllForMember(
+      (req.user as Member).membershipTier,
+    );
   }
 
   // Founders' Design Lab — international-only, tier-gated to Founding (full:

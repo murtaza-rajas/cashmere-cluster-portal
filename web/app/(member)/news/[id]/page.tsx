@@ -6,7 +6,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Newspaper, Palette } from "lucide-react";
 import { RequireAccess } from "@/components/require-access";
-import { fetchMyStories, fetchMyDesigns, MemberStory, MemberDesign } from "@/lib/api";
+import { fetchMyStories, fetchMyStoryPreviews, fetchMyDesigns, MemberStory, MemberStoryPreview, MemberDesign } from "@/lib/api";
+import { LockBadge, membersWhoCanAccess } from "@/components/locked-content";
 import { useMember } from "@/contexts/member-context";
 import { getAccessLevel } from "@/lib/access";
 import { StoryArticle } from "@/components/story-article";
@@ -33,15 +34,20 @@ export default function StoryDetailPage() {
     | { status: "loading" }
     | { status: "error"; message: string }
     | { status: "not-found" }
+    | { status: "locked"; preview: MemberStoryPreview }
     | { status: "loaded"; story: MemberStory }
   >({ status: "loading" });
   const [concepts, setConcepts] = useState<MemberDesign[] | null>(null);
 
   useEffect(() => {
     fetchMyStories()
-      .then((stories) => {
+      .then(async (stories) => {
         const story = stories.find((s) => s.id === id);
-        setState(story ? { status: "loaded", story } : { status: "not-found" });
+        if (story) return setState({ status: "loaded", story });
+        // Not readable at this level — if it's a member-only story, show its
+        // teaser and how to unlock it instead of "not found".
+        const preview = (await fetchMyStoryPreviews()).find((p) => p.id === id && p.locked);
+        setState(preview ? { status: "locked", preview } : { status: "not-found" });
       })
       .catch((err: Error) => setState({ status: "error", message: err.message }));
   }, [id]);
@@ -79,6 +85,35 @@ export default function StoryDetailPage() {
               It may have been unpublished, or isn&apos;t visible to your membership level.
             </p>
           </div>
+        )}
+
+        {state.status === "locked" && (
+          <article className="overflow-hidden rounded-2xl border border-cashmere-border bg-white">
+            {state.preview.heroImageUrl && (
+              <div className="relative aspect-[16/7] w-full">
+                <Image src={state.preview.heroImageUrl} alt="" fill className="object-cover" />
+                <LockBadge className="absolute top-4 right-4 h-9 w-9" />
+              </div>
+            )}
+            <div className="flex flex-col gap-3 p-6 sm:p-8">
+              <p className="text-xs font-semibold uppercase tracking-wide text-cashmere-accent-dark">
+                {state.preview.category.name}
+              </p>
+              <h1 className="font-serif text-3xl tracking-tight text-cashmere-text">{state.preview.title}</h1>
+              {state.preview.excerpt && <p className="max-w-[65ch] text-cashmere-text-muted">{state.preview.excerpt}</p>}
+              <div className="mt-4 rounded-xl bg-cashmere-sidebar/70 p-5 text-center">
+                <p className="font-medium text-cashmere-text">
+                  This story is available to {membersWhoCanAccess(state.preview.availableTo)}.
+                </p>
+                <Link
+                  href="/explore-membership"
+                  className="mt-4 inline-block rounded-full bg-cashmere-accent px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-cashmere-accent-dark"
+                >
+                  Explore Membership
+                </Link>
+              </div>
+            </div>
+          </article>
         )}
 
         {state.status === "loaded" && (

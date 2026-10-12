@@ -1,7 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
-import { CareGuideTopic } from '@prisma/client';
+import { CareGuideTopic, MembershipTier } from '@prisma/client';
+import { isPaidTier, plainExcerpt } from '../common/membership-access';
 import { UpdateCareGuideDto } from './dto/update-care-guide.dto';
 
 @Injectable()
@@ -59,10 +60,22 @@ export class CareGuidesService {
 
   // Member-facing: same five topics, always — the page shows its own
   // "coming soon" placeholder for any topic whose body is still null.
-  findAllForMember() {
-    return this.prisma.careGuide.findMany({
+  // Care & Repair is member-only (client request 2026-10-12): other tiers
+  // get a short preview of each guide and locked: true — the full guide text
+  // is never sent to them, so it can't be read from the API either.
+  async findAllForMember(tier: MembershipTier) {
+    const guides = await this.prisma.careGuide.findMany({
       orderBy: { topic: 'asc' },
       select: { topic: true, body: true },
     });
+    if (isPaidTier(tier)) {
+      return guides.map((g) => ({ ...g, preview: null, locked: false }));
+    }
+    return guides.map((g) => ({
+      topic: g.topic,
+      body: null,
+      preview: g.body ? plainExcerpt(g.body, 140) : null,
+      locked: true,
+    }));
   }
 }

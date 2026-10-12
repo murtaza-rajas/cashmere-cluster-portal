@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Tag, Shirt, Newspaper, User, Heart, Package } from "lucide-react";
+import { Home, Tag, Shirt, Newspaper, User, ShoppingBag, Package } from "lucide-react";
 import { useMember } from "@/contexts/member-context";
 
 interface TabItem {
@@ -26,15 +26,13 @@ const FULL_TABS: TabItem[] = [
   { href: "/profile", label: "Profile", icon: User },
 ];
 
-// Newsletter/Mongolia's own real nav (components/sidebar.tsx's NEWSLETTER_NAV_ITEMS)
-// doesn't include Member Offers/My Collection at all — Wishlist and My Orders
-// are what those members actually have, so the mobile tab bar mirrors that
-// instead of reusing the full-tier set with dead links.
+// Newsletter/Mongolia — a subset of their sidebar (NEWSLETTER_NAV_GROUPS),
+// so no dead links to member-only pages.
 const NEWSLETTER_TABS: TabItem[] = [
   { href: "/dashboard", label: "Home", icon: Home },
-  { href: "/news", label: "News", icon: Newspaper },
+  { href: "/news", label: "Stories", icon: Newspaper },
+  { href: "/collections", label: "Collections", icon: ShoppingBag },
   { href: "/orders", label: "Orders", icon: Package },
-  { href: "/wishlist", label: "Wishlist", icon: Heart },
   { href: "/profile", label: "Profile", icon: User },
 ];
 

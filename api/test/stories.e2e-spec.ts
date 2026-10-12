@@ -425,6 +425,89 @@ describe('Story catalog (e2e)', () => {
     expect(ids).not.toContain(membersOnlyStory.body.id);
   });
 
+  it('GET /members/me/stories/previews: a Newsletter member sees member-only stories as locked teasers, without their body', async () => {
+    const contentManagerCookie = await staffCookieFor('Content Manager');
+    const secret = 'The full member-only text that must never reach a Newsletter member.';
+
+    const publicStory = await request(app.getHttpServer())
+      .post('/story-catalog')
+      .set('Cookie', contentManagerCookie)
+      .send({
+        title: 'Previews: open story',
+        categoryId,
+        tiers: ['FOUNDING', 'ANNUAL', 'SIX_MONTH', 'NEWSLETTER'],
+        status: 'PUBLISHED',
+        sections: [{ order: 0, type: 'TEXT', text: '## Welcome\n\nOpen to everyone.' }],
+      })
+      .expect(201);
+    const membersOnly = await request(app.getHttpServer())
+      .post('/story-catalog')
+      .set('Cookie', contentManagerCookie)
+      .send({
+        title: 'Previews: From Fiber to Fashion',
+        categoryId,
+        tiers: ['FOUNDING', 'ANNUAL'],
+        status: 'PUBLISHED',
+        sections: [
+          {
+            order: 0,
+            type: 'TEXT',
+            text: `See how our cashmere is crafted with care from the very beginning. ${'More detail. '.repeat(30)}`,
+          },
+          { order: 1, type: 'TEXT', text: secret },
+        ],
+      })
+      .expect(201);
+    const mongoliaOnly = await request(app.getHttpServer())
+      .post('/story-catalog')
+      .set('Cookie', contentManagerCookie)
+      .send({
+        title: 'Previews: Mongolia only',
+        categoryId,
+        tiers: ['MONGOLIA'],
+        status: 'PUBLISHED',
+        sections: [],
+      })
+      .expect(201);
+
+    const externalId = `stories-e2e-previews-${Date.now()}`;
+    const newsletterMember = await members.findOrCreateFromIdentity({
+      providerId: 'shopify',
+      externalId,
+      email: `${externalId}@example.com`,
+    });
+
+    const res = await request(app.getHttpServer())
+      .get('/members/me/stories/previews')
+      .set('Cookie', sessionCookieFor(newsletterMember.id))
+      .expect(200);
+    type Preview = { id: string; locked: boolean; excerpt: string; availableTo: string[]; sections?: unknown };
+    const byId = new Map<string, Preview>(res.body.map((p: Preview) => [p.id, p]));
+
+    expect(byId.get(publicStory.body.id)).toMatchObject({ locked: false, excerpt: 'Welcome Open to everyone.' });
+    const locked = byId.get(membersOnly.body.id)!;
+    expect(locked.locked).toBe(true);
+    expect(locked.availableTo).toEqual(['ANNUAL', 'FOUNDING']);
+    expect(locked.excerpt.startsWith('See how our cashmere is crafted')).toBe(true);
+    expect(locked.excerpt.length).toBeLessThanOrEqual(181);
+    expect(locked.sections).toBeUndefined();
+    expect(JSON.stringify(res.body)).not.toContain(secret);
+    expect(byId.has(mongoliaOnly.body.id)).toBe(false);
+
+    // The same story is unlocked for an Annual member.
+    await prisma.member.update({
+      where: { id: newsletterMember.id },
+      data: { membershipTier: 'ANNUAL' },
+    });
+    const annual = await request(app.getHttpServer())
+      .get('/members/me/stories/previews')
+      .set('Cookie', sessionCookieFor(newsletterMember.id))
+      .expect(200);
+    expect(
+      annual.body.find((p: Preview) => p.id === membersOnly.body.id).locked,
+    ).toBe(false);
+  });
+
   it("GET /members/me/stories/featured only returns PUBLISHED + featured stories visible to the member's own tier", async () => {
     const contentManagerCookie = await staffCookieFor('Content Manager');
 

@@ -18,7 +18,6 @@ import {
   ShoppingBag,
   CalendarHeart,
   Heart,
-  Sparkles,
   Palette,
 } from "lucide-react";
 import { useMember } from "@/contexts/member-context";
@@ -34,6 +33,7 @@ import {
   MemberStory,
 } from "@/lib/api";
 import { getAccessLevel } from "@/lib/access";
+import { NewsletterHome } from "@/components/newsletter-home";
 
 // Matches founding-member-dashboard.jpeg section-for-section. Real data used
 // wherever we have it (name, tier, join date, Member ID, real order count via
@@ -497,48 +497,6 @@ function UtilityLink({
   );
 
   return href ? <a href={href}>{content}</a> : content;
-}
-
-function NewsletterHome({ displayName }: { displayName: string }) {
-  return (
-    <div className="flex flex-col gap-6">
-      <section className="rounded-2xl border border-cashmere-border bg-white p-8">
-        <h1 className="font-serif text-3xl tracking-tight text-cashmere-text">Welcome, {displayName}</h1>
-        <div className="mt-3 flex max-w-md flex-col gap-3 text-cashmere-text-muted">
-          <p>Thank you for following Cashmere Lovers Club through our newsletter!</p>
-          <p>
-            You are now logged into our upcoming member portal. We are developing the design and content ahead of
-            the launch on 1 November 2026.
-          </p>
-          <p>
-            For now, you have access to this welcome page. We will keep you updated through our newsletter as the
-            opening approaches.
-          </p>
-          <p className="font-serif italic text-cashmere-text">For those of us who love cashmere</p>
-          <p>
-            We look forward to sharing stories from Mongolia, insights into cashmere, and exciting membership
-            benefits with you.
-          </p>
-          <p>Thank you for being with us from the start!</p>
-        </div>
-      </section>
-
-      <section className="rounded-2xl border border-cashmere-border bg-white p-8 text-center">
-        <Sparkles size={28} strokeWidth={1.5} className="mx-auto text-cashmere-accent" />
-        <h2 className="mt-4 font-serif text-xl tracking-tight text-cashmere-text">Become a Member</h2>
-        <p className="mx-auto mt-2 max-w-md text-sm text-cashmere-text-muted">
-          Founding and Annual members get full access to member offers, exclusive collections, priority events,
-          the complete Stories &amp; Knowledge library, and more.
-        </p>
-        <a
-          href="/explore-membership"
-          className="mt-6 inline-block rounded-full bg-cashmere-accent px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-cashmere-accent-dark"
-        >
-          Explore Membership
-        </a>
-      </section>
-    </div>
-  );
 }
 
 function ThankYouBand() {

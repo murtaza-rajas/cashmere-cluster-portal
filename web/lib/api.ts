@@ -205,6 +205,27 @@ export async function fetchMyStories(): Promise<MemberStory[]> {
   return res.json();
 }
 
+// Story cards including member-only stories this member can't open yet
+// (locked: true — title, photo and teaser only; the body is never sent).
+export interface MemberStoryPreview {
+  id: string;
+  title: string;
+  heroImageUrl: string | null;
+  category: { id: string; name: string };
+  designerName: string | null;
+  featured: boolean;
+  createdAt: string;
+  excerpt: string;
+  locked: boolean;
+  availableTo: Member["membershipTier"][];
+}
+
+export async function fetchMyStoryPreviews(): Promise<MemberStoryPreview[]> {
+  const res = await apiFetch("/members/me/stories/previews");
+  if (!res.ok) throw new Error(`Unexpected response fetching stories: ${res.status}`);
+  return res.json();
+}
+
 export async function fetchMyFeaturedStories(): Promise<MemberStory[]> {
   const res = await apiFetch("/members/me/stories/featured");
   if (!res.ok) throw new Error(`Unexpected response fetching featured stories: ${res.status}`);
@@ -213,7 +234,10 @@ export async function fetchMyFeaturedStories(): Promise<MemberStory[]> {
 
 export interface CareGuide {
   topic: "WASHING" | "STORAGE" | "PILLING" | "REPAIRS" | "LONGEVITY";
+  // null when locked: members without access only get `preview`.
   body: string | null;
+  preview: string | null;
+  locked: boolean;
 }
 
 export async function fetchMyCareGuides(): Promise<CareGuide[]> {

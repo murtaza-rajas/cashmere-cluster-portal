@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { promises as fs } from 'fs';
 import { join, extname } from 'path';
 import { randomUUID } from 'crypto';
+import { PAID_TIERS, plainExcerpt } from '../common/membership-access';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { MembershipTier, Prisma } from '@prisma/client';
@@ -238,6 +239,45 @@ export class StoriesService {
       include: STORY_INCLUDE,
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
     });
+  }
+
+  // Story list for members including locked previews (client request
+  // 2026-10-12): a Newsletter member sees member-only stories with a lock
+  // instead of not at all. Accessible stories and locked ones share one
+  // shape — title, photo, category, a short teaser — and a locked story's
+  // sections are never loaded, so its body can't leak through this endpoint.
+  // Stories targeted only at tiers this member can never reach by upgrading
+  // (e.g. Mongolia-only) are left out.
+  async findPreviewsForMember(tier: MembershipTier) {
+    const stories = await this.prisma.story.findMany({
+      where: {
+        status: 'PUBLISHED',
+        OR: [{ tiers: { has: tier } }, { tiers: { hasSome: PAID_TIERS } }],
+      },
+      include: {
+        category: true,
+        sections: {
+          where: { type: 'TEXT' },
+          orderBy: { order: Prisma.SortOrder.asc },
+          take: 1,
+          select: { text: true },
+        },
+      },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
+    });
+    return stories.map((story) => ({
+      id: story.id,
+      title: story.title,
+      heroImageUrl: story.heroImageUrl,
+      category: { id: story.category.id, name: story.category.name },
+      designerName: story.designerName,
+      featured: story.featured,
+      createdAt: story.createdAt,
+      excerpt: plainExcerpt(story.sections[0]?.text ?? null),
+      locked: !story.tiers.includes(tier),
+      // Which paid levels open it — drives the "available to …" message.
+      availableTo: PAID_TIERS.filter((t) => story.tiers.includes(t)),
+    }));
   }
 
   private async findOrThrow(id: string) {

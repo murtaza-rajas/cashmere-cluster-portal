@@ -8,6 +8,7 @@ import { RequireAccess } from "@/components/require-access";
 import { getAccessLevel } from "@/lib/access";
 import { fetchMySiteImages, fetchMyCareGuides, type CareGuide } from "@/lib/api";
 import { renderSimpleMarkdown } from "@/lib/simple-markdown";
+import { LockBadge, useLockedDialog } from "@/components/locked-content";
 
 // Topics are the client's own confirmed list (PROJECT_TRACKER.md Section 3c,
 // "Care & Repair"): washing, storage, pilling, simple repairs, longevity —
@@ -16,10 +17,9 @@ import { renderSimpleMarkdown } from "@/lib/simple-markdown";
 // real guide content ("body" below, staff-editable at /staff/care-repair) is
 // added continuously after launch, so a topic with no body yet still shows
 // an honest "coming soon" state rather than invented care instructions.
-// Newsletter/Mongolia get "preview" access per the spec (page 5: "Public
-// guides only") — same topic structure, but nudged toward membership for
-// the eventual full guides, matching the pattern used elsewhere in the portal
-// (e.g. Explore Membership).
+// Newsletter/Mongolia ("preview" access): locked since the client's Level 1
+// design (2026-10-12) — cards show a short preview with a lock, and the full
+// guide text isn't sent to them by the API at all.
 const TOPICS: { topic: CareGuide["topic"]; icon: typeof Droplets; title: string; description: string }[] = [
   { topic: "WASHING", icon: Droplets, title: "Washing & Cleaning", description: "How to keep cashmere clean without damaging the fibres." },
   { topic: "STORAGE", icon: Archive, title: "Storage", description: "Protecting your pieces between seasons." },
@@ -32,9 +32,11 @@ const DEFAULT_CARE_REPAIR_HERO = "/images/care-repair-hero.jpeg";
 
 export default function CareRepairPage() {
   const member = useMember();
-  const isPreview = getAccessLevel(member.membershipTier, "careRepair") === "preview";
+  const isLocked = getAccessLevel(member.membershipTier, "careRepair") !== "full";
+  const lockedDialog = useLockedDialog();
   const [heroSrc, setHeroSrc] = useState(DEFAULT_CARE_REPAIR_HERO);
   const [guides, setGuides] = useState<Record<string, string | null>>({});
+  const [previews, setPreviews] = useState<Record<string, string | null>>({});
   const [expandedTopic, setExpandedTopic] = useState<CareGuide["topic"] | null>(null);
 
   useEffect(() => {
@@ -48,13 +50,17 @@ export default function CareRepairPage() {
     // Staff-written guide text (Milestone 5, /staff/care-repair) — a topic
     // with no body yet keeps the "Guide coming soon" placeholder below.
     fetchMyCareGuides()
-      .then((rows) => setGuides(Object.fromEntries(rows.map((r) => [r.topic, r.body]))))
+      .then((rows) => {
+        setGuides(Object.fromEntries(rows.map((r) => [r.topic, r.body])));
+        setPreviews(Object.fromEntries(rows.map((r) => [r.topic, r.preview])));
+      })
       .catch(() => undefined);
   }, []);
 
   return (
     <RequireAccess area="careRepair">
       <div className="flex w-full flex-col gap-6">
+        {lockedDialog.dialog}
         {/* Real photo (2026-09-08, public/images/care-repair-hero.jpeg — one of
             the client's supplied images) as the default; staff can override
             it per tier via /staff/images without a code change. */}
@@ -64,8 +70,8 @@ export default function CareRepairPage() {
           <div className="absolute right-0 bottom-0 left-0 p-6">
             <h1 className="font-serif text-3xl tracking-tight text-white">Care &amp; Repair</h1>
             <p className="mt-1 text-white/85">
-              {isPreview
-                ? "Public guides for looking after genuine cashmere."
+              {isLocked
+                ? "Guides and repair services for Annual and Founding Members."
                 : "Guides for washing, storing and repairing your cashmere."}
             </p>
           </div>
@@ -80,6 +86,24 @@ export default function CareRepairPage() {
           {TOPICS.map(({ topic, icon: Icon, title, description }) => {
             const body = guides[topic];
             const isExpanded = expandedTopic === topic;
+            if (isLocked) {
+              return (
+                <button
+                  key={topic}
+                  type="button"
+                  onClick={() => lockedDialog.show("Care & Repair")}
+                  className="relative flex flex-col items-start gap-3 rounded-2xl border border-cashmere-border bg-white p-6 text-left transition-colors hover:border-cashmere-accent"
+                >
+                  <LockBadge className="absolute top-4 right-4" />
+                  <Icon size={22} strokeWidth={1.5} className="text-cashmere-accent" />
+                  <p className="font-medium text-cashmere-text">{title}</p>
+                  <p className="line-clamp-3 text-sm text-cashmere-text-muted">{previews[topic] ?? description}</p>
+                  <span className="mt-auto pt-2 text-xs font-semibold uppercase tracking-wide text-cashmere-accent-dark">
+                    Members only
+                  </span>
+                </button>
+              );
+            }
             return (
               <button
                 key={topic}
@@ -132,7 +156,7 @@ export default function CareRepairPage() {
           </div>
         )}
 
-        {isPreview && (
+        {isLocked && (
           <div className="rounded-2xl border border-cashmere-border bg-cashmere-sidebar/60 p-6 text-center">
             <p className="font-medium text-cashmere-text">Become a Member for the complete Care &amp; Repair library</p>
             <a

@@ -22,9 +22,9 @@ import {
   X,
   Home,
   Sparkles,
-  Mail,
   Headphones,
   Palette,
+  Lock,
 } from "lucide-react";
 import { useMember } from "@/contexts/member-context";
 import { fetchMySiteImages } from "@/lib/api";
@@ -37,6 +37,8 @@ interface NavItem {
   label: string;
   icon: typeof LayoutDashboard;
   badge?: string;
+  // Shown with a lock: the page opens, but its content is member-only.
+  locked?: boolean;
 }
 
 // Founding/Annual/6-Month navigation — per cashmere-lovers-club-access-
@@ -75,20 +77,25 @@ const FULL_NAV_GROUPS: NavItem[][] = [
   ],
 ];
 
-// Newsletter Subscriber navigation — a deliberately different, shorter list, per
-// the same PDF page 6: no Member Offers/Collections/My Collection/Events/Stories/
-// Care & Repair/My Benefits links at all for this tier, not even as disabled
-// items. Also used for MONGOLIA until the client confirms Mongolia-specific
-// access rules (see lib/access.ts).
-const NEWSLETTER_NAV_ITEMS: NavItem[] = [
-  { href: "/dashboard", label: "Home", icon: Home },
-  { href: "/news", label: "News & Stories", icon: Newspaper },
-  { href: "/orders", label: "My Orders", icon: Package },
-  { href: "/wishlist", label: "Wishlist", icon: Heart },
-  { href: "/explore-membership", label: "Explore Membership", icon: Sparkles },
-  { href: "/profile", label: "Profile", icon: User },
-  { href: "/settings", label: "Newsletter Settings", icon: Mail },
-  { href: "/help", label: "Help & Support", icon: HelpCircle },
+// Newsletter Subscriber navigation — client's Level 1 design (2026-10-12),
+// replacing the PDF's original shorter list: Stories & News and Care & Repair
+// are now shown (Care & Repair with a lock), plus Collections. Also used for
+// MONGOLIA until Mongolia-specific rules are confirmed (see lib/access.ts).
+const NEWSLETTER_NAV_GROUPS: NavItem[][] = [
+  [
+    { href: "/dashboard", label: "Home", icon: Home },
+    { href: "/news", label: "Stories & News", icon: Newspaper },
+    { href: "/collections", label: "Collections", icon: ShoppingBag },
+    { href: "/orders", label: "My Orders", icon: Package },
+    { href: "/wishlist", label: "Wishlist", icon: Heart },
+    { href: "/care-repair", label: "Care & Repair", icon: Wrench, locked: true },
+    { href: "/explore-membership", label: "Explore Membership", icon: Sparkles },
+  ],
+  [
+    { href: "/profile", label: "Profile", icon: User },
+    { href: "/settings", label: "Settings", icon: Settings },
+    { href: "/help", label: "Help & Support", icon: HelpCircle },
+  ],
 ];
 
 export default function Sidebar({
@@ -114,7 +121,7 @@ export default function Sidebar({
           (item) => item.href !== "/design-lab" || getAccessLevel(member.membershipTier, "designLab") === "full",
         ),
       )
-    : [NEWSLETTER_NAV_ITEMS];
+    : NEWSLETTER_NAV_GROUPS;
 
   const [helpPhotoSrc, setHelpPhotoSrc] = useState(DEFAULT_SIDEBAR_HELP_PHOTO);
   useEffect(() => {
@@ -146,14 +153,16 @@ export default function Sidebar({
       >
         <div className="flex-1 overflow-y-auto px-4 py-6">
           <div className="flex items-start justify-between px-2 pb-8">
-            <div>
-              <p className="text-lg font-semibold tracking-tight text-cashmere-text">
-                Cashmere House
-              </p>
-              <p className="text-xs uppercase tracking-wide text-cashmere-text-muted">
-                Cashmere Lovers Club
-              </p>
-            </div>
+            <Link href="/dashboard" onClick={onClose} aria-label="Cashmere Lovers' Club — home">
+              <Image
+                src="/images/clc-logo.png"
+                alt="Cashmere Lovers' Club"
+                width={474}
+                height={240}
+                className="h-auto w-40"
+                priority
+              />
+            </Link>
             <button
               onClick={onClose}
               className="text-cashmere-text-muted md:hidden"
@@ -166,7 +175,7 @@ export default function Sidebar({
           <nav className="flex flex-col">
             {navGroups.map((group, groupIndex) => (
               <div key={groupIndex} className={`flex flex-col gap-1 ${groupIndex > 0 ? "mt-3 border-t border-cashmere-border pt-3" : ""}`}>
-                {group.map(({ href, label, icon: Icon, badge }) => {
+                {group.map(({ href, label, icon: Icon, badge, locked }) => {
                   const active = pathname === href;
                   return (
                     <Link
@@ -181,6 +190,14 @@ export default function Sidebar({
                     >
                       <Icon size={18} strokeWidth={1.75} />
                       <span className="flex-1">{label}</span>
+                      {locked && (
+                        <span
+                          className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-cashmere-accent-dark"
+                          aria-label="Members only"
+                        >
+                          <Lock size={12} strokeWidth={2} />
+                        </span>
+                      )}
                       {badge && (
                         <span className="rounded-full bg-cashmere-accent px-1.5 py-0.5 text-[10px] font-semibold text-white">
                           {badge}
@@ -210,34 +227,52 @@ export default function Sidebar({
             card at all (Founding status is shown in the dark stat card in the
             main content instead), so this replaces it rather than sitting
             alongside it. */}
-        <div className="shrink-0 px-4 pb-4">
-          <div className="rounded-lg border border-cashmere-border bg-white/60 p-4 text-sm">
-            <p className="text-xs font-semibold uppercase tracking-wide text-cashmere-text">Need Help?</p>
-            <p className="mt-1 text-cashmere-text-muted">We are here for you</p>
-            <Link
-              href="/help"
-              onClick={onClose}
-              className="mt-3 flex items-center justify-center gap-2 rounded-full border border-cashmere-border bg-white px-4 py-2 text-sm font-medium text-cashmere-text transition-colors hover:border-cashmere-accent"
-            >
-              <Headphones size={16} strokeWidth={1.75} />
-              Contact Support
-            </Link>
+        {hasFullNav ? (
+          <>
+          <div className="shrink-0 px-4 pb-4">
+            <div className="rounded-lg border border-cashmere-border bg-white/60 p-4 text-sm">
+              <p className="text-xs font-semibold uppercase tracking-wide text-cashmere-text">Need Help?</p>
+              <p className="mt-1 text-cashmere-text-muted">We are here for you</p>
+              <Link
+                href="/help"
+                onClick={onClose}
+                className="mt-3 flex items-center justify-center gap-2 rounded-full border border-cashmere-border bg-white px-4 py-2 text-sm font-medium text-cashmere-text transition-colors hover:border-cashmere-accent"
+              >
+                <Headphones size={16} strokeWidth={1.75} />
+                Contact Support
+              </Link>
+            </div>
           </div>
-        </div>
-        <div className="relative h-48 shrink-0">
-          <Image
-            src={helpPhotoSrc}
-            alt=""
-            fill
-            className="object-cover"
-            // Only the bundled default needs this specific crop focal point
-            // (isolates the goat herd from image19.jpeg's much wider scene,
-            // away from the herder/yurt on the left) — a staff-uploaded
-            // override could be framed completely differently, so it gets a
-            // plain centred crop instead of guessing a focal point for it.
-            style={helpPhotoSrc === DEFAULT_SIDEBAR_HELP_PHOTO ? { objectPosition: "72% 55%" } : undefined}
-          />
-        </div>
+          <div className="relative h-48 shrink-0">
+            <Image
+              src={helpPhotoSrc}
+              alt=""
+              fill
+              className="object-cover"
+              // Only the bundled default needs this specific crop focal point
+              // (isolates the goat herd from image19.jpeg's much wider scene,
+              // away from the herder/yurt on the left) — a staff-uploaded
+              // override could be framed completely differently, so it gets a
+              // plain centred crop instead of guessing a focal point for it.
+              style={helpPhotoSrc === DEFAULT_SIDEBAR_HELP_PHOTO ? { objectPosition: "72% 55%" } : undefined}
+            />
+          </div>
+          </>
+        ) : (
+          <div className="shrink-0 px-4 pb-6">
+            <div className="overflow-hidden rounded-xl border border-cashmere-border bg-white/70">
+              <p className="p-4 font-serif text-lg leading-snug text-cashmere-text">
+                &ldquo;A more sustainable and beautiful future. Together.&rdquo;
+              </p>
+              <div className="relative h-32">
+                <Image src={DEFAULT_SIDEBAR_HELP_PHOTO} alt="" fill className="object-cover" style={{ objectPosition: "72% 55%" }} />
+              </div>
+            </div>
+            <p className="mt-4 text-center font-serif text-lg italic text-cashmere-accent-dark">
+              Good Cashmere. Brighter Futures.
+            </p>
+          </div>
+        )}
       </aside>
     </>
   );
