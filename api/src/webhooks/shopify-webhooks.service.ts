@@ -144,24 +144,37 @@ export class ShopifyWebhooksService {
       return;
     }
 
-    const member = await this.prisma.member.findUnique({
+    let member = await this.prisma.member.findUnique({
       where: { shopifyCustomerId: String(payload.customer.id) },
     });
 
     if (!member) {
-      this.logger.log(
-        `Order ${payload.id} belongs to unknown customer ${payload.customer.id} — nothing to do`,
-      );
-      return;
+      // A paid membership purchase from someone who has never logged in to the
+      // portal must still give them their membership — create the member from
+      // the order. Any other order from an unknown customer stays ignored, so
+      // ordinary store customers don't become members by buying something.
+      const level =
+        payload.financial_status === 'paid'
+          ? await this.findMembershipLevel(payload)
+          : null;
+      if (!level) {
+        this.logger.log(
+          `Order ${payload.id} belongs to unknown customer ${payload.customer.id} — nothing to do`,
+        );
+        return;
+      }
+      member = await this.createMemberFromOrder(payload);
+      if (!member) return;
     }
 
-    const lineItems: Prisma.InputJsonValue | undefined = payload.line_items?.map((item) => ({
-      productId: item.product_id !== null ? String(item.product_id) : null,
-      title: item.title,
-      variantTitle: item.variant_title,
-      quantity: item.quantity,
-      price: item.price,
-    }));
+    const lineItems: Prisma.InputJsonValue | undefined =
+      payload.line_items?.map((item) => ({
+        productId: item.product_id !== null ? String(item.product_id) : null,
+        title: item.title,
+        variantTitle: item.variant_title,
+        quantity: item.quantity,
+        price: item.price,
+      }));
 
     await this.prisma.memberOrderCache.upsert({
       where: { shopifyOrderId: String(payload.id) },
@@ -213,15 +226,7 @@ export class ShopifyWebhooksService {
     memberId: string,
     payload: ShopifyOrderPayload,
   ): Promise<void> {
-    const productIds = (payload.line_items ?? [])
-      .map((item) => item.product_id)
-      .filter((id): id is number => id !== null)
-      .map(String);
-    if (productIds.length === 0) return;
-
-    const level = await this.prisma.membershipLevel.findFirst({
-      where: { shopifyProductId: { in: productIds } },
-    });
+    const level = await this.findMembershipLevel(payload);
     if (!level || !level.termLengthMonths) {
       return;
     }
@@ -262,5 +267,50 @@ export class ShopifyWebhooksService {
     this.logger.log(
       `Member ${memberId} activated to ${level.tier} from paid order ${payload.id}`,
     );
+  }
+
+  private async findMembershipLevel(payload: ShopifyOrderPayload) {
+    const productIds = (payload.line_items ?? [])
+      .map((item) => item.product_id)
+      .filter((id): id is number => id !== null)
+      .map(String);
+    if (productIds.length === 0) return null;
+    return this.prisma.membershipLevel.findFirst({
+      where: { shopifyProductId: { in: productIds } },
+    });
+  }
+
+  // Same starting shape as a first login (MembersService.findOrCreateFromIdentity):
+  // NEWSLETTER tier, which activateMembershipFromOrder upgrades straight after.
+  // Upsert, not create: orders/create and orders/updated can arrive together.
+  private async createMemberFromOrder(payload: ShopifyOrderPayload) {
+    const customer = payload.customer!;
+    const email = customer.email ?? payload.email;
+    if (!email) {
+      this.logger.warn(
+        `Paid membership order ${payload.id} for unknown customer ${customer.id} has no email — cannot create member`,
+      );
+      return null;
+    }
+    const shopifyCustomerId = String(customer.id);
+    const member = await this.prisma.member.upsert({
+      where: { shopifyCustomerId },
+      update: {},
+      create: {
+        shopifyCustomerId,
+        email,
+        firstName: customer.first_name ?? undefined,
+        lastName: customer.last_name ?? undefined,
+        membershipTier: MembershipTier.NEWSLETTER,
+      },
+    });
+    await this.auditLog.log({
+      action: 'member.created',
+      targetType: 'Member',
+      targetId: member.id,
+      targetMemberId: member.id,
+      metadata: { source: 'shopify_order', shopifyOrderId: payload.id },
+    });
+    return member;
   }
 }

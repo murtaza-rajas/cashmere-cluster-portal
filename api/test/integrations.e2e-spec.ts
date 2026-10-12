@@ -408,7 +408,8 @@ describe('Integrations (e2e)', () => {
       const cookie = await staffCookieFor('Super Administrator');
       // Other spec files insert members concurrently — retry until the DB
       // count is stable across the request, then compare exactly.
-      for (let attempt = 0; attempt < 5; attempt++) {
+      let last: { db: number; dashboard: number } | undefined;
+      for (let attempt = 0; attempt < 10; attempt++) {
         const expected = () =>
           prisma.member.count({
             where: {
@@ -422,11 +423,14 @@ describe('Integrations (e2e)', () => {
           .set('Cookie', cookie)
           .expect(200);
         const after = await expected();
-        if (before !== after) continue;
-        expect(res.body.byTier.NEWSLETTER.count).toBe(before);
-        return;
+        last = { db: before, dashboard: res.body.byTier.NEWSLETTER.count };
+        // A concurrent insert+delete can leave before === after yet differ
+        // during the request, so any mismatch retries; a real bug mismatches
+        // on every attempt.
+        if (before === after && last.dashboard === before) return;
+        await new Promise((r) => setTimeout(r, 100));
       }
-      throw new Error('member count never stabilised');
+      throw new Error(`dashboard count never matched the DB: ${JSON.stringify(last)}`);
     });
 
     it('fails cleanly when Mailchimp is unreachable, and does not mark anyone unsubscribed', async () => {

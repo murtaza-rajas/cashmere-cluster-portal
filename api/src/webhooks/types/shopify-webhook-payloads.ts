@@ -55,6 +55,13 @@ export interface ShopifyOrderPayload {
   currency: string;
   financial_status: string;
   created_at: string;
-  customer?: { id: number } | null;
+  // Order-level contact email — fallback when the customer object has none.
+  email?: string | null;
+  customer?: {
+    id: number;
+    email?: string | null;
+    first_name?: string | null;
+    last_name?: string | null;
+  } | null;
   line_items?: ShopifyOrderLineItem[];
 }

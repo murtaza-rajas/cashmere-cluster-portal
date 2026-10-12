@@ -123,8 +123,22 @@ describe('Shopify order-sync webhooks (e2e)', () => {
       created_at: '2026-08-01T00:00:00Z',
       customer: { id: externalId },
       line_items: [
-        { id: 1, product_id: 111, title: 'Cashmere Scarf', variant_title: 'Charcoal', quantity: 2, price: '99.50' },
-        { id: 2, product_id: null, title: 'Gift Wrapping', variant_title: null, quantity: 1, price: '10.00' },
+        {
+          id: 1,
+          product_id: 111,
+          title: 'Cashmere Scarf',
+          variant_title: 'Charcoal',
+          quantity: 2,
+          price: '99.50',
+        },
+        {
+          id: 2,
+          product_id: null,
+          title: 'Gift Wrapping',
+          variant_title: null,
+          quantity: 1,
+          price: '10.00',
+        },
       ],
     }).expect(200);
 
@@ -133,8 +147,20 @@ describe('Shopify order-sync webhooks (e2e)', () => {
     });
     expect(order!.memberId).toBe(member.id);
     expect(order!.lineItems).toEqual([
-      { productId: '111', title: 'Cashmere Scarf', variantTitle: 'Charcoal', quantity: 2, price: '99.50' },
-      { productId: null, title: 'Gift Wrapping', variantTitle: null, quantity: 1, price: '10.00' },
+      {
+        productId: '111',
+        title: 'Cashmere Scarf',
+        variantTitle: 'Charcoal',
+        quantity: 2,
+        price: '99.50',
+      },
+      {
+        productId: null,
+        title: 'Gift Wrapping',
+        variantTitle: null,
+        quantity: 1,
+        price: '10.00',
+      },
     ]);
   });
 
@@ -194,8 +220,12 @@ describe('Shopify order-sync webhooks — auto-activation-on-payment (e2e)', () 
     members = app.get(MembersService);
     secret = process.env.SHOPIFY_WEBHOOK_SECRET!;
 
-    const founding = await prisma.membershipLevel.findUniqueOrThrow({ where: { tier: 'FOUNDING' } });
-    const annual = await prisma.membershipLevel.findUniqueOrThrow({ where: { tier: 'ANNUAL' } });
+    const founding = await prisma.membershipLevel.findUniqueOrThrow({
+      where: { tier: 'FOUNDING' },
+    });
+    const annual = await prisma.membershipLevel.findUniqueOrThrow({
+      where: { tier: 'ANNUAL' },
+    });
     if (!founding.shopifyProductId || !annual.shopifyProductId) {
       throw new Error(
         'FOUNDING/ANNUAL MembershipLevel rows have no shopifyProductId set — run the mapping script before this suite.',
@@ -240,23 +270,131 @@ describe('Shopify order-sync webhooks — auto-activation-on-payment (e2e)', () 
       created_at: '2026-10-07T00:00:00Z',
       customer: { id: externalId },
       line_items: [
-        { id: 1, product_id: Number(foundingProductId), title: 'Founding Membership', variant_title: null, quantity: 1, price: '11000.00' },
+        {
+          id: 1,
+          product_id: Number(foundingProductId),
+          title: 'Founding Membership',
+          variant_title: null,
+          quantity: 1,
+          price: '11000.00',
+        },
       ],
     }).expect(200);
 
-    const updated = await prisma.member.findUniqueOrThrow({ where: { id: member.id } });
+    const updated = await prisma.member.findUniqueOrThrow({
+      where: { id: member.id },
+    });
     expect(updated.membershipTier).toBe('FOUNDING');
     expect(updated.isFoundingMember).toBe(true);
     expect(updated.termLengthMonths).toBe(60);
     expect(updated.originatingShopifyOrderId).toBe(String(shopifyOrderId));
-    expect(updated.membershipStartDate?.toISOString()).toBe('2026-10-07T00:00:00.000Z');
-    expect(updated.membershipEndDate?.toISOString()).toBe('2031-10-07T00:00:00.000Z');
+    expect(updated.membershipStartDate?.toISOString()).toBe(
+      '2026-10-07T00:00:00.000Z',
+    );
+    expect(updated.membershipEndDate?.toISOString()).toBe(
+      '2031-10-07T00:00:00.000Z',
+    );
 
     const audit = await prisma.auditLog.findFirst({
       where: { action: 'member.tier_activated', targetMemberId: member.id },
     });
     expect(audit).not.toBeNull();
     expect((audit!.metadata as { tier: string }).tier).toBe('FOUNDING');
+  });
+
+  it('a paid membership order from someone who never logged in creates their member and activates it', async () => {
+    const customerId = Date.now() + 700;
+    const shopifyOrderId = Date.now() + 701;
+    const email = `activation-e2e-new-buyer-${customerId}@example.com`;
+
+    // Pending first: nothing is created yet.
+    const pending = {
+      id: shopifyOrderId,
+      name: '#6101',
+      total_price: '3500.00',
+      currency: 'NOK',
+      financial_status: 'pending',
+      created_at: '2026-11-01T00:00:00Z',
+      email,
+      customer: { id: customerId, email, first_name: 'New', last_name: 'Buyer' },
+      line_items: [
+        {
+          id: 1,
+          product_id: Number(annualProductId),
+          title: 'Annual Membership',
+          variant_title: null,
+          quantity: 1,
+          price: '3500.00',
+        },
+      ],
+    };
+    await post('/webhooks/shopify/orders/create', pending).expect(200);
+    expect(
+      await prisma.member.findUnique({ where: { shopifyCustomerId: String(customerId) } }),
+    ).toBeNull();
+
+    await post('/webhooks/shopify/orders/updated', {
+      ...pending,
+      financial_status: 'paid',
+    }).expect(200);
+
+    const created = await prisma.member.findUniqueOrThrow({
+      where: { shopifyCustomerId: String(customerId) },
+    });
+    expect(created).toMatchObject({
+      email,
+      firstName: 'New',
+      lastName: 'Buyer',
+      membershipTier: 'ANNUAL',
+      termLengthMonths: 12,
+      originatingShopifyOrderId: String(shopifyOrderId),
+    });
+    expect(created.membershipEndDate?.toISOString()).toBe('2027-11-01T00:00:00.000Z');
+
+    const order = await prisma.memberOrderCache.findUnique({
+      where: { shopifyOrderId: String(shopifyOrderId) },
+    });
+    expect(order?.memberId).toBe(created.id);
+
+    const audit = await prisma.auditLog.findFirst({
+      where: { action: 'member.created', targetMemberId: created.id },
+    });
+    expect(audit?.metadata).toMatchObject({ source: 'shopify_order' });
+
+    // Their later first login lands on this same row.
+    const loggedIn = await members.findOrCreateFromIdentity({
+      providerId: 'shopify',
+      externalId: String(customerId),
+      email,
+    });
+    expect(loggedIn.id).toBe(created.id);
+    expect(loggedIn.membershipTier).toBe('ANNUAL');
+  });
+
+  it('a paid non-membership order from an unknown customer still creates no member', async () => {
+    const customerId = Date.now() + 800;
+    await post('/webhooks/shopify/orders/create', {
+      id: Date.now() + 801,
+      name: '#6102',
+      total_price: '900.00',
+      currency: 'NOK',
+      financial_status: 'paid',
+      created_at: '2026-11-01T00:00:00Z',
+      customer: { id: customerId, email: `shopper-${customerId}@example.com` },
+      line_items: [
+        {
+          id: 1,
+          product_id: 999999999,
+          title: 'Cashmere Scarf',
+          variant_title: null,
+          quantity: 1,
+          price: '900.00',
+        },
+      ],
+    }).expect(200);
+    expect(
+      await prisma.member.findUnique({ where: { shopifyCustomerId: String(customerId) } }),
+    ).toBeNull();
   });
 
   it('a pending order for a membership product does not activate anything yet', async () => {
@@ -277,11 +415,20 @@ describe('Shopify order-sync webhooks — auto-activation-on-payment (e2e)', () 
       created_at: '2026-10-07T00:00:00Z',
       customer: { id: externalId },
       line_items: [
-        { id: 1, product_id: Number(annualProductId), title: 'Annual Membership', variant_title: null, quantity: 1, price: '300.00' },
+        {
+          id: 1,
+          product_id: Number(annualProductId),
+          title: 'Annual Membership',
+          variant_title: null,
+          quantity: 1,
+          price: '300.00',
+        },
       ],
     }).expect(200);
 
-    const unchanged = await prisma.member.findUniqueOrThrow({ where: { id: member.id } });
+    const unchanged = await prisma.member.findUniqueOrThrow({
+      where: { id: member.id },
+    });
     expect(unchanged.membershipTier).toBe('NEWSLETTER');
     expect(unchanged.originatingShopifyOrderId).toBeNull();
   });
@@ -302,14 +449,29 @@ describe('Shopify order-sync webhooks — auto-activation-on-payment (e2e)', () 
       created_at: '2026-10-07T00:00:00Z',
       customer: { id: externalId },
       line_items: [
-        { id: 1, product_id: Number(annualProductId), title: 'Annual Membership', variant_title: null, quantity: 1, price: '300.00' },
+        {
+          id: 1,
+          product_id: Number(annualProductId),
+          title: 'Annual Membership',
+          variant_title: null,
+          quantity: 1,
+          price: '300.00',
+        },
       ],
     };
 
-    await post('/webhooks/shopify/orders/create', { ...orderBase, financial_status: 'pending' }).expect(200);
-    await post('/webhooks/shopify/orders/updated', { ...orderBase, financial_status: 'paid' }).expect(200);
+    await post('/webhooks/shopify/orders/create', {
+      ...orderBase,
+      financial_status: 'pending',
+    }).expect(200);
+    await post('/webhooks/shopify/orders/updated', {
+      ...orderBase,
+      financial_status: 'paid',
+    }).expect(200);
 
-    const updated = await prisma.member.findUniqueOrThrow({ where: { id: member.id } });
+    const updated = await prisma.member.findUniqueOrThrow({
+      where: { id: member.id },
+    });
     expect(updated.membershipTier).toBe('ANNUAL');
     expect(updated.termLengthMonths).toBe(12);
     expect(updated.isFoundingMember).toBe(false);
@@ -333,11 +495,20 @@ describe('Shopify order-sync webhooks — auto-activation-on-payment (e2e)', () 
       created_at: '2026-10-07T00:00:00Z',
       customer: { id: externalId },
       line_items: [
-        { id: 1, product_id: 999999999, title: 'Unrelated Product', variant_title: null, quantity: 1, price: '99.00' },
+        {
+          id: 1,
+          product_id: 999999999,
+          title: 'Unrelated Product',
+          variant_title: null,
+          quantity: 1,
+          price: '99.00',
+        },
       ],
     }).expect(200);
 
-    const unchanged = await prisma.member.findUniqueOrThrow({ where: { id: member.id } });
+    const unchanged = await prisma.member.findUniqueOrThrow({
+      where: { id: member.id },
+    });
     expect(unchanged.membershipTier).toBe('NEWSLETTER');
     expect(unchanged.originatingShopifyOrderId).toBeNull();
   });
