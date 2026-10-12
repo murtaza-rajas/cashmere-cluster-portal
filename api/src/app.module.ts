@@ -26,10 +26,13 @@ import { NewsletterCampaignsModule } from './newsletter-campaigns/newsletter-cam
 import { StoryCategoriesModule } from './story-categories/story-categories.module';
 import { ShopifyAdminModule } from './shopify-admin/shopify-admin.module';
 import { ExclusiveCollectionsModule } from './exclusive-collections/exclusive-collections.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import { MembershipExpiryModule } from './membership-expiry/membership-expiry.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ScheduleModule.forRoot(),
     PrismaModule,
     AuditLogModule,
     MembersModule,
@@ -54,6 +57,7 @@ import { ExclusiveCollectionsModule } from './exclusive-collections/exclusive-co
     StoryCategoriesModule,
     ShopifyAdminModule,
     ExclusiveCollectionsModule,
+    MembershipExpiryModule,
   ],
   controllers: [AppController],
   providers: [AppService],
