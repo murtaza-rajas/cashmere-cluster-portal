@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { SOCIAL_LINKS } from "@/lib/store-links";
+import { CookieSettingsButton } from "@/components/cookie-consent";
 
 // lucide-react no longer ships brand icons, so the two logos are inline SVG.
 function InstagramIcon() {
@@ -30,6 +31,7 @@ export default function MemberFooter() {
       <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
         <Link href="/privacy-policy" className="hover:text-cashmere-text">Privacy Policy</Link>
         <Link href="/cookie-policy" className="hover:text-cashmere-text">Cookie Policy</Link>
+        <CookieSettingsButton className="hover:text-cashmere-text" />
         <Link href="/help" className="hover:text-cashmere-text">Contact Us</Link>
         <span className="flex items-center gap-4 text-cashmere-text">
           <a href={SOCIAL_LINKS.instagram} target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="hover:text-cashmere-accent-dark">

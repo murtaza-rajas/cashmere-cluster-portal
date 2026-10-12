@@ -1,6 +1,8 @@
 import Image from "next/image";
+import Link from "next/link";
 import { Award, Gem, Gift, Heart, Leaf, Lock, MapPinned } from "lucide-react";
 import SessionStatus from "./session-status";
+import { CookieSettingsButton } from "@/components/cookie-consent";
 
 // Matches the client's login-ui.jpeg wireframe exactly: the real photo
 // (public/images/login-hero.jpeg = the client's own image1.jpeg) is shown
@@ -178,6 +180,11 @@ export default function Home() {
           {/* Client request 2026-10-05: the company behind the club, stated plainly
               in the one real footer this app has. */}
           <p className="mt-10 text-center text-xs text-white/70">Cashmere Lovers Club &ndash; Cashmere House Limited</p>
+          <p className="mt-2 flex justify-center gap-4 text-xs text-white/70">
+            <Link href="/privacy-policy" className="hover:text-white">Privacy Policy</Link>
+            <Link href="/cookie-policy" className="hover:text-white">Cookie Policy</Link>
+            <CookieSettingsButton className="hover:text-white" />
+          </p>
         </div>
       </div>
     </div>

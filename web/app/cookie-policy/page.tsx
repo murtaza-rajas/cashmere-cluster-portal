@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { CookieSettingsButton } from "@/components/cookie-consent";
 
 export const metadata: Metadata = {
   title: "Cookie Policy — Cashmere Lovers Club",
@@ -122,6 +123,7 @@ export default function CookiePolicyPage() {
             You can later change or withdraw your consent through the cookie settings. Withdrawing consent must be as
             easy as giving it. Withdrawal does not affect the lawfulness of processing already carried out.
           </p>
+          <CookieSettingsButton className="w-fit rounded-full border border-cashmere-border bg-white px-5 py-2 text-sm font-medium text-cashmere-text hover:border-cashmere-accent" />
           <p>
             Rejecting optional technologies does not prevent access to core membership services. Certain optional
             features may be unavailable if they depend on technologies you have declined.
