@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { renderSimpleMarkdown } from "@/lib/simple-markdown";
 
 // Shared between the real member-facing story page (app/(member)/news/[id])
 // and the staff preview page (app/staff/stories/preview/[id]) — client
@@ -28,7 +29,7 @@ function StorySectionBlock({ section }: { section: StoryArticleSection }) {
   switch (section.type) {
     case "TEXT":
       return section.text ? (
-        <p className="whitespace-pre-line text-cashmere-text-muted">{section.text}</p>
+        <div className="flex flex-col gap-4">{renderSimpleMarkdown(section.text)}</div>
       ) : null;
     case "IMAGE":
       // Natural proportions, not a cropped box (client email 2026-10-07:

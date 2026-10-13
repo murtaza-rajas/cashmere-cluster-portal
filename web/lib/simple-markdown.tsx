@@ -29,7 +29,7 @@ export function renderSimpleMarkdown(text: string): ReactNode {
       );
     }
     return (
-      <p key={i} className="leading-relaxed text-cashmere-text-muted">
+      <p key={i} className="whitespace-pre-line leading-relaxed text-cashmere-text-muted">
         {renderInline(trimmed)}
       </p>
     );

@@ -12,6 +12,7 @@ import { DesignsModule } from '../designs/designs.module';
 import { MongoliaModule } from '../mongolia/mongolia.module';
 import { StoriesModule } from '../stories/stories.module';
 import { ExclusiveCollectionsModule } from '../exclusive-collections/exclusive-collections.module';
+import { HomepageUpdatesModule } from '../homepage-updates/homepage-updates.module';
 
 @Module({
   // StaffModule needed for the Members & Users admin routes below (StaffAuthGuard
@@ -30,6 +31,7 @@ import { ExclusiveCollectionsModule } from '../exclusive-collections/exclusive-c
     MongoliaModule,
     StoriesModule,
     ExclusiveCollectionsModule,
+    HomepageUpdatesModule,
   ],
   controllers: [MembersController],
   providers: [MembersService],

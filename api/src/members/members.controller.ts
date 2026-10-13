@@ -36,6 +36,7 @@ import { DesignsService } from '../designs/designs.service';
 import { MongoliaService } from '../mongolia/mongolia.service';
 import { StoriesService } from '../stories/stories.service';
 import { ExclusiveCollectionsService } from '../exclusive-collections/exclusive-collections.service';
+import { HomepageUpdatesService } from '../homepage-updates/homepage-updates.service';
 import { getScopedRegion } from '../staff/region-scope.util';
 import { imageOnlyFileFilter } from '../common/image-upload.util';
 import { SubmitMongoliaPhotoDto } from '../mongolia/dto/submit-mongolia-photo.dto';
@@ -56,6 +57,7 @@ export class MembersController {
     private readonly designs: DesignsService,
     private readonly mongolia: MongoliaService,
     private readonly stories: StoriesService,
+    private readonly homepageUpdates: HomepageUpdatesService,
     private readonly exclusiveCollections: ExclusiveCollectionsService,
   ) {}
 
@@ -200,6 +202,15 @@ export class MembersController {
 
   // Homepage "Latest News & Updates" curation (client email 2026-09-22) —
   // replaces the dashboard's previous static placeholder text.
+  // The "CLC Update" banner for this member's homepage, or null.
+  @UseGuards(JwtAuthGuard)
+  @Get('me/homepage-update')
+  myHomepageUpdate(@Req() req: Request) {
+    return this.homepageUpdates.findCurrentForMember(
+      (req.user as Member).membershipTier,
+    );
+  }
+
   // Every story this member can see or unlock by upgrading — locked ones as
   // teaser only (StoriesService.findPreviewsForMember).
   @UseGuards(JwtAuthGuard)

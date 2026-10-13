@@ -231,6 +231,7 @@ model StaffUser {
   uploadedSiteImages    SiteImage[]           @relation("SiteImagesUploadedBy")
   createdEvents         Event[]               @relation("EventsCreatedBy")
   createdExclusiveCollections ExclusiveCollection[] @relation("ExclusiveCollectionsCreatedBy")
+  createdHomepageUpdates      HomepageUpdate[]      @relation("HomepageUpdatesCreatedBy")
   updatedCareGuides     CareGuide[]           @relation("CareGuidesUpdatedBy")
   createdDesigns        Design[]              @relation("DesignsCreatedBy")
   createdMongoliaStories MongoliaStory[]       @relation("MongoliaStoriesCreatedBy")
@@ -502,6 +503,35 @@ model ExclusiveCollection {
   @@index([active])
 }
 
+// "CLC Update" banner on the member homepages (client request 2026-10-13):
+// a short, staff-editable message from the founder during the launch phase —
+// image, label, title, summary, date — whose button opens a full article
+// (a Story). The newest active banner visible to the member's tier is shown.
+model HomepageUpdate {
+  id String @id @default(uuid())
+
+  label       String    @default("CLC Update")
+  title       String
+  summary     String
+  displayDate DateTime?
+  imageUrl    String?
+
+  storyId String?
+  story   Story?  @relation(fields: [storyId], references: [id], onDelete: SetNull)
+
+  // Empty = draft, shown to nobody — same convention as Benefit/Event.
+  tiers  MembershipTier[]
+  active Boolean          @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  createdById String?
+  createdBy   StaffUser? @relation("HomepageUpdatesCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([active])
+}
+
 model Event {
   id String @id @default(uuid())
 
@@ -693,6 +723,8 @@ model Story {
 
   @@index([status])
   @@index([categoryId])
+
+  homepageUpdates HomepageUpdate[]
 }
 
 // Founders' Design Lab (client email 2026-09-07/08) — international portal

@@ -207,6 +207,25 @@ export async function fetchMyStories(): Promise<MemberStory[]> {
   return res.json();
 }
 
+// "CLC Update" banner for this member's homepage — null when none is active.
+export interface MemberHomepageUpdate {
+  id: string;
+  label: string;
+  title: string;
+  summary: string;
+  displayDate: string | null;
+  imageUrl: string | null;
+  storyId: string | null;
+}
+
+export async function fetchMyHomepageUpdate(): Promise<MemberHomepageUpdate | null> {
+  const res = await apiFetch("/members/me/homepage-update");
+  if (!res.ok) throw new Error(`Unexpected response fetching the CLC update: ${res.status}`);
+  // The API returns an empty body (not JSON) when there's no active banner.
+  const text = await res.text();
+  return text ? (JSON.parse(text) as MemberHomepageUpdate) : null;
+}
+
 // Story cards including member-only stories this member can't open yet
 // (locked: true — title, photo and teaser only; the body is never sent).
 export interface MemberStoryPreview {

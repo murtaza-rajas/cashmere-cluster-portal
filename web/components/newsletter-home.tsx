@@ -18,6 +18,7 @@ import {
 import { fetchMyStoryPreviews, type MemberStoryPreview } from "@/lib/api";
 import { STORE_COLLECTIONS } from "@/lib/store-links";
 import { LockBadge, useLockedDialog } from "@/components/locked-content";
+import { ClcUpdateBanner } from "@/components/clc-update-banner";
 
 // Newsletter (Level 1) homepage — client design draft 2026-10-12. Member-only
 // content is shown with a lock (title, photo, teaser only) instead of being
@@ -80,6 +81,8 @@ export function NewsletterHome({ displayName }: { displayName: string }) {
         />
         <Shortcut icon={Users} title="Our Impact" subtitle="Coming soon" />
       </section>
+
+      <ClcUpdateBanner />
 
       <LatestStories onLocked={(story) => locked.show(`"${story.title}"`, story.availableTo)} />
 

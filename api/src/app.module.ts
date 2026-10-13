@@ -28,6 +28,7 @@ import { ShopifyAdminModule } from './shopify-admin/shopify-admin.module';
 import { ExclusiveCollectionsModule } from './exclusive-collections/exclusive-collections.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { MembershipExpiryModule } from './membership-expiry/membership-expiry.module';
+import { HomepageUpdatesModule } from './homepage-updates/homepage-updates.module';
 
 @Module({
   imports: [
@@ -58,6 +59,7 @@ import { MembershipExpiryModule } from './membership-expiry/membership-expiry.mo
     ShopifyAdminModule,
     ExclusiveCollectionsModule,
     MembershipExpiryModule,
+    HomepageUpdatesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

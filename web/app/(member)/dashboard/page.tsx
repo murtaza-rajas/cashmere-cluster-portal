@@ -34,6 +34,7 @@ import {
 } from "@/lib/api";
 import { getAccessLevel } from "@/lib/access";
 import { NewsletterHome } from "@/components/newsletter-home";
+import { ClcUpdateBanner } from "@/components/clc-update-banner";
 
 // Matches founding-member-dashboard.jpeg section-for-section. Real data used
 // wherever we have it (name, tier, join date, Member ID, real order count via
@@ -123,6 +124,8 @@ function FullDashboard({ displayName }: { displayName: string }) {
       </section>
 
       <BenefitsRow />
+
+      <ClcUpdateBanner />
 
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="flex flex-col justify-center gap-3 rounded-2xl border border-cashmere-border bg-cashmere-sidebar/60 p-8 lg:col-span-2">

@@ -374,6 +374,66 @@ export async function deleteEventImage(id: string): Promise<void> {
 // (blocked on Storefront API credentials since 2026-09-05) to staff-
 // authored collection pitches with a real photo, same shape as Events —
 // international-only, no `regions` field (unlike StaffEvent/StaffBenefit).
+// "CLC Update" homepage banner (staff CRUD at /homepage-update-catalog).
+export interface StaffHomepageUpdate {
+  id: string;
+  label: string;
+  title: string;
+  summary: string;
+  displayDate: string | null;
+  imageUrl: string | null;
+  storyId: string | null;
+  story: { id: string; title: string } | null;
+  tiers: MembershipTierValue[];
+  active: boolean;
+  createdAt: string;
+}
+
+export interface HomepageUpdateInput {
+  label?: string;
+  title: string;
+  summary: string;
+  displayDate?: string | null;
+  storyId?: string | null;
+  tiers: MembershipTierValue[];
+  active?: boolean;
+}
+
+async function homepageUpdateRequest<T>(path: string, init: RequestInit, what: string): Promise<T> {
+  const res = await apiFetch(`/homepage-update-catalog${path}`, init);
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.message ?? `Unexpected response ${what}: ${res.status}`);
+  }
+  return res.status === 204 ? (undefined as T) : res.json();
+}
+
+export const fetchHomepageUpdateCatalog = () =>
+  homepageUpdateRequest<StaffHomepageUpdate[]>("", {}, "fetching CLC updates");
+
+export const createHomepageUpdate = (dto: HomepageUpdateInput) =>
+  homepageUpdateRequest<StaffHomepageUpdate>(
+    "",
+    { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(dto) },
+    "creating CLC update",
+  );
+
+export const updateHomepageUpdate = (id: string, dto: Partial<HomepageUpdateInput>) =>
+  homepageUpdateRequest<StaffHomepageUpdate>(
+    `/${id}`,
+    { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(dto) },
+    "updating CLC update",
+  );
+
+export const deleteHomepageUpdate = (id: string) =>
+  homepageUpdateRequest<void>(`/${id}`, { method: "DELETE" }, "deleting CLC update");
+
+export function uploadHomepageUpdateImage(id: string, file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+  return homepageUpdateRequest<StaffHomepageUpdate>(`/${id}/image`, { method: "POST", body: formData }, "uploading CLC update image");
+}
+
 export interface StaffExclusiveCollection {
   id: string;
   title: string;
