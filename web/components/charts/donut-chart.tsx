@@ -123,16 +123,21 @@ export function DonutChart({
 // categorical palette, re-checked as a closed 4-ring). Kept here so
 // Dashboard's line chart and donut can both import the exact same colors
 // as Reports' donut, rather than each page picking its own.
-export const TIER_ORDER = ["FOUNDING", "ANNUAL", "MONGOLIA", "NEWSLETTER"] as const;
+// SIX_MONTH added 2026-10-14 in the palette's next fixed slot (magenta), placed
+// last: next to Annual's orange it fails the normal-vision check; here every
+// adjacent pair (including the wrap back to Founding) passes the validator.
+export const TIER_ORDER = ["FOUNDING", "ANNUAL", "MONGOLIA", "NEWSLETTER", "SIX_MONTH"] as const;
 export const TIER_LABELS: Record<(typeof TIER_ORDER)[number], string> = {
   FOUNDING: "Founding",
   ANNUAL: "Annual",
   MONGOLIA: "Mongolia",
   NEWSLETTER: "Newsletter",
+  SIX_MONTH: "6-Month",
 };
 export const TIER_COLORS: Record<(typeof TIER_ORDER)[number], string> = {
   FOUNDING: "#2a78d6",
   ANNUAL: "#eb6834",
   MONGOLIA: "#1baf7a",
   NEWSLETTER: "#eda100",
+  SIX_MONTH: "#e87ba4",
 };

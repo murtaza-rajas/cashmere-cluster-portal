@@ -20,6 +20,7 @@ import {
   Heart,
   ShoppingBag,
   Mountain,
+  CalendarDays,
 } from "lucide-react";
 import { useStaff, staffHasAnyRole } from "@/contexts/staff-context";
 import {
@@ -101,10 +102,11 @@ export default function StaffDashboardPage() {
       {error && <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
 
       {/* Stat cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-6">
         <StatCard icon={Users} label="Total Members" entry={stats?.total} />
         <StatCard icon={Star} label="Founding Members" entry={stats?.byTier.FOUNDING} />
         <StatCard icon={User} label="Annual Members" entry={stats?.byTier.ANNUAL} />
+        <StatCard icon={CalendarDays} label="6-Month Members" entry={stats?.byTier.SIX_MONTH} />
         <StatCard icon={Mail} label="Newsletter Members" entry={stats?.byTier.NEWSLETTER} />
         <StatCard emoji="🇲🇳" label="Mongolia Members" entry={stats?.byTier.MONGOLIA} />
       </div>

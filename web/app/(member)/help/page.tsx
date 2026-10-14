@@ -1,6 +1,7 @@
 "use client";
 
 import { Headset, Mail } from "lucide-react";
+import type { Member } from "@/lib/api";
 import { useMember } from "@/contexts/member-context";
 
 // Support tier badge is real, confirmed content — the client's own spec PDF
@@ -10,7 +11,9 @@ import { useMember } from "@/contexts/member-context";
 // rather than invent one, this links to CashmereHouse.com — the real, live
 // storefront, which already has its own contact channels — until the client
 // gives a dedicated portal support address.
-const SUPPORT_COPY: Record<string, { label: string; description: string }> = {
+// Typed by tier so a level missing here fails to compile (6-Month was
+// missing and crashed this page).
+const SUPPORT_COPY: Record<Member["membershipTier"], { label: string; description: string }> = {
   FOUNDING: {
     label: "Priority Support",
     description: "As a Founding Member, your requests are handled with priority.",
@@ -18,6 +21,10 @@ const SUPPORT_COPY: Record<string, { label: string; description: string }> = {
   ANNUAL: {
     label: "Standard Support",
     description: "As an Annual Member, you have access to standard member support.",
+  },
+  SIX_MONTH: {
+    label: "Standard Support",
+    description: "As a 6-Month Member, you have access to standard member support.",
   },
   NEWSLETTER: {
     label: "General Support",

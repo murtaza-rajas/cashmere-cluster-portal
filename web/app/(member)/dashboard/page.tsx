@@ -304,7 +304,7 @@ function BenefitsRow() {
   const founding = member.isFoundingMember;
 
   return (
-    <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+    <section className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${founding ? "lg:grid-cols-5" : "lg:grid-cols-4"}`}>
       <div className="relative overflow-hidden rounded-2xl bg-cashmere-navy p-5 text-white lg:col-span-1">
         <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-cashmere-accent">
           <Star size={14} strokeWidth={1.75} fill="currentColor" />
@@ -325,13 +325,22 @@ function BenefitsRow() {
         </div>
       </div>
 
-      {founding && (
-        <BenefitCard icon={Gift} title="Founders Scarf" description="Cashmere scarf, ~€200 value — your one-time welcome gift." />
-      )}
+      {/* Gift and discount per the client's membership terms (2026-10-14). */}
+      <BenefitCard
+        icon={Gift}
+        title="Welcome Gift"
+        description={
+          founding
+            ? "Cashmere blanket, value €599 — sent after one month."
+            : member.membershipTier === "SIX_MONTH"
+              ? "Cashmere wrist warmers, value €99 — sent after one month."
+              : "Cashmere scarf, value €169 — sent after one month."
+        }
+      />
       <BenefitCard
         icon={Tag}
         title="Members Discount"
-        description={founding ? "20% until 31 March 2027, then permanent 15%" : "10% on eligible purchases"}
+        description={founding ? "20% until 31 March 2027, then 15%" : "15% until 31 March 2027, then 10%"}
         badge="ACTIVE"
       />
       <BenefitCard
