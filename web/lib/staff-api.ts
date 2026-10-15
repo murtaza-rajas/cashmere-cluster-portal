@@ -187,7 +187,10 @@ export async function revokeRole(staffUserId: string, roleName: string): Promise
   const res = await apiFetch(`/staff/${staffUserId}/roles/${encodeURIComponent(roleName)}`, {
     method: "DELETE",
   });
-  if (!res.ok) throw new Error(`Unexpected response revoking role: ${res.status}`);
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.message ?? `Unexpected response revoking role: ${res.status}`);
+  }
 }
 
 export async function fetchMembers(search?: string): Promise<MemberSummary[]> {

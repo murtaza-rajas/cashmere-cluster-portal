@@ -87,4 +87,33 @@ describe('AuditLog write-paths (e2e)', () => {
     expect(revokeEntries).toHaveLength(1);
     expect(revokeEntries[0].actorStaffUserId).toBe(granter.id);
   });
+
+  it('blocks removing your own Super Administrator role, and removing the last one', async () => {
+    const suffix = `${Date.now()}-${Math.random()}`;
+    const [a, b] = await Promise.all([
+      prisma.staffUser.create({ data: { email: `sa-a-${suffix}@example.com`, name: 'SA A' } }),
+      prisma.staffUser.create({ data: { email: `sa-b-${suffix}@example.com`, name: 'SA B' } }),
+    ]);
+    for (const u of [a, b]) {
+      await staff.grantRole({ staffUserId: u.id, roleName: 'Super Administrator', grantedById: u.id });
+    }
+
+    await expect(
+      staff.revokeRole({ staffUserId: a.id, roleName: 'Super Administrator', revokedById: a.id }),
+    ).rejects.toThrow("You can't remove your own Super Administrator role");
+
+    // The last remaining Super Administrator can't be removed either.
+    const count = jest.spyOn(prisma.staffRoleAssignment, 'count').mockResolvedValueOnce(1);
+    await expect(
+      staff.revokeRole({ staffUserId: a.id, roleName: 'Super Administrator', revokedById: b.id }),
+    ).rejects.toThrow('at least one Super Administrator');
+    count.mockRestore();
+
+    // Another Super Administrator can still remove it normally.
+    await staff.revokeRole({ staffUserId: a.id, roleName: 'Super Administrator', revokedById: b.id });
+    const remaining = await prisma.staffRoleAssignment.count({
+      where: { staffUserId: a.id, role: { name: 'Super Administrator' } },
+    });
+    expect(remaining).toBe(0);
+  });
 });

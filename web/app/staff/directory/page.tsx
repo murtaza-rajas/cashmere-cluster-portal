@@ -32,6 +32,7 @@ export default function StaffDirectoryPage() {
   const [newName, setNewName] = useState("");
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [roleError, setRoleError] = useState<string | null>(null);
   const [pendingRoleByStaffId, setPendingRoleByStaffId] = useState<Record<string, string>>({});
 
   function load() {
@@ -74,13 +75,23 @@ export default function StaffDirectoryPage() {
   }
 
   async function handleRevoke(staffUserId: string, roleName: string) {
-    await revokeRole(staffUserId, roleName);
-    load();
+    setRoleError(null);
+    try {
+      await revokeRole(staffUserId, roleName);
+      load();
+    } catch (err) {
+      setRoleError((err as Error).message);
+    }
   }
 
   return (
     <div className="flex w-full flex-col gap-6">
       <h1 className="font-serif text-3xl tracking-tight text-cashmere-text">Staff &amp; Roles</h1>
+      {roleError && (
+        <p role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+          {roleError}
+        </p>
+      )}
 
       <section className="rounded-2xl border border-cashmere-border bg-white p-6">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-cashmere-text-muted">Add staff account</h2>

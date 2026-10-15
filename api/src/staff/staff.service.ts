@@ -1,6 +1,13 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
+
+const SUPER_ADMIN_ROLE = 'Super Administrator';
 
 @Injectable()
 export class StaffService {
@@ -47,10 +54,18 @@ export class StaffService {
    * 11: "Staff access: Requested -> approved by Super Admin -> granted ->
    * reviewed/revoked" — grantRole already exists for the "granted" step).
    */
-  async createStaffUser(params: { email: string; name: string; createdById: string }) {
-    const existing = await this.prisma.staffUser.findUnique({ where: { email: params.email } });
+  async createStaffUser(params: {
+    email: string;
+    name: string;
+    createdById: string;
+  }) {
+    const existing = await this.prisma.staffUser.findUnique({
+      where: { email: params.email },
+    });
     if (existing) {
-      throw new ConflictException('A staff account with this email already exists');
+      throw new ConflictException(
+        'A staff account with this email already exists',
+      );
     }
 
     const created = await this.prisma.staffUser.create({
@@ -165,6 +180,24 @@ export class StaffService {
     });
     if (!role)
       throw new NotFoundException(`Role "${params.roleName}" not found`);
+
+    // The shared admin preview account removed its own Super Administrator
+    // role twice (audit log, 2026-10-08 and 2026-10-12), locking itself out.
+    if (role.name === SUPER_ADMIN_ROLE) {
+      if (params.staffUserId === params.revokedById) {
+        throw new BadRequestException(
+          "You can't remove your own Super Administrator role",
+        );
+      }
+      const superAdmins = await this.prisma.staffRoleAssignment.count({
+        where: { roleId: role.id },
+      });
+      if (superAdmins <= 1) {
+        throw new BadRequestException(
+          'There must always be at least one Super Administrator',
+        );
+      }
+    }
 
     await this.prisma.staffRoleAssignment.delete({
       where: {
