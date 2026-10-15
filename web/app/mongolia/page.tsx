@@ -141,7 +141,7 @@ export default function MongoliaHomePage() {
           <Factory size={22} strokeWidth={1.5} className="text-cashmere-accent-dark" />
           <span className="text-sm font-medium text-cashmere-text">Our producers</span>
         </a>
-        <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-cashmere-border px-3 py-5 text-center opacity-60">
+        <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-cashmere-border px-3 py-5 text-center">
           <Images size={22} strokeWidth={1.5} className="text-cashmere-text-muted" />
           <span className="text-sm font-medium text-cashmere-text-muted">Photo archive</span>
           <span className="text-[10px] uppercase tracking-wide text-cashmere-text-muted">Coming soon</span>

@@ -158,7 +158,7 @@ export default function Home() {
               way it did sitting on the photo. */}
           <p className="mx-auto max-w-3xl text-center text-sm text-white">
             Not a member yet?{" "}
-            <a href="https://cashmerehouse.com" className="font-medium text-cashmere-accent hover:underline">
+            <a href="https://cashmerehouse.com" className="font-medium text-cashmere-accent-light hover:underline">
               Discover more about the Club →
             </a>
           </p>

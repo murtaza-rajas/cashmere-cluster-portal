@@ -25,7 +25,7 @@ export default function CookiePolicyPage() {
     <div className="min-h-screen bg-cashmere-bg">
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-12 sm:px-8 sm:py-16">
         <div>
-          <Link href="/" className="text-sm text-cashmere-accent hover:underline">
+          <Link href="/" className="text-sm text-cashmere-accent-dark underline underline-offset-2">
             ← Cashmere Lovers Club
           </Link>
           <h1 className="mt-4 font-serif text-3xl tracking-tight text-cashmere-text sm:text-4xl">Cookie Policy</h1>
@@ -37,7 +37,7 @@ export default function CookiePolicyPage() {
           <p>
             This Cookie Policy explains how Cashmere Lovers Club uses cookies and similar technologies on
             member.cashmerehouse.com. It should be read together with our{" "}
-            <Link href="/privacy-policy" className="text-cashmere-accent hover:underline">Privacy Policy</Link>,
+            <Link href="/privacy-policy" className="text-cashmere-accent-dark underline underline-offset-2">Privacy Policy</Link>,
             which explains how we process personal data and your rights.
           </p>
           <p>
@@ -205,7 +205,7 @@ function Address() {
       <p className="mt-2">Contact address: Dyrefaret 25, 1362 Hosle, Norway</p>
       <p>
         Email:{" "}
-        <a href="mailto:privacy@cashmerehouse.no" className="text-cashmere-accent hover:underline">
+        <a href="mailto:privacy@cashmerehouse.no" className="text-cashmere-accent-dark underline underline-offset-2">
           privacy@cashmerehouse.no
         </a>
       </p>

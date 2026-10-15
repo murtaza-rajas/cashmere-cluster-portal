@@ -306,7 +306,7 @@ function BenefitsRow() {
   return (
     <section className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${founding ? "lg:grid-cols-5" : "lg:grid-cols-4"}`}>
       <div className="relative overflow-hidden rounded-2xl bg-cashmere-navy p-5 text-white lg:col-span-1">
-        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-cashmere-accent">
+        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-cashmere-accent-light">
           <Star size={14} strokeWidth={1.75} fill="currentColor" />
           {founding ? "Founding Member" : "Member"}
         </div>

@@ -216,7 +216,12 @@ function ComparisonTable() {
   return (
     <section className="flex flex-col gap-3">
       <h2 className="font-serif text-2xl tracking-tight text-cashmere-text">Compare memberships</h2>
-      <div className="overflow-x-auto rounded-2xl border border-cashmere-border bg-white">
+      <div
+        tabIndex={0}
+        role="region"
+        aria-label="Membership comparison table"
+        className="overflow-x-auto rounded-2xl border border-cashmere-border bg-white focus-visible:outline-2 focus-visible:outline-cashmere-accent"
+      >
         <table className="w-full min-w-[560px] text-left text-sm">
           <thead className="border-b border-cashmere-border bg-cashmere-sidebar/60 text-xs uppercase tracking-wide text-cashmere-text-muted">
             <tr>

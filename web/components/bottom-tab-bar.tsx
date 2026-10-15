@@ -60,7 +60,7 @@ export default function BottomTabBar() {
             key={href}
             href={href}
             className={`flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] ${
-              active ? "text-cashmere-accent" : "text-cashmere-text-muted"
+              active ? "text-cashmere-accent-dark" : "text-cashmere-text-muted"
             }`}
           >
             <Icon size={20} strokeWidth={active ? 2 : 1.75} />

@@ -11,9 +11,13 @@
   --cashmere-sidebar: #f4efe7;
   --cashmere-border: #e6ddd0;
   --cashmere-text: #2b2420;
-  --cashmere-text-muted: #7a7168;
+  /* Darkened from #7a7168 (2026-10-15): that failed WCAG AA contrast (4.17–4.47:1)
+     on the cream backgrounds; this passes on all of them (min 4.63:1). */
+  --cashmere-text-muted: #736a61;
   --cashmere-accent: #8b6f47;
   --cashmere-accent-dark: #6f5837;
+  /* Gold for text on the navy panels — the base accent is only 3.0:1 there. */
+  --cashmere-accent-light: #b8976a;
 
   /* Navy, added for the pre-login landing page (matches login-ui.jpeg) — same
      approximated-from-mockup status as the rest of the palette above. */
@@ -31,6 +35,7 @@
   --color-cashmere-text-muted: var(--cashmere-text-muted);
   --color-cashmere-accent: var(--cashmere-accent);
   --color-cashmere-accent-dark: var(--cashmere-accent-dark);
+  --color-cashmere-accent-light: var(--cashmere-accent-light);
   --color-cashmere-navy: var(--cashmere-navy);
   --color-cashmere-navy-dark: var(--cashmere-navy-dark);
   --font-sans: var(--font-geist-sans);

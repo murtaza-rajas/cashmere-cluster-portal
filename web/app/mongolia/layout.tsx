@@ -78,7 +78,7 @@ export default function MongoliaLayout({ children }: { children: React.ReactNode
               {status.member.firstName ?? status.member.email} ·{" "}
               {membershipTierLabel(status.member.membershipTier, status.member.isFoundingMember, status.member.region)}
             </span>
-            <a href={`${apiUrl}/auth/logout`} className="flex items-center gap-1.5 hover:text-white">
+            <a href={`${apiUrl}/auth/logout`} aria-label="Log out" className="flex items-center gap-1.5 hover:text-white">
               <LogOut size={16} strokeWidth={1.75} />
               <span className="hidden sm:inline">Log out</span>
             </a>

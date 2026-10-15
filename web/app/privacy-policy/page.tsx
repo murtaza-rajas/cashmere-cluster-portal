@@ -18,7 +18,7 @@ export default function PrivacyPolicyPage() {
     <div className="min-h-screen bg-cashmere-bg">
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-12 sm:px-8 sm:py-16">
         <div>
-          <Link href="/" className="text-sm text-cashmere-accent hover:underline">
+          <Link href="/" className="text-sm text-cashmere-accent-dark underline underline-offset-2">
             ← Cashmere Lovers Club
           </Link>
           <h1 className="mt-4 font-serif text-3xl tracking-tight text-cashmere-text sm:text-4xl">Privacy Policy</h1>
@@ -202,7 +202,7 @@ export default function PrivacyPolicyPage() {
             settings. Optional analytics and advertising technologies are activated only after consent where required.
           </p>
           <p>
-            Our separate <Link href="/cookie-policy" className="text-cashmere-accent hover:underline">Cookie Policy</Link> explains
+            Our separate <Link href="/cookie-policy" className="text-cashmere-accent-dark underline underline-offset-2">Cookie Policy</Link> explains
             the technologies used, their providers, purposes and durations, and how you can manage your choices.
           </p>
           <p>You can reject optional technologies and withdraw consent through the cookie settings. Blocking necessary cookies may affect login and other features.</p>
@@ -286,7 +286,7 @@ export default function PrivacyPolicyPage() {
           <p>Withdrawing consent does not affect the lawfulness of processing carried out before consent was withdrawn.</p>
           <p>
             You can contact us at{" "}
-            <a href="mailto:privacy@cashmerehouse.no" className="text-cashmere-accent hover:underline">
+            <a href="mailto:privacy@cashmerehouse.no" className="text-cashmere-accent-dark underline underline-offset-2">
               privacy@cashmerehouse.no
             </a>{" "}
             or use the privacy features in your membership profile where available.
@@ -298,12 +298,12 @@ export default function PrivacyPolicyPage() {
           </p>
           <p>
             You have the right to complain to the Data Protection Commission in Ireland at{" "}
-            <a href="https://dataprotection.ie" className="text-cashmere-accent hover:underline" target="_blank" rel="noopener noreferrer">
+            <a href="https://dataprotection.ie" className="text-cashmere-accent-dark underline underline-offset-2" target="_blank" rel="noopener noreferrer">
               dataprotection.ie
             </a>
             , or to the relevant supervisory authority where you live or work. Users in Norway may contact
             Datatilsynet at{" "}
-            <a href="https://datatilsynet.no" className="text-cashmere-accent hover:underline" target="_blank" rel="noopener noreferrer">
+            <a href="https://datatilsynet.no" className="text-cashmere-accent-dark underline underline-offset-2" target="_blank" rel="noopener noreferrer">
               datatilsynet.no
             </a>
             .
@@ -397,7 +397,7 @@ function Address() {
       <p className="mt-2">Contact address: Dyrefaret 25, 1362 Hosle, Norway</p>
       <p>
         Email:{" "}
-        <a href="mailto:privacy@cashmerehouse.no" className="text-cashmere-accent hover:underline">
+        <a href="mailto:privacy@cashmerehouse.no" className="text-cashmere-accent-dark underline underline-offset-2">
           privacy@cashmerehouse.no
         </a>
       </p>

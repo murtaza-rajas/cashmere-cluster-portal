@@ -217,7 +217,7 @@ function Shortcut({
       </button>
     );
   }
-  return <div className={`${className} opacity-70`}>{body}</div>;
+  return <div className={`${className} border-dashed bg-cashmere-bg`}>{body}</div>;
 }
 
 function LatestStories({ onLocked }: { onLocked: (story: MemberStoryPreview) => void }) {
