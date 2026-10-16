@@ -503,6 +503,24 @@ model ExclusiveCollection {
   @@index([active])
 }
 
+// One-time sign-in codes for email sign-in (client request 2026-10-14) — an
+// alternative to Shopify login, which can require an SMS to the phone on the
+// customer's Shop account. Only a keyed hash of the code is stored. A code
+// expires after 10 minutes, allows 5 attempts, and is consumed on success.
+model EmailLoginCode {
+  id         String    @id @default(uuid())
+  email      String // lower-cased
+  codeHash   String
+  expiresAt  DateTime
+  attempts   Int       @default(0)
+  consumedAt DateTime?
+  ipAddress  String?
+  createdAt  DateTime  @default(now())
+
+  @@index([email, createdAt])
+  @@index([ipAddress, createdAt])
+}
+
 // "CLC Update" banner on the member homepages (client request 2026-10-13):
 // a short, staff-editable message from the founder during the launch phase —
 // image, label, title, summary, date — whose button opens a full article

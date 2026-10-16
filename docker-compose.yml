@@ -73,6 +73,12 @@ services:
       # .env for days before anyone noticed) has now happened three separate
       # times this engagement. Not derivable from the API key itself.
       MAILCHIMP_AUDIENCE_ID: ${MAILCHIMP_AUDIENCE_ID:-placeholder}
+      # Email sign-in codes (Mailchimp Transactional). Sender address is the
+      # client's choice; its domain must be verified in Mailchimp. Listed here
+      # because values only in .env never reach the container.
+      MAILCHIMP_TRANSACTIONAL_API_KEY: ${MAILCHIMP_TRANSACTIONAL_API_KEY:-}
+      EMAIL_FROM_ADDRESS: ${EMAIL_FROM_ADDRESS:-}
+      EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-Cashmere Lovers' Club}
       # Optional (session-cookie.util.ts reads it with .get, not .getOrThrow)
       # so its absence never crashed anything, unlike the vars above — but it
       # was silently not applying either. Blank default matches .env.example's

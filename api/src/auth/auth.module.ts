@@ -8,10 +8,14 @@ import { AuthService } from './auth.service';
 import { ShopifyIdentityProvider } from './providers/shopify-identity.provider';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { MembersModule } from '../members/members.module';
+import { EmailModule } from '../email/email.module';
+import { EmailLoginController } from './email-login/email-login.controller';
+import { EmailLoginService } from './email-login/email-login.service';
 
 @Module({
   imports: [
     MembersModule,
+    EmailModule,
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -22,8 +26,13 @@ import { MembersModule } from '../members/members.module';
       }),
     }),
   ],
-  controllers: [AuthController, SessionController],
-  providers: [AuthService, ShopifyIdentityProvider, JwtStrategy],
+  controllers: [AuthController, SessionController, EmailLoginController],
+  providers: [
+    AuthService,
+    ShopifyIdentityProvider,
+    JwtStrategy,
+    EmailLoginService,
+  ],
   exports: [AuthService],
 })
 export class AuthModule {}
