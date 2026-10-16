@@ -9,14 +9,18 @@ import { fetchMyHomepageUpdate, type MemberHomepageUpdate } from "@/lib/api";
 // "CLC Update" — the founder's launch-phase message on every member homepage
 // (client design 2026-10-13). Content comes from Admin → CLC Update; nothing
 // renders when no banner is active for this member's level.
-export function ClcUpdateBanner() {
+export function ClcUpdateBanner({
+  fetcher = fetchMyHomepageUpdate,
+}: {
+  fetcher?: () => Promise<MemberHomepageUpdate | null>;
+}) {
   const [update, setUpdate] = useState<MemberHomepageUpdate | null>(null);
 
   useEffect(() => {
-    fetchMyHomepageUpdate()
+    fetcher()
       .then(setUpdate)
       .catch(() => setUpdate(null));
-  }, []);
+  }, [fetcher]);
 
   if (!update) return null;
 

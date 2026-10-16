@@ -226,6 +226,37 @@ export async function fetchMyHomepageUpdate(): Promise<MemberHomepageUpdate | nu
   return text ? (JSON.parse(text) as MemberHomepageUpdate) : null;
 }
 
+// Public homepage content shown behind the sign-in panel (no login needed).
+export async function fetchShowcaseStories(): Promise<MemberStoryPreview[]> {
+  const res = await apiFetch("/showcase/stories");
+  if (!res.ok) throw new Error(`Unexpected response fetching stories: ${res.status}`);
+  return res.json();
+}
+
+export async function fetchShowcaseHomepageUpdate(): Promise<MemberHomepageUpdate | null> {
+  const res = await apiFetch("/showcase/homepage-update");
+  if (!res.ok) throw new Error(`Unexpected response fetching the CLC update: ${res.status}`);
+  const text = await res.text();
+  return text ? (JSON.parse(text) as MemberHomepageUpdate) : null;
+}
+
+// Email sign-in: request a 6-digit code, then verify it (sets the session cookie).
+async function emailSignIn(path: string, body: object): Promise<void> {
+  const res = await apiFetch(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => null);
+    const message = Array.isArray(data?.message) ? data.message[0] : data?.message;
+    throw new Error(message ?? "Something went wrong. Please try again.");
+  }
+}
+
+export const requestEmailCode = (email: string) => emailSignIn("/auth/email/request", { email });
+export const verifyEmailCode = (email: string, code: string) => emailSignIn("/auth/email/verify", { email, code });
+
 // Story cards including member-only stories this member can't open yet
 // (locked: true — title, photo and teaser only; the body is never sent).
 export interface MemberStoryPreview {

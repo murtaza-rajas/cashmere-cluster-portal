@@ -29,6 +29,7 @@ import { ExclusiveCollectionsModule } from './exclusive-collections/exclusive-co
 import { ScheduleModule } from '@nestjs/schedule';
 import { MembershipExpiryModule } from './membership-expiry/membership-expiry.module';
 import { HomepageUpdatesModule } from './homepage-updates/homepage-updates.module';
+import { ShowcaseModule } from './showcase/showcase.module';
 
 @Module({
   imports: [
@@ -60,6 +61,7 @@ import { HomepageUpdatesModule } from './homepage-updates/homepage-updates.modul
     ExclusiveCollectionsModule,
     MembershipExpiryModule,
     HomepageUpdatesModule,
+    ShowcaseModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -75,6 +75,8 @@ const nextConfig: NextConfig = {
       // class staff-directory hit 2026-10-07), so this top-level name is
       // safe the same way /event-catalog is.
       { source: "/exclusive-collection-catalog/:path*", destination: `${apiOrigin}/exclusive-collection-catalog/:path*` },
+      // Public homepage content behind the sign-in panel — no frontend page here.
+      { source: "/showcase/:path*", destination: `${apiOrigin}/showcase/:path*` },
       // Staff "CLC Update" banner CRUD — no frontend page at this path.
       { source: "/homepage-update-catalog/:path*", destination: `${apiOrigin}/homepage-update-catalog/:path*` },
       // Staff Care & Repair guide CRUD — no frontend page at

@@ -15,7 +15,7 @@ import {
   Sprout,
   Users,
 } from "lucide-react";
-import { fetchMyStoryPreviews, type MemberStoryPreview } from "@/lib/api";
+import { fetchMyStoryPreviews, fetchShowcaseStories, fetchShowcaseHomepageUpdate, type MemberStoryPreview } from "@/lib/api";
 import { STORE_COLLECTIONS } from "@/lib/store-links";
 import { LockBadge, useLockedDialog } from "@/components/locked-content";
 import { ClcUpdateBanner } from "@/components/clc-update-banner";
@@ -24,7 +24,9 @@ import { ClcUpdateBanner } from "@/components/clc-update-banner";
 // content is shown with a lock (title, photo, teaser only) instead of being
 // hidden; clicking it explains which membership opens it. Anything not built
 // yet says "Coming soon" rather than linking nowhere.
-export function NewsletterHome({ displayName }: { displayName: string }) {
+// `showcase`: the same page shown to signed-out visitors behind the sign-in
+// panel — a general welcome instead of a name, public content only.
+export function NewsletterHome({ displayName, showcase = false }: { displayName: string; showcase?: boolean }) {
   const locked = useLockedDialog();
 
   return (
@@ -45,11 +47,19 @@ export function NewsletterHome({ displayName }: { displayName: string }) {
         </div>
         <div className="absolute inset-0 hidden bg-gradient-to-r from-cashmere-bg/95 via-cashmere-bg/40 to-transparent sm:block" />
         <div className="relative flex flex-col justify-center gap-3 p-6 sm:aspect-[16/6] sm:p-10 lg:aspect-[16/5]">
-          <h1 className="font-serif text-4xl tracking-tight text-cashmere-text sm:text-5xl">Welcome, {displayName}</h1>
-          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-cashmere-accent-dark">
-            Newsletter Subscriber
+          <h1 className="font-serif text-4xl tracking-tight text-cashmere-text sm:text-5xl">
+            {showcase ? "Welcome to Cashmere Lovers' Club" : `Welcome, ${displayName}`}
+          </h1>
+          {!showcase && (
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-cashmere-accent-dark">
+              Newsletter Subscriber
+            </p>
+          )}
+          <p className="max-w-xs text-cashmere-text">
+            {showcase
+              ? "A global community for those who love cashmere."
+              : "Thank you for being part of the Cashmere House community."}
           </p>
-          <p className="max-w-xs text-cashmere-text">Thank you for being part of the Cashmere House community.</p>
           <span
             className="mt-2 inline-flex w-fit cursor-default items-center gap-2 rounded-lg bg-cashmere-accent-dark/90 px-5 py-2.5 text-sm font-medium text-white"
             aria-disabled="true"
@@ -82,9 +92,12 @@ export function NewsletterHome({ displayName }: { displayName: string }) {
         <Shortcut icon={Users} title="Our Impact" subtitle="Coming soon" />
       </section>
 
-      <ClcUpdateBanner />
+      <ClcUpdateBanner fetcher={showcase ? fetchShowcaseHomepageUpdate : undefined} />
 
-      <LatestStories onLocked={(story) => locked.show(`"${story.title}"`, story.availableTo)} />
+      <LatestStories
+        fetcher={showcase ? fetchShowcaseStories : fetchMyStoryPreviews}
+        onLocked={(story) => locked.show(`"${story.title}"`, story.availableTo)}
+      />
 
       {/* Collections */}
       <section className="flex flex-col gap-4">
@@ -220,18 +233,24 @@ function Shortcut({
   return <div className={`${className} border-dashed bg-cashmere-bg`}>{body}</div>;
 }
 
-function LatestStories({ onLocked }: { onLocked: (story: MemberStoryPreview) => void }) {
+function LatestStories({
+  fetcher,
+  onLocked,
+}: {
+  fetcher: () => Promise<MemberStoryPreview[]>;
+  onLocked: (story: MemberStoryPreview) => void;
+}) {
   const [stories, setStories] = useState<MemberStoryPreview[] | null>(null);
 
   useEffect(() => {
-    fetchMyStoryPreviews()
+    fetcher()
       .then((all) => {
         // Featured stories first, then newest — the homepage shows three.
         const ordered = [...all.filter((s) => s.featured), ...all.filter((s) => !s.featured)];
         setStories(ordered.slice(0, 3));
       })
       .catch(() => setStories([]));
-  }, []);
+  }, [fetcher]);
 
   if (stories === null) return null;
 
