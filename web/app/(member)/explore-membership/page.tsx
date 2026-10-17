@@ -2,15 +2,18 @@
 
 import { Check, Minus } from "lucide-react";
 import { useMember } from "@/contexts/member-context";
+import { MEMBERSHIP_PRODUCT_URLS } from "@/lib/store-links";
+import { SHIPPING_NOTE, annualPrice } from "@/lib/membership-offers";
 
 // Copy is the client's own: originally CLC_Membership_Text_EN_Updated.docx
 // (2026-10-05), updated per his revised illustration and notes (2026-10-14):
 // full benefit lists, Design Lab voting for Founding only, 15%/10% discounts
 // for 6-Month and Annual (20%/15% for Founding), welcome gifts sent after one
-// month, and the USA shipping/duties note on Annual and Founding.
+// month, and the USA shipping/duties note on Annual and Founding. Updated
+// 2026-10-17: buttons link to the store products, USA USD 40 / Asia USD 70
+// shipping (duties not included), Annual launch price €200 until 5 November.
 //
-// Not gated — it's where Newsletter members are sent to upgrade. Purchasing
-// isn't open yet, so the buttons stay disabled with a note until launch.
+// Not gated — it's where Newsletter members are sent to upgrade.
 
 const PAID_BENEFITS = [
   "Club News / CLC Update",
@@ -22,10 +25,9 @@ const PAID_BENEFITS = [
   "Newsletter",
 ];
 
-const USA_NOTE = "USA: USD 42 additional for shipping and import duties on the welcome gift sent from Norway.";
-
 export default function ExploreMembershipPage() {
   const member = useMember();
+  const annual = annualPrice();
 
   return (
     <div className="flex w-full flex-col gap-6">
@@ -42,7 +44,6 @@ export default function ExploreMembershipPage() {
           price="Free"
           tagline="Stay connected to the world of cashmere."
           current={member.membershipTier === "NEWSLETTER"}
-          buttonLabel="Become a Newsletter Member"
           features={[
             "Newsletter with stories and inspiration",
             "Selected Stories & Knowledge",
@@ -60,6 +61,7 @@ export default function ExploreMembershipPage() {
           discount="15% off until 31 March 2027, 10% member discount thereafter."
           current={member.membershipTier === "SIX_MONTH"}
           buttonLabel="Become a 6-Month Member"
+          href={MEMBERSHIP_PRODUCT_URLS.sixMonth}
           features={[
             "Full Stories & Knowledge access",
             "Member offers and early access",
@@ -69,14 +71,19 @@ export default function ExploreMembershipPage() {
         />
         <TierCard
           title="Annual Member"
-          price="€300"
-          term="12-month membership."
+          price={annual.price}
+          term={
+            annual.launchOffer
+              ? "12-month membership. Launch price for the first year, until 5 November — €300 from 6 November."
+              : "12-month membership."
+          }
           tagline="A year of cashmere, stories and exclusive benefits."
           gift={["Welcome scarf · value €169.", "Sent after one month."]}
           discount="15% off until 31 March 2027, 10% member discount thereafter."
-          note={USA_NOTE}
+          note={SHIPPING_NOTE}
           current={member.membershipTier === "ANNUAL" && !member.isFoundingMember}
           buttonLabel="Become an Annual Member"
+          href={MEMBERSHIP_PRODUCT_URLS.annual}
           features={[
             "Full Stories & Knowledge access",
             "Member offers and early access",
@@ -92,9 +99,10 @@ export default function ExploreMembershipPage() {
           badge="Limited to 1,500 members"
           gift={["Welcome blanket · value €599.", "Sent after one month."]}
           discount="20% off until 31 March 2027, 15% member discount thereafter."
-          note={USA_NOTE}
+          note={SHIPPING_NOTE}
           current={member.isFoundingMember}
           buttonLabel="Become a Founding Member"
+          href={MEMBERSHIP_PRODUCT_URLS.founding}
           features={[
             "Full Stories & Knowledge access",
             "Exclusive offers and early access",
@@ -106,7 +114,8 @@ export default function ExploreMembershipPage() {
       </div>
 
       <p className="rounded-lg bg-cashmere-sidebar/60 px-4 py-3 text-sm text-cashmere-text-muted">
-        Memberships open on 1 November 2026. Purchasing isn&apos;t available yet — check back soon.
+        The Club opens on 1 November 2026. Memberships bought before then start on 1 November; from 1 November
+        they start on the day you buy.
       </p>
 
       <ComparisonTable />
@@ -125,6 +134,7 @@ function TierCard({
   note,
   current,
   buttonLabel,
+  href,
   features,
 }: {
   title: string;
@@ -136,7 +146,8 @@ function TierCard({
   discount?: string;
   note?: string;
   current: boolean;
-  buttonLabel: string;
+  buttonLabel?: string;
+  href?: string;
   features: string[];
 }) {
   return (
@@ -183,12 +194,16 @@ function TierCard({
             {note && <p>{note}</p>}
           </div>
         )}
-        <button
-          disabled
-          className="w-full cursor-not-allowed rounded-full border border-cashmere-accent-dark/40 px-4 py-2.5 text-sm font-medium text-cashmere-text"
-        >
-          {buttonLabel}
-        </button>
+        {buttonLabel && href && (
+          <a
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full rounded-full bg-cashmere-accent-dark px-4 py-2.5 text-center text-sm font-medium text-white transition-colors hover:bg-cashmere-accent"
+          >
+            {buttonLabel}
+          </a>
+        )}
       </div>
     </div>
   );

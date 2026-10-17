@@ -22,3 +22,11 @@ export const SOCIAL_LINKS = {
   instagram: "https://instagram.com/cashmerehouseNO",
   facebook: "https://facebook.com/cashmerehouseno",
 };
+
+// Membership products in the store (handles checked via the Admin API on
+// 2026-10-17). They show "page not found" until the products are published.
+export const MEMBERSHIP_PRODUCT_URLS = {
+  sixMonth: `${STORE_URL}/products/cashmere-lovers-club-6-month-membership`,
+  annual: `${STORE_URL}/products/cashmere-lovers-club-founding-membership-kopi`,
+  founding: `${STORE_URL}/products/cashmere-lovers-club`,
+};

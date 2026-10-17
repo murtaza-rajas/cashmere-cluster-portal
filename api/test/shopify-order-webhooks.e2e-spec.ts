@@ -288,11 +288,12 @@ describe('Shopify order-sync webhooks — auto-activation-on-payment (e2e)', () 
     expect(updated.isFoundingMember).toBe(true);
     expect(updated.termLengthMonths).toBe(60);
     expect(updated.originatingShopifyOrderId).toBe(String(shopifyOrderId));
+    // Bought before launch (7 Oct) → starts on launch day, 1 Nov.
     expect(updated.membershipStartDate?.toISOString()).toBe(
-      '2026-10-07T00:00:00.000Z',
+      '2026-11-01T00:00:00.000Z',
     );
     expect(updated.membershipEndDate?.toISOString()).toBe(
-      '2031-10-07T00:00:00.000Z',
+      '2031-11-01T00:00:00.000Z',
     );
 
     const audit = await prisma.auditLog.findFirst({
@@ -410,6 +411,18 @@ describe('Shopify order-sync webhooks — auto-activation-on-payment (e2e)', () 
     expect(m.isFoundingMember).toBe(true);
     expect(m.termLengthMonths).toBe(60);
     expect(m.membershipEndDate?.toISOString()).toBe('2032-11-01T00:00:00.000Z');
+  });
+
+  it('a membership bought on or after launch day starts on the purchase date', async () => {
+    const { id, externalId } = await memberWith({ tier: 'NEWSLETTER' });
+    await post(
+      '/webhooks/shopify/orders/create',
+      paidOrder(externalId, annualProductId, '2026-11-04T10:30:00Z'),
+    ).expect(200);
+
+    const m = await prisma.member.findUniqueOrThrow({ where: { id } });
+    expect(m.membershipStartDate?.toISOString()).toBe('2026-11-04T10:30:00.000Z');
+    expect(m.membershipEndDate?.toISOString()).toBe('2027-11-04T10:30:00.000Z');
   });
 
   it('after a membership has ended, a new purchase starts fresh from the purchase date', async () => {

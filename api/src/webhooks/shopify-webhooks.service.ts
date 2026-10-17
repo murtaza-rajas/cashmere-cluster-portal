@@ -9,6 +9,9 @@ import {
   ShopifyShopRedactPayload,
 } from './types/shopify-webhook-payloads';
 
+// The Club opens 1 November 2026.
+const CLUB_LAUNCH_DATE = new Date('2026-11-01T00:00:00Z');
+
 // Free tiers (Newsletter, Mongolia) rank 0 — any paid purchase replaces them.
 const TIER_RANK: Record<MembershipTier, number> = {
   NEWSLETTER: 0,
@@ -253,6 +256,10 @@ export class ShopifyWebhooksService {
     });
 
     const purchasedAt = new Date(payload.created_at);
+    // Memberships bought before the Club opens start on launch day (client
+    // decision 2026-10-17); from then on they start on the purchase date.
+    const termStart =
+      purchasedAt < CLUB_LAUNCH_DATE ? CLUB_LAUNCH_DATE : purchasedAt;
     // A paid tier with no end date (e.g. granted by hand) counts as active.
     const currentPaidActive =
       member.membershipStatus === 'ACTIVE' &&
@@ -266,12 +273,12 @@ export class ShopifyWebhooksService {
     const tier = keepCurrentTier ? member.membershipTier : level.tier;
 
     const startDate = currentPaidActive
-      ? (member.membershipStartDate ?? purchasedAt)
-      : purchasedAt;
+      ? (member.membershipStartDate ?? termStart)
+      : termStart;
     const endDate = new Date(
       currentPaidActive && member.membershipEndDate
         ? member.membershipEndDate
-        : purchasedAt,
+        : termStart,
     );
     endDate.setMonth(endDate.getMonth() + level.termLengthMonths);
 
