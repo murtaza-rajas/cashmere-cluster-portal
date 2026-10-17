@@ -50,4 +50,76 @@ export class ShopifyAdminApiService {
     }
     return data.data;
   }
+
+  // Returns the numeric Shopify customer id (the same form the login flow
+  // stores — see ShopifyIdentityProvider's extractNumericId), creating a bare
+  // customer if none exists. customerCreate sends no invite email, and there's
+  // deliberately no emailMarketingConsent input: marketing stays in Mailchimp.
+  // Used by the Mailchimp sync and by staff adding members by hand.
+  async findOrCreateCustomer(person: {
+    email: string;
+    firstName?: string | null;
+    lastName?: string | null;
+  }): Promise<{ customerId: string; created: boolean }> {
+    const data = await this.graphql<{
+      customerCreate: {
+        customer: { id: string } | null;
+        userErrors: { field: string[] | null; message: string }[];
+      };
+    }>(
+      `mutation customerCreate($input: CustomerInput!) {
+        customerCreate(input: $input) {
+          customer { id }
+          userErrors { field message }
+        }
+      }`,
+      {
+        input: {
+          email: person.email,
+          firstName: person.firstName,
+          lastName: person.lastName,
+        },
+      },
+    );
+
+    const { customer, userErrors } = data.customerCreate;
+    if (customer) {
+      return { customerId: numericId(customer.id), created: true };
+    }
+
+    const isDuplicate = userErrors.some(
+      (e) =>
+        (e.field ?? []).some((f) => f.toLowerCase().includes('email')) &&
+        /taken|already|exist/i.test(e.message),
+    );
+    if (!isDuplicate) {
+      throw new Error(
+        userErrors.map((e) => e.message).join('; ') ||
+          'Unknown error creating customer',
+      );
+    }
+
+    const lookup = await this.graphql<{
+      customers: { nodes: { id: string; email: string | null }[] };
+    }>(
+      `query customerByEmail($query: String!) {
+        customers(first: 5, query: $query) { nodes { id email } }
+      }`,
+      { query: `email:"${person.email.replace(/"/g, '')}"` },
+    );
+    const match = lookup.customers.nodes.find(
+      (c) => c.email?.toLowerCase() === person.email.toLowerCase(),
+    );
+    if (!match) {
+      throw new Error(
+        'Shopify reports this email is taken but no customer with it was found',
+      );
+    }
+    return { customerId: numericId(match.id), created: false };
+  }
+}
+
+function numericId(gid: string): string {
+  const match = /\/(\d+)$/.exec(gid);
+  return match ? match[1] : gid;
 }

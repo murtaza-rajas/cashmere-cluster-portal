@@ -23,6 +23,7 @@ import { RolesGuard } from '../staff/guards/roles.guard';
 import { Roles } from '../staff/decorators/roles.decorator';
 import { MembersService } from './members.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { GrantMembershipDto } from './dto/grant-membership.dto';
 import { DataSubjectRequestsService } from '../data-subject-requests/data-subject-requests.service';
 import { CreateRequestDto } from '../data-subject-requests/dto/create-request.dto';
 import { DataSubjectRequestType } from '@prisma/client';
@@ -420,6 +421,15 @@ export class MembersController {
       search,
       getScopedRegion(req.staffUser!.roles, ['Club Manager', 'Member Support']),
     );
+  }
+
+  // Add a member by hand, or change an existing member's level (pilot
+  // customers, 2026-10-17). Club Manager only — it grants paid access.
+  @UseGuards(StaffAuthGuard, RolesGuard)
+  @Roles('Club Manager')
+  @Post()
+  grantMembership(@Body() dto: GrantMembershipDto, @Req() req: Request) {
+    return this.members.grantMembership(dto, req.staffUser!.id);
   }
 
   // Combined read-only snapshot (profile + orders + collection + wishlist) so

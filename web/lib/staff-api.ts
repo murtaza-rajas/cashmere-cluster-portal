@@ -200,6 +200,32 @@ export async function fetchMembers(search?: string): Promise<MemberSummary[]> {
   return res.json();
 }
 
+export interface GrantMembershipInput {
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  tier: "SIX_MONTH" | "ANNUAL" | "FOUNDING";
+  months: number;
+}
+
+// Club Manager adds a member by hand (pilot customers) or changes an existing
+// member's level. Creates the Shopify customer too when the email is new.
+export async function grantMembership(
+  input: GrantMembershipInput,
+): Promise<{ member: Member; created: boolean }> {
+  const res = await apiFetch("/members", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    const message = Array.isArray(body?.message) ? body.message.join("; ") : body?.message;
+    throw new Error(message ?? `Unexpected response adding member: ${res.status}`);
+  }
+  return res.json();
+}
+
 export async function fetchMemberDetail(id: string): Promise<MemberDetail> {
   const res = await apiFetch(`/members/${id}`);
   if (res.status === 404) throw new Error("Member not found");

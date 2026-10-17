@@ -13,6 +13,7 @@ import { MongoliaModule } from '../mongolia/mongolia.module';
 import { StoriesModule } from '../stories/stories.module';
 import { ExclusiveCollectionsModule } from '../exclusive-collections/exclusive-collections.module';
 import { HomepageUpdatesModule } from '../homepage-updates/homepage-updates.module';
+import { ShopifyAdminModule } from '../shopify-admin/shopify-admin.module';
 
 @Module({
   // StaffModule needed for the Members & Users admin routes below (StaffAuthGuard
@@ -32,6 +33,7 @@ import { HomepageUpdatesModule } from '../homepage-updates/homepage-updates.modu
     StoriesModule,
     ExclusiveCollectionsModule,
     HomepageUpdatesModule,
+    ShopifyAdminModule,
   ],
   controllers: [MembersController],
   providers: [MembersService],

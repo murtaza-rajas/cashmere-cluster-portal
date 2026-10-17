@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search } from "lucide-react";
+import { Search, UserPlus } from "lucide-react";
 import { useStaff, staffHasAnyRole } from "@/contexts/staff-context";
-import { fetchMembers, MemberSummary } from "@/lib/staff-api";
+import { fetchMembers, grantMembership, GrantMembershipInput, MemberSummary } from "@/lib/staff-api";
 import { membershipTierLabel } from "@/lib/api";
 
 // Members & Users admin (Milestone 5) — Club Manager or Member Support, matching
@@ -14,6 +14,8 @@ export default function StaffMembersPage() {
   const staff = useStaff();
   const router = useRouter();
   const allowed = staffHasAnyRole(staff, ["Club Manager", "Member Support"]);
+  // Granting paid access is Club Manager only (matches POST /members).
+  const canGrant = staffHasAnyRole(staff, ["Club Manager"]);
 
   const [search, setSearch] = useState("");
   const [state, setState] = useState<
@@ -50,6 +52,8 @@ export default function StaffMembersPage() {
         <h1 className="font-serif text-3xl tracking-tight text-cashmere-text">Members &amp; Users</h1>
         <p className="mt-1 text-cashmere-text-muted">Look up a member by name or email.</p>
       </div>
+
+      {canGrant && <GrantMembershipPanel onGranted={() => load(search || undefined)} />}
 
       <form onSubmit={handleSearch} className="flex gap-2">
         <div className="relative flex-1">
@@ -126,6 +130,144 @@ export default function StaffMembersPage() {
         </div>
       )}
     </div>
+  );
+}
+
+const GRANT_LEVELS: { value: GrantMembershipInput["tier"]; label: string }[] = [
+  { value: "SIX_MONTH", label: "6-Month Member" },
+  { value: "ANNUAL", label: "Annual Member" },
+  { value: "FOUNDING", label: "Founding Member" },
+];
+
+// Add a member by hand — pilot customers (client request 2026-10-17). If the
+// email already belongs to a member, their level is changed instead. The
+// membership starts today.
+function GrantMembershipPanel({ onGranted }: { onGranted: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [tier, setTier] = useState<GrantMembershipInput["tier"]>("ANNUAL");
+  const [months, setMonths] = useState(12);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState<string | null>(null);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    setDone(null);
+    try {
+      const { member, created } = await grantMembership({
+        email: email.trim(),
+        firstName: firstName.trim() || undefined,
+        lastName: lastName.trim() || undefined,
+        tier,
+        months,
+      });
+      const level = GRANT_LEVELS.find((l) => l.value === tier)?.label ?? tier;
+      const until = member.membershipEndDate
+        ? new Date(member.membershipEndDate).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
+        : "";
+      setDone(
+        `${created ? "Added" : "Updated"} ${member.email}: ${level} until ${until}. They sign in with Shopify using this email.`,
+      );
+      setEmail("");
+      setFirstName("");
+      setLastName("");
+      onGranted();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="flex w-fit items-center gap-2 rounded-full border border-cashmere-accent-dark px-5 py-2 text-sm font-medium text-cashmere-text transition-colors hover:bg-cashmere-sidebar/60"
+      >
+        <UserPlus size={16} strokeWidth={1.75} />
+        Add or update a member
+      </button>
+    );
+  }
+
+  const field = "w-full rounded-lg border border-cashmere-border px-3 py-2 text-sm";
+  return (
+    <form onSubmit={submit} className="flex flex-col gap-4 rounded-2xl border border-cashmere-border bg-white p-6">
+      <div>
+        <h2 className="font-serif text-xl text-cashmere-text">Add or update a member</h2>
+        <p className="mt-1 text-sm text-cashmere-text-muted">
+          For pilot customers and other memberships given without a purchase. If the email already belongs to a member,
+          their level is changed. The membership starts today.
+        </p>
+      </div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <label className="flex flex-col gap-1 text-sm text-cashmere-text sm:col-span-2">
+          Email
+          <input id="grant-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className={field} />
+        </label>
+        <label className="flex flex-col gap-1 text-sm text-cashmere-text">
+          First name (optional)
+          <input id="grant-first-name" value={firstName} onChange={(e) => setFirstName(e.target.value)} className={field} />
+        </label>
+        <label className="flex flex-col gap-1 text-sm text-cashmere-text">
+          Last name (optional)
+          <input id="grant-last-name" value={lastName} onChange={(e) => setLastName(e.target.value)} className={field} />
+        </label>
+        <label className="flex flex-col gap-1 text-sm text-cashmere-text">
+          Membership level
+          <select
+            id="grant-tier"
+            value={tier}
+            onChange={(e) => setTier(e.target.value as GrantMembershipInput["tier"])}
+            className={field}
+          >
+            {GRANT_LEVELS.map((l) => (
+              <option key={l.value} value={l.value}>
+                {l.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-sm text-cashmere-text">
+          Length (months)
+          <input
+            id="grant-months"
+            type="number"
+            min={1}
+            max={60}
+            required
+            value={months}
+            onChange={(e) => setMonths(Number(e.target.value))}
+            className={field}
+          />
+        </label>
+      </div>
+      {error && <p role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
+      {done && <p role="status" className="rounded-lg bg-green-50 px-4 py-3 text-sm text-green-800">{done}</p>}
+      <div className="flex gap-3">
+        <button
+          type="submit"
+          disabled={busy}
+          className="rounded-full bg-cashmere-accent-dark px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-cashmere-accent disabled:opacity-60"
+        >
+          {busy ? "Saving…" : "Save membership"}
+        </button>
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          className="rounded-full px-4 py-2 text-sm text-cashmere-text-muted underline underline-offset-2"
+        >
+          Close
+        </button>
+      </div>
+    </form>
   );
 }
 

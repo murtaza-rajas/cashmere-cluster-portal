@@ -4,17 +4,100 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { isDemoMember } from '../common/membership-access';
+import { DEMO_ID_PREFIX, isDemoMember } from '../common/membership-access';
 import { Gender, MembershipTier, Prisma, Region } from '@prisma/client';
 import { ExternalIdentity } from '../auth/interfaces/identity-provider.interface';
 import { AuditLogService } from '../audit-log/audit-log.service';
+import { ShopifyAdminApiService } from '../shopify-admin/shopify-admin-api.service';
+import { GrantMembershipDto } from './dto/grant-membership.dto';
 
 @Injectable()
 export class MembersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditLog: AuditLogService,
+    private readonly shopifyApi: ShopifyAdminApiService,
   ) {}
+
+  /**
+   * Staff give someone a membership by hand — pilot customers (client
+   * request 2026-10-17), the one exception to "paid tiers only via Shopify
+   * payment". Finds the member by email, or creates them along with a bare
+   * Shopify customer so they can sign in with that email. The term starts
+   * today. Staff set exactly what they choose; the previous values go in the
+   * audit log.
+   */
+  async grantMembership(dto: GrantMembershipDto, staffUserId: string) {
+    const email = dto.email.trim();
+    let member = await this.prisma.member.findFirst({
+      where: {
+        email: { equals: email, mode: 'insensitive' },
+        NOT: { shopifyCustomerId: { startsWith: DEMO_ID_PREFIX } },
+      },
+    });
+    let created = false;
+    let shopifyCustomerCreated = false;
+
+    if (!member) {
+      const customer = await this.shopifyApi.findOrCreateCustomer({
+        email,
+        firstName: dto.firstName,
+        lastName: dto.lastName,
+      });
+      shopifyCustomerCreated = customer.created;
+      member = await this.prisma.member.findUnique({
+        where: { shopifyCustomerId: customer.customerId },
+      });
+      if (!member) {
+        member = await this.prisma.member.create({
+          data: {
+            shopifyCustomerId: customer.customerId,
+            email,
+            firstName: dto.firstName || null,
+            lastName: dto.lastName || null,
+            membershipTier: MembershipTier.NEWSLETTER,
+          },
+        });
+        created = true;
+      }
+    }
+
+    const start = new Date();
+    const end = new Date(start);
+    end.setMonth(end.getMonth() + dto.months);
+
+    const updated = await this.prisma.member.update({
+      where: { id: member.id },
+      data: {
+        membershipTier: dto.tier,
+        membershipStatus: 'ACTIVE',
+        termLengthMonths: dto.months,
+        membershipStartDate: start,
+        membershipEndDate: end,
+        isFoundingMember:
+          dto.tier === MembershipTier.FOUNDING ? true : undefined,
+      },
+    });
+
+    await this.auditLog.log({
+      action: 'member.membership_granted',
+      actorStaffUserId: staffUserId,
+      targetType: 'Member',
+      targetId: member.id,
+      targetMemberId: member.id,
+      metadata: {
+        tier: dto.tier,
+        months: dto.months,
+        previousTier: member.membershipTier,
+        previousStatus: member.membershipStatus,
+        previousEndDate: member.membershipEndDate?.toISOString() ?? null,
+        memberCreated: created,
+        shopifyCustomerCreated,
+      },
+    });
+
+    return { member: updated, created };
+  }
 
   /**
    * Finds the member tied to this Shopify identity, or creates one.

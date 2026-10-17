@@ -265,7 +265,8 @@ export class MailchimpService {
       return;
     }
 
-    const { customerId, created } = await this.ensureShopifyCustomer(sub);
+    const { customerId, created } =
+      await this.shopifyApi.findOrCreateCustomer(sub);
     if (created) result.shopifyCustomersCreated += 1;
 
     const byShopifyId = await this.prisma.member.findUnique({
@@ -308,73 +309,4 @@ export class MailchimpService {
     });
     result.membersMarkedSubscribed += 1;
   }
-
-  // Returns the numeric Shopify customer id (the same form the login flow
-  // stores — see ShopifyIdentityProvider's extractNumericId), creating a bare
-  // customer if none exists. Deliberately no emailMarketingConsent input:
-  // the subscriber's marketing relationship stays in Mailchimp only.
-  private async ensureShopifyCustomer(
-    sub: Subscriber,
-  ): Promise<{ customerId: string; created: boolean }> {
-    const data = await this.shopifyApi.graphql<{
-      customerCreate: {
-        customer: { id: string } | null;
-        userErrors: { field: string[] | null; message: string }[];
-      };
-    }>(
-      `mutation customerCreate($input: CustomerInput!) {
-        customerCreate(input: $input) {
-          customer { id }
-          userErrors { field message }
-        }
-      }`,
-      {
-        input: {
-          email: sub.email,
-          firstName: sub.firstName,
-          lastName: sub.lastName,
-        },
-      },
-    );
-
-    const { customer, userErrors } = data.customerCreate;
-    if (customer) {
-      return { customerId: numericId(customer.id), created: true };
-    }
-
-    const isDuplicate = userErrors.some(
-      (e) =>
-        (e.field ?? []).some((f) => f.toLowerCase().includes('email')) &&
-        /taken|already|exist/i.test(e.message),
-    );
-    if (!isDuplicate) {
-      throw new Error(
-        userErrors.map((e) => e.message).join('; ') ||
-          'Unknown error creating customer',
-      );
-    }
-
-    const lookup = await this.shopifyApi.graphql<{
-      customers: { nodes: { id: string; email: string | null }[] };
-    }>(
-      `query customerByEmail($query: String!) {
-        customers(first: 5, query: $query) { nodes { id email } }
-      }`,
-      { query: `email:"${sub.email.replace(/"/g, '')}"` },
-    );
-    const match = lookup.customers.nodes.find(
-      (c) => c.email?.toLowerCase() === sub.email.toLowerCase(),
-    );
-    if (!match) {
-      throw new Error(
-        'Shopify reports this email is taken but no customer with it was found',
-      );
-    }
-    return { customerId: numericId(match.id), created: false };
-  }
-}
-
-function numericId(gid: string): string {
-  const match = /\/(\d+)$/.exec(gid);
-  return match ? match[1] : gid;
 }
