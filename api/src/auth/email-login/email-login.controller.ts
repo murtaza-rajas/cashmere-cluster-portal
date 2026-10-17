@@ -1,7 +1,16 @@
-import { Body, Controller, HttpCode, Post, Req, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Post,
+  Req,
+  Res,
+} from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { EmailLoginService } from './email-login.service';
+import { TransactionalEmailService } from '../../email/transactional-email.service';
 import { RequestEmailCodeDto, VerifyEmailCodeDto } from './email-login.dto';
 import {
   SESSION_COOKIE,
@@ -24,7 +33,13 @@ export class EmailLoginController {
   constructor(
     private readonly emailLogin: EmailLoginService,
     private readonly config: ConfigService,
+    private readonly emailSender: TransactionalEmailService,
   ) {}
+
+  @Get('status')
+  status() {
+    return { available: this.emailSender.isConfigured() };
+  }
 
   @Post('request')
   @HttpCode(202)

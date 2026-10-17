@@ -26,6 +26,21 @@ export class TransactionalEmailService {
 
   constructor(private readonly config: ConfigService) {}
 
+  // Whether emails can actually go out (key + sender configured, or dev log
+  // mode). The sign-in panel hides the email option until this is true.
+  isConfigured(): boolean {
+    if (
+      this.config.get<string>('EMAIL_DELIVERY') === 'log' &&
+      process.env.NODE_ENV !== 'production'
+    ) {
+      return true;
+    }
+    return Boolean(
+      this.config.get<string>('MAILCHIMP_TRANSACTIONAL_API_KEY') &&
+      this.config.get<string>('EMAIL_FROM_ADDRESS'),
+    );
+  }
+
   async send(email: OutgoingEmail): Promise<void> {
     if (
       this.config.get<string>('EMAIL_DELIVERY') === 'log' &&

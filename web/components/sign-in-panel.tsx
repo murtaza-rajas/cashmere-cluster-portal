@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ShoppingBag } from "lucide-react";
-import { API_URL, requestEmailCode, verifyEmailCode } from "@/lib/api";
+import { API_URL, fetchEmailSignInAvailable, requestEmailCode, verifyEmailCode } from "@/lib/api";
 import { CookieSettingsButton } from "@/components/cookie-consent";
 
 const CLUB_PAGE = "https://www.cashmerehouse.com/pages/cashmere-lovers-club";
@@ -21,12 +21,20 @@ export function SignInPanel() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  // Hidden until email sending is configured on the server.
+  const [emailAvailable, setEmailAvailable] = useState(false);
   const emailRef = useRef<HTMLInputElement>(null);
   const codeRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    fetchEmailSignInAvailable()
+      .then(setEmailAvailable)
+      .catch(() => setEmailAvailable(false));
+  }, []);
+
+  useEffect(() => {
     (step === "email" ? emailRef : codeRef).current?.focus();
-  }, [step]);
+  }, [step, emailAvailable]);
 
   async function sendCode(e?: React.FormEvent) {
     e?.preventDefault();
@@ -71,6 +79,8 @@ export function SignInPanel() {
         Cashmere Lovers&rsquo; Club
       </h1>
 
+      {emailAvailable && (
+        <>
       {step === "email" ? (
         <form onSubmit={sendCode} className="mt-6 flex flex-col gap-3">
           <h2 className="font-serif text-xl text-cashmere-text">Newsletter Members</h2>
@@ -151,6 +161,9 @@ export function SignInPanel() {
       )}
 
       <div className="my-6 h-px bg-cashmere-border" />
+        </>
+      )}
+
 
       <h2 className="font-serif text-xl text-cashmere-text">Annual &amp; Founding Members</h2>
       <a

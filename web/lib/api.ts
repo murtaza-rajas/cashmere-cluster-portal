@@ -254,6 +254,12 @@ async function emailSignIn(path: string, body: object): Promise<void> {
   }
 }
 
+export async function fetchEmailSignInAvailable(): Promise<boolean> {
+  const res = await apiFetch("/auth/email/status");
+  if (!res.ok) return false;
+  return Boolean((await res.json()).available);
+}
+
 export const requestEmailCode = (email: string) => emailSignIn("/auth/email/request", { email });
 export const verifyEmailCode = (email: string, code: string) => emailSignIn("/auth/email/verify", { email, code });
 

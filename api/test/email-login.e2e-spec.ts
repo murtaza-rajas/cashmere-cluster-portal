@@ -144,4 +144,9 @@ describe('Email sign-in (e2e)', () => {
     await request(app.getHttpServer()).post('/auth/email/request').send({ email: 'not-an-email' }).expect(400);
     await request(app.getHttpServer()).post('/auth/email/verify').send({ email: 'a@example.com', code: 'abc' }).expect(400);
   });
+
+  it('reports whether email sign-in can send emails (the panel hides it otherwise)', async () => {
+    const res = await request(app.getHttpServer()).get('/auth/email/status').expect(200);
+    expect(typeof res.body.available).toBe('boolean');
+  });
 });
