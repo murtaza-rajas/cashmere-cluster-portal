@@ -27,6 +27,6 @@ export const SOCIAL_LINKS = {
 // 2026-10-17). They show "page not found" until the products are published.
 export const MEMBERSHIP_PRODUCT_URLS = {
   sixMonth: `${STORE_URL}/products/cashmere-lovers-club-6-month-membership`,
-  annual: `${STORE_URL}/products/cashmere-lovers-club-founding-membership-kopi`,
+  annual: `${STORE_URL}/products/cashmere-lovers-club-annual-membership`,
   founding: `${STORE_URL}/products/cashmere-lovers-club`,
 };
