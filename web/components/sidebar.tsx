@@ -69,6 +69,8 @@ const FULL_NAV_GROUPS: NavItem[][] = [
     { href: "/orders", label: "My Orders", icon: Package },
     { href: "/collection", label: "My Collection", icon: Shirt },
     { href: "/care-repair", label: "Care & Repair", icon: Wrench },
+    // For upgrading — hidden for Founding, the top level (filtered below).
+    { href: "/explore-membership", label: "Explore Membership", icon: Sparkles },
   ],
   [
     { href: "/profile", label: "Profile", icon: User },
@@ -118,7 +120,9 @@ export default function Sidebar({
   const navGroups: NavItem[][] = hasFullNav
     ? FULL_NAV_GROUPS.map((group) =>
         group.filter(
-          (item) => item.href !== "/design-lab" || getAccessLevel(member.membershipTier, "designLab") === "full",
+          (item) =>
+            (item.href !== "/design-lab" || getAccessLevel(member.membershipTier, "designLab") === "full") &&
+            (item.href !== "/explore-membership" || !member.isFoundingMember),
         ),
       )
     : NEWSLETTER_NAV_GROUPS;
