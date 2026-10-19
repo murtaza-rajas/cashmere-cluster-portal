@@ -3,7 +3,7 @@
 import { Check, Minus } from "lucide-react";
 import { useMember } from "@/contexts/member-context";
 import { MEMBERSHIP_PRODUCT_URLS } from "@/lib/store-links";
-import { SHIPPING_NOTE, annualPrice } from "@/lib/membership-offers";
+import { NOK_PAYMENT_NOTE, SHIPPING_NOTE, annualPrice } from "@/lib/membership-offers";
 
 // Copy is the client's own: originally CLC_Membership_Text_EN_Updated.docx
 // (2026-10-05), updated per his revised illustration and notes (2026-10-14):
@@ -11,7 +11,9 @@ import { SHIPPING_NOTE, annualPrice } from "@/lib/membership-offers";
 // for 6-Month and Annual (20%/15% for Founding), welcome gifts sent after one
 // month, and the USA shipping/duties note on Annual and Founding. Updated
 // 2026-10-17: buttons link to the store products, USA USD 40 / Asia USD 70
-// shipping (duties not included), Annual launch price €200 until 5 November.
+// shipping (duties not included), Annual launch price until 5 November.
+// 2026-10-19: launch price shown as €199, and every price also in NOK (what
+// the store actually charges).
 //
 // Not gated — it's where Newsletter members are sent to upgrade.
 
@@ -54,6 +56,7 @@ export default function ExploreMembershipPage() {
         <TierCard
           title="6-Month Member"
           price="€160"
+          nok="NOK 1,900"
           term="6-month membership · One-time payment."
           tagline="Six months of cashmere, stories and exclusive benefits."
           badge="Available in Norway only"
@@ -72,9 +75,10 @@ export default function ExploreMembershipPage() {
         <TierCard
           title="Annual Member"
           price={annual.price}
+          nok={annual.nok}
           term={
             annual.launchOffer
-              ? "12-month membership. Launch price for the first year, until 5 November — €300 from 6 November."
+              ? "12-month membership. Launch price for the first year, until 5 November — NOK 3,500 (€300) from 6 November."
               : "12-month membership."
           }
           tagline="A year of cashmere, stories and exclusive benefits."
@@ -94,6 +98,7 @@ export default function ExploreMembershipPage() {
         <TierCard
           title="Founding Member"
           price="€1,000"
+          nok="NOK 11,000"
           term="5-year membership."
           tagline="Join from the beginning and help shape what comes next."
           badge="Limited to 1,500 members"
@@ -114,8 +119,8 @@ export default function ExploreMembershipPage() {
       </div>
 
       <p className="rounded-lg bg-cashmere-sidebar/60 px-4 py-3 text-sm text-cashmere-text-muted">
-        The Club opens on 1 November 2026. Memberships bought before then start on 1 November; from 1 November
-        they start on the day you buy.
+        {NOK_PAYMENT_NOTE} The Club opens on 1 November 2026. Memberships bought before then start on 1 November;
+        from 1 November they start on the day you buy.
       </p>
 
       <ComparisonTable />
@@ -126,6 +131,7 @@ export default function ExploreMembershipPage() {
 function TierCard({
   title,
   price,
+  nok,
   term,
   tagline,
   badge,
@@ -139,6 +145,7 @@ function TierCard({
 }: {
   title: string;
   price: string;
+  nok?: string;
   term?: string;
   tagline: string;
   badge?: string;
@@ -166,6 +173,7 @@ function TierCard({
           )}
         </div>
         <p className="mt-1 font-serif text-3xl text-cashmere-text">{price}</p>
+        {nok && <p className="text-sm font-medium text-cashmere-text">Paid in NOK: {nok}</p>}
         {term && <p className="text-sm text-cashmere-text-muted">{term}</p>}
         <p className="mt-2 text-sm text-cashmere-text">{tagline}</p>
       </div>
