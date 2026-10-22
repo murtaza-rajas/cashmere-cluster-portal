@@ -11,7 +11,7 @@ export function annualPrice(now: Date = new Date()): { price: string; nok: strin
 }
 
 export const SHIPPING_NOTE =
-  "Welcome gift shipping: free in Norway, USA USD 40, Asia USD 70. Outside Norway, customs duties and import taxes are not included and are paid by the customer.";
+  "Welcome gift shipping: free in Norway. EU: free on orders over NOK 3,000, otherwise €20. USA: USD 40. Asia: USD 70. Outside Norway, customs duties and import taxes are not included and are paid by the customer.";
 
 export const NOK_PAYMENT_NOTE =
   "Payment is in Norwegian kroner (NOK). Euro prices are a guide — the exact amount in euros depends on the exchange rate.";
