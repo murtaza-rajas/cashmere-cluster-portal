@@ -19,7 +19,11 @@ import { RolesGuard } from './guards/roles.guard';
 import { Roles } from './decorators/roles.decorator';
 import { StaffService } from './staff.service';
 import { GrantRoleDto } from './dto/grant-role.dto';
-import { STAFF_SESSION_COOKIE, sessionCookieOptions } from '../auth/session-cookie.util';
+import { AuditLogService } from '../audit-log/audit-log.service';
+import {
+  STAFF_SESSION_COOKIE,
+  sessionCookieOptions,
+} from '../auth/session-cookie.util';
 
 @Controller('staff')
 export class StaffController {
@@ -27,6 +31,7 @@ export class StaffController {
     private readonly staffService: StaffService,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
+    private readonly auditLog: AuditLogService,
   ) {}
 
   // TEMPORARY convenience standing in for real staff login (see staff-jwt.strategy.ts —
@@ -51,6 +56,12 @@ export class StaffController {
         'This preview link has expired or is no longer valid — ask for a new one.',
       );
     }
+    await this.auditLog.log({
+      action: 'staff.signed_in_preview_link',
+      actorStaffUserId: payload.sub,
+      targetType: 'StaffUser',
+      targetId: payload.sub,
+    });
     res.cookie(STAFF_SESSION_COOKIE, token, {
       ...sessionCookieOptions(this.config),
       maxAge: 7 * 24 * 60 * 60 * 1000,

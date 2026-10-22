@@ -148,6 +148,17 @@ export default function StaffDirectoryPage() {
                   </p>
                   <p className="text-sm text-cashmere-text-muted">{s.email}</p>
                 </div>
+                <p className="text-xs text-cashmere-text-muted">
+                  {s.lastSignInAt
+                    ? `Last sign-in: ${new Date(s.lastSignInAt).toLocaleString("en-GB", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}`
+                    : "Never signed in"}
+                </p>
               </div>
 
               <div className="mt-3 flex flex-wrap items-center gap-2">

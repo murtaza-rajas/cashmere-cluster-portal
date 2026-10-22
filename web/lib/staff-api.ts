@@ -12,6 +12,8 @@ export interface StaffUser {
   name: string;
   isActive: boolean;
   createdAt: string;
+  // Staff directory only: last Admin sign-in (null = never).
+  lastSignInAt?: string | null;
   roles: string[];
 }
 
@@ -204,7 +206,7 @@ export interface GrantMembershipInput {
   email: string;
   firstName?: string;
   lastName?: string;
-  tier: "SIX_MONTH" | "ANNUAL" | "FOUNDING";
+  tier: "SIX_MONTH" | "ANNUAL" | "FOUNDING" | "MONGOLIA";
   months: number;
 }
 

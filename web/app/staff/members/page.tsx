@@ -137,6 +137,7 @@ const GRANT_LEVELS: { value: GrantMembershipInput["tier"]; label: string }[] = [
   { value: "SIX_MONTH", label: "6-Month Member" },
   { value: "ANNUAL", label: "Annual Member" },
   { value: "FOUNDING", label: "Founding Member" },
+  { value: "MONGOLIA", label: "Cashmere Lovers Club Mongolia" },
 ];
 
 // Add a member by hand — pilot customers (client request 2026-10-17). If the
@@ -204,7 +205,8 @@ function GrantMembershipPanel({ onGranted }: { onGranted: () => void }) {
         <h2 className="font-serif text-xl text-cashmere-text">Add or update a member</h2>
         <p className="mt-1 text-sm text-cashmere-text-muted">
           For pilot customers and other memberships given without a purchase. If the email already belongs to a member,
-          their level is changed. The membership starts today.
+          their level is changed. The membership starts today. Mongolia members see the Mongolia site; all other levels
+          see the international site.
         </p>
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

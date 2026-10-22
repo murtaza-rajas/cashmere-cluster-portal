@@ -14,6 +14,9 @@ export const GRANTABLE_TIERS = [
   MembershipTier.SIX_MONTH,
   MembershipTier.ANNUAL,
   MembershipTier.FOUNDING,
+  // Cashmere Lovers Club Mongolia — also moves the member to the Mongolia
+  // site (region MONGOLIA); the other levels are the international site.
+  MembershipTier.MONGOLIA,
 ] as const;
 
 // Staff adding a member by hand (pilot customers, client request 2026-10-17).

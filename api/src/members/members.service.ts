@@ -24,7 +24,8 @@ export class MembersService {
    * request 2026-10-17), the one exception to "paid tiers only via Shopify
    * payment". Finds the member by email, or creates them along with a bare
    * Shopify customer so they can sign in with that email. The term starts
-   * today. Staff set exactly what they choose; the previous values go in the
+   * today. Mongolia moves the member to the Mongolia site; the other levels
+   * to the international site (one site per member account). Staff set exactly what they choose; the previous values go in the
    * audit log.
    */
   async grantMembership(dto: GrantMembershipDto, staffUserId: string) {
@@ -70,6 +71,10 @@ export class MembersService {
       where: { id: member.id },
       data: {
         membershipTier: dto.tier,
+        region:
+          dto.tier === MembershipTier.MONGOLIA
+            ? Region.MONGOLIA
+            : Region.INTERNATIONAL,
         membershipStatus: 'ACTIVE',
         termLengthMonths: dto.months,
         membershipStartDate: start,
@@ -89,6 +94,7 @@ export class MembersService {
         tier: dto.tier,
         months: dto.months,
         previousTier: member.membershipTier,
+        previousRegion: member.region,
         previousStatus: member.membershipStatus,
         previousEndDate: member.membershipEndDate?.toISOString() ?? null,
         memberCreated: created,

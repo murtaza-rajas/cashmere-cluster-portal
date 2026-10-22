@@ -9,6 +9,11 @@ import { AuditLogService } from '../audit-log/audit-log.service';
 
 const SUPER_ADMIN_ROLE = 'Super Administrator';
 
+export const STAFF_SIGN_IN_ACTIONS = [
+  'staff.signed_in_email',
+  'staff.signed_in_preview_link',
+] as const;
+
 @Injectable()
 export class StaffService {
   constructor(
@@ -32,16 +37,29 @@ export class StaffService {
   // Directory view for Milestone 5's Staff/Roles/Permissions admin area — role
   // names included so the list is actually useful without N+1 follow-up calls.
   async findAll() {
-    const staff = await this.prisma.staffUser.findMany({
-      orderBy: { createdAt: 'asc' },
-      include: { roleAssignments: { include: { role: true } } },
-    });
+    const [staff, signIns] = await Promise.all([
+      this.prisma.staffUser.findMany({
+        orderBy: { createdAt: 'asc' },
+        include: { roleAssignments: { include: { role: true } } },
+      }),
+      // Last Admin sign-in per person (email code or preview link) — the
+      // client wants to see who has signed in (2026-10-22).
+      this.prisma.auditLog.groupBy({
+        by: ['actorStaffUserId'],
+        where: { action: { in: [...STAFF_SIGN_IN_ACTIONS] } },
+        _max: { createdAt: true },
+      }),
+    ]);
+    const lastSignIn = new Map(
+      signIns.map((g) => [g.actorStaffUserId, g._max.createdAt]),
+    );
     return staff.map((s) => ({
       id: s.id,
       email: s.email,
       name: s.name,
       isActive: s.isActive,
       createdAt: s.createdAt,
+      lastSignInAt: lastSignIn.get(s.id) ?? null,
       roles: s.roleAssignments.map((a) => a.role.name),
     }));
   }

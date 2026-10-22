@@ -91,6 +91,17 @@ describe('Staff email sign-in (e2e)', () => {
     });
     expect(audit).not.toBeNull();
 
+    // The staff list shows when each person last signed in.
+    const directory = await request(app.getHttpServer())
+      .get('/staff-directory')
+      .set('Cookie', staffCookie!.split(';')[0])
+      .expect(200);
+    const entries = directory.body as {
+      id: string;
+      lastSignInAt: string | null;
+    }[];
+    expect(entries.find((e) => e.id === staff.id)?.lastSignInAt).toBeTruthy();
+
     await verify(staff.email, code!).expect(400);
   });
 
