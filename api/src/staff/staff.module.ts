@@ -8,10 +8,14 @@ import { StaffJwtStrategy } from './strategies/staff-jwt.strategy';
 import { StaffController } from './staff.controller';
 import { StaffDirectoryController } from './staff-directory.controller';
 import { RolesGuard } from './guards/roles.guard';
+import { EmailModule } from '../email/email.module';
+import { StaffEmailLoginController } from './email-login/staff-email-login.controller';
+import { StaffEmailLoginService } from './email-login/staff-email-login.service';
 
 @Module({
   imports: [
     PassportModule,
+    EmailModule,
     // Deliberately a second, independently-configured JwtModule instance (own secret,
     // own token) — not the same one members/auth.module.ts registers. See
     // staff-auth.service.ts for why staff and member sessions must stay unmixable.
@@ -24,8 +28,18 @@ import { RolesGuard } from './guards/roles.guard';
       }),
     }),
   ],
-  controllers: [StaffController, StaffDirectoryController],
-  providers: [StaffService, StaffAuthService, StaffJwtStrategy, RolesGuard],
+  controllers: [
+    StaffController,
+    StaffDirectoryController,
+    StaffEmailLoginController,
+  ],
+  providers: [
+    StaffService,
+    StaffAuthService,
+    StaffJwtStrategy,
+    RolesGuard,
+    StaffEmailLoginService,
+  ],
   // RolesGuard exported alongside StaffService (its own dependency) so other feature
   // modules can protect their own admin routes with it — see its comment: "reference
   // implementation for how future admin routes should be protected."

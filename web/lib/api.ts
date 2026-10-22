@@ -530,3 +530,8 @@ export async function submitMongoliaPhoto(file: File, caption?: string): Promise
   }
   return res.json();
 }
+
+// Staff sign-in to the Admin, same code flow (sets the staff session cookie).
+export const requestStaffEmailCode = (email: string) => emailSignIn("/auth/staff-email/request", { email });
+export const verifyStaffEmailCode = (email: string, code: string) =>
+  emailSignIn("/auth/staff-email/verify", { email, code });

@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { ShieldAlert } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import { fetchCurrentStaff } from "@/lib/staff-api";
 import type { StaffUser } from "@/lib/staff-api";
 import { StaffProvider } from "@/contexts/staff-context";
 import StaffSidebar from "@/components/staff-sidebar";
 import StaffHeader from "@/components/staff-header";
+import { StaffSignIn } from "@/components/staff-sign-in";
 
 type Status =
   | { state: "loading" }
@@ -14,23 +14,24 @@ type Status =
   | { state: "ready"; staff: StaffUser }
   | { state: "error"; message: string };
 
-// Auth guard for every route under /staff/*. Unlike the member layout, this
-// does NOT redirect to a login page on no session — no real staff sign-in flow
-// exists yet (StaffJwtStrategy is a deliberate placeholder, see its own
-// comments, pending the Milestone 1 identity-provider decision). Rather than
-// build a fake login form that would conflict with the "no passwords stored"
-// architecture, this shows an honest explanation instead.
+// Auth guard for every route under /staff/*. With no staff session it shows
+// the Admin sign-in (emailed 6-digit code, 2026-10-22) in place of the page,
+// then loads the requested page once signed in. Preview links still work.
 export default function StaffLayout({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<Status>({ state: "loading" });
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  useEffect(() => {
+  const loadStaff = useCallback(() => {
     fetchCurrentStaff()
       .then((staff) => {
         setStatus(staff ? { state: "ready", staff } : { state: "signed-out" });
       })
       .catch((err: Error) => setStatus({ state: "error", message: err.message }));
   }, []);
+
+  useEffect(() => {
+    loadStaff();
+  }, [loadStaff]);
 
   if (status.state === "loading") {
     return (
@@ -41,16 +42,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
   }
 
   if (status.state === "signed-out") {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-cashmere-bg px-6 text-center">
-        <ShieldAlert size={28} strokeWidth={1.5} className="text-cashmere-text-muted" />
-        <p className="font-medium text-cashmere-text">Staff sign-in isn&apos;t built yet</p>
-        <p className="max-w-sm text-sm text-cashmere-text-muted">
-          Real staff authentication is still pending a Milestone 1 decision (magic link, SSO, or passkeys). Ask
-          engineering for a development session token in the meantime.
-        </p>
-      </div>
-    );
+    return <StaffSignIn onSignedIn={loadStaff} />;
   }
 
   if (status.state === "error") {

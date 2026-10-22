@@ -509,6 +509,9 @@ model ExclusiveCollection {
 // expires after 10 minutes, allows 5 attempts, and is consumed on success.
 model EmailLoginCode {
   id         String    @id @default(uuid())
+  // "member" or "staff" — kept apart so one person's member and staff codes
+  // (same email) never stand in for each other.
+  purpose    String    @default("member")
   email      String // lower-cased
   codeHash   String
   expiresAt  DateTime
@@ -517,7 +520,7 @@ model EmailLoginCode {
   ipAddress  String?
   createdAt  DateTime  @default(now())
 
-  @@index([email, createdAt])
+  @@index([purpose, email, createdAt])
   @@index([ipAddress, createdAt])
 }
 
