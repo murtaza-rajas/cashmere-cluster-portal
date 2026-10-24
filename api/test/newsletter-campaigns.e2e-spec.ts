@@ -158,7 +158,7 @@ describe('Newsletter campaigns (e2e)', () => {
           return {
             id: params.existingId ?? 'mc-abc123',
             webId: 4242,
-            editUrl: 'https://us8.admin.mailchimp.com/campaigns/edit?id=4242',
+            editUrl: 'https://us8.admin.mailchimp.com/campaigns/show?id=4242',
           };
         });
     });

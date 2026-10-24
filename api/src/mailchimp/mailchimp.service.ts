@@ -155,7 +155,7 @@ export class MailchimpService {
   // configured here.
   campaignEditUrl(webId: number): string | null {
     try {
-      return `https://${this.dataCenter}.admin.mailchimp.com/campaigns/edit?id=${webId}`;
+      return `https://${this.dataCenter}.admin.mailchimp.com/campaigns/show?id=${webId}`;
     } catch {
       return null;
     }
