@@ -3,6 +3,7 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import * as jwt from 'jsonwebtoken';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { MailchimpService } from '../src/mailchimp/mailchimp.service';
 import { createTestApp } from './test-app.util';
 
 // Communication / Newsletter (Milestone 5): staff CRUD at
@@ -143,5 +144,114 @@ describe('Newsletter campaigns (e2e)', () => {
       .get('/newsletter-campaigns')
       .set('Cookie', await staffCookieFor('Content Manager'))
       .expect(403);
+  });
+
+  describe('Create in Mailchimp', () => {
+    let saveSpy: jest.SpyInstance;
+    const calls: Parameters<MailchimpService['saveDraftCampaign']>[0][] = [];
+
+    beforeAll(() => {
+      saveSpy = jest
+        .spyOn(app.get(MailchimpService), 'saveDraftCampaign')
+        .mockImplementation(async (params) => {
+          calls.push(params);
+          return {
+            id: params.existingId ?? 'mc-abc123',
+            webId: 4242,
+            editUrl: 'https://us8.admin.mailchimp.com/campaigns/edit?id=4242',
+          };
+        });
+    });
+
+    afterAll(() => saveSpy.mockRestore());
+
+    async function campaign(cookie: string, body: object) {
+      const res = await request(app.getHttpServer())
+        .post('/newsletter-campaigns')
+        .set('Cookie', cookie)
+        .send(body)
+        .expect(201);
+      return res.body as { id: string };
+    }
+
+    it('creates a ready campaign as a Mailchimp draft, then updates the same draft', async () => {
+      const cookie = await staffCookieFor('Newsletter Manager');
+      const { id } = await campaign(cookie, {
+        subject: 'The Club opens on 1 November',
+        body: 'Dear member,\n\nThe Club opens soon <3\nSee you there.',
+        audienceTiers: ['NEWSLETTER', 'ANNUAL'],
+        audienceRegions: ['INTERNATIONAL'],
+        status: 'READY_TO_SEND',
+      });
+
+      const first = await request(app.getHttpServer())
+        .post(`/newsletter-campaigns/${id}/mailchimp`)
+        .set('Cookie', cookie)
+        .expect(201);
+      expect(first.body.mailchimpCampaignId).toBe('mc-abc123');
+      expect(first.body.mailchimpWebId).toBe(4242);
+      expect(first.body.mailchimpEditUrl).toMatch(/admin\.mailchimp\.com/);
+      expect(first.body.mailchimpSyncedAt).toBe(first.body.updatedAt);
+
+      const sent = calls[calls.length - 1];
+      expect(sent.existingId).toBeNull();
+      expect(sent.subject).toBe('The Club opens on 1 November');
+      expect(sent.title).toBe(
+        'CLC: The Club opens on 1 November (intended for Newsletter, Annual – International)',
+      );
+      // Paragraphs and line breaks kept, text escaped.
+      expect(sent.html).toContain('Dear member,</p>');
+      expect(sent.html).toContain(
+        'The Club opens soon &lt;3<br>See you there.',
+      );
+
+      await request(app.getHttpServer())
+        .post(`/newsletter-campaigns/${id}/mailchimp`)
+        .set('Cookie', cookie)
+        .expect(201);
+      expect(calls[calls.length - 1].existingId).toBe('mc-abc123');
+
+      const audit = await prisma.auditLog.findMany({
+        where: {
+          targetId: id,
+          action: { startsWith: 'newsletter_campaign.mailchimp' },
+        },
+        orderBy: { createdAt: 'asc' },
+      });
+      expect(audit.map((a) => a.action)).toEqual([
+        'newsletter_campaign.mailchimp_created',
+        'newsletter_campaign.mailchimp_updated',
+      ]);
+    });
+
+    it('refuses drafts and empty campaigns, and other roles', async () => {
+      const cookie = await staffCookieFor('Newsletter Manager');
+      const draft = await campaign(cookie, {
+        subject: 'Not ready',
+        audienceTiers: ['ANNUAL'],
+        body: 'Hi',
+      });
+      const before = calls.length;
+      await request(app.getHttpServer())
+        .post(`/newsletter-campaigns/${draft.id}/mailchimp`)
+        .set('Cookie', cookie)
+        .expect(400);
+
+      const empty = await campaign(cookie, {
+        subject: 'No text',
+        audienceTiers: ['ANNUAL'],
+        status: 'READY_TO_SEND',
+      });
+      await request(app.getHttpServer())
+        .post(`/newsletter-campaigns/${empty.id}/mailchimp`)
+        .set('Cookie', cookie)
+        .expect(400);
+      expect(calls.length).toBe(before);
+
+      await request(app.getHttpServer())
+        .post(`/newsletter-campaigns/${draft.id}/mailchimp`)
+        .set('Cookie', await staffCookieFor('Content Manager'))
+        .expect(403);
+    });
   });
 });

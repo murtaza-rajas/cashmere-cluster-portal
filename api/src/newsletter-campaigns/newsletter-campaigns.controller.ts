@@ -48,6 +48,12 @@ export class NewsletterCampaignsController {
     return this.campaigns.update(id, dto, req.staffUser!.id);
   }
 
+  // Create (or update) this campaign as a draft in Mailchimp.
+  @Post(':id/mailchimp')
+  saveToMailchimp(@Param('id') id: string, @Req() req: Request) {
+    return this.campaigns.saveToMailchimp(id, req.staffUser!.id);
+  }
+
   @Delete(':id')
   remove(@Param('id') id: string, @Req() req: Request) {
     return this.campaigns.remove(id, req.staffUser!.id);

@@ -1252,9 +1252,8 @@ export async function updateMembershipLevel(
 }
 
 // Communication / newsletter campaigns — real drafting/audience-targeting
-// only, no send. There is no Mailchimp integration yet (see
-// PROJECT_TRACKER.md's blocker list), so a campaign only ever reaches
-// READY_TO_SEND — never SENT — and there is no send endpoint at all.
+// only, no send here: a "Ready to send" campaign can be created as a draft in
+// Mailchimp (2026-10-24), and sending happens in Mailchimp.
 export type NewsletterCampaignStatusValue = "DRAFT" | "READY_TO_SEND";
 
 export interface StaffNewsletterCampaign {
@@ -1265,6 +1264,10 @@ export interface StaffNewsletterCampaign {
   audienceRegions: RegionValue[];
   scheduledFor: string | null;
   status: NewsletterCampaignStatusValue;
+  // Set once the campaign has been created as a draft in Mailchimp.
+  mailchimpCampaignId: string | null;
+  mailchimpSyncedAt: string | null;
+  mailchimpEditUrl: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -1309,6 +1312,16 @@ export async function updateNewsletterCampaign(
   if (!res.ok) {
     const body = await res.json().catch(() => null);
     throw new Error(body?.message ?? `Unexpected response updating newsletter campaign: ${res.status}`);
+  }
+  return res.json();
+}
+
+// Creates the campaign as a draft in Mailchimp, or updates the draft made earlier.
+export async function saveNewsletterCampaignToMailchimp(id: string): Promise<StaffNewsletterCampaign> {
+  const res = await apiFetch(`/newsletter-campaigns/${id}/mailchimp`, { method: "POST" });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.message ?? `Unexpected response creating the Mailchimp draft: ${res.status}`);
   }
   return res.json();
 }

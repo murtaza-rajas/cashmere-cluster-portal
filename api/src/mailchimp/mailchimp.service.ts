@@ -37,6 +37,12 @@ export interface MailchimpSyncResult {
   failed: { email: string; reason: string }[];
 }
 
+export interface MailchimpDraft {
+  id: string;
+  webId: number;
+  editUrl: string;
+}
+
 export type MailchimpSyncStatus =
   | { state: 'idle' }
   | { state: 'running'; startedAt: string }
@@ -143,6 +149,98 @@ export class MailchimpService {
       );
     }
     return match[1];
+  }
+
+  // Link to a campaign in the Mailchimp app, or null if Mailchimp isn't
+  // configured here.
+  campaignEditUrl(webId: number): string | null {
+    try {
+      return `https://${this.dataCenter}.admin.mailchimp.com/campaigns/edit?id=${webId}`;
+    } catch {
+      return null;
+    }
+  }
+
+  // Creates (or, given the id of one made earlier, updates) a draft regular
+  // campaign to the whole Club audience. Sender name and reply-to come from
+  // the audience's own defaults in Mailchimp. Sending stays in Mailchimp —
+  // nothing here sends.
+  async saveDraftCampaign(params: {
+    existingId: string | null;
+    title: string;
+    subject: string;
+    html: string;
+    text: string;
+  }): Promise<MailchimpDraft> {
+    const base = `https://${this.dataCenter}.api.mailchimp.com/3.0`;
+    const headers = { Authorization: `Bearer ${this.apiKey}` };
+
+    try {
+      const { data: list } = await axios.get<{
+        campaign_defaults: { from_name: string; from_email: string };
+      }>(`${base}/lists/${this.audienceId}`, {
+        headers,
+        params: { fields: 'campaign_defaults' },
+      });
+      const settings = {
+        title: params.title,
+        subject_line: params.subject,
+        from_name: list.campaign_defaults.from_name,
+        reply_to: list.campaign_defaults.from_email,
+      };
+
+      let campaign: { id: string; web_id: number } | null = null;
+      if (params.existingId) {
+        try {
+          ({ data: campaign } = await axios.patch<{
+            id: string;
+            web_id: number;
+          }>(
+            `${base}/campaigns/${params.existingId}`,
+            { settings },
+            { headers },
+          ));
+        } catch (err) {
+          // Deleted in Mailchimp meanwhile — make a new one.
+          if (!axios.isAxiosError(err) || err.response?.status !== 404) {
+            throw err;
+          }
+        }
+      }
+      if (!campaign) {
+        ({ data: campaign } = await axios.post<{ id: string; web_id: number }>(
+          `${base}/campaigns`,
+          {
+            type: 'regular',
+            recipients: { list_id: this.audienceId },
+            settings,
+          },
+          { headers },
+        ));
+      }
+
+      await axios.put(
+        `${base}/campaigns/${campaign.id}/content`,
+        { html: params.html, plain_text: params.text },
+        { headers },
+      );
+
+      return {
+        id: campaign.id,
+        webId: campaign.web_id,
+        editUrl: this.campaignEditUrl(campaign.web_id)!,
+      };
+    } catch (err) {
+      const detail = axios.isAxiosError(err)
+        ? (err.response?.data as { detail?: string } | undefined)?.detail
+        : undefined;
+      this.logger.error('Mailchimp saveDraftCampaign failed', err as Error);
+      throw new BadGatewayException(
+        detail
+          ? `Mailchimp: ${detail}`
+          : 'Could not reach Mailchimp — check the API key and Audience ID in Integrations settings',
+      );
+    }
   }
 
   async fetchSubscribedMembers(): Promise<Subscriber[]> {

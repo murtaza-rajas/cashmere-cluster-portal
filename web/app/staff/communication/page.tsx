@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, ExternalLink, Send } from "lucide-react";
 import { useStaff, staffHasAnyRole } from "@/contexts/staff-context";
 import {
   fetchNewsletterCampaigns,
   createNewsletterCampaign,
   updateNewsletterCampaign,
   deleteNewsletterCampaign,
+  saveNewsletterCampaignToMailchimp,
   StaffNewsletterCampaign,
   NewsletterCampaignInput,
 } from "@/lib/staff-api";
@@ -31,11 +32,9 @@ function toDateInputValue(iso: string | null): string {
 // schedules, statistics") — server-side already enforces this on every
 // /newsletter-campaigns endpoint, this is just the matching UI guard.
 //
-// Deliberately no "Send" action anywhere on this page: there is no
-// Mailchimp API access yet (see PROJECT_TRACKER.md's blocker list), so a
-// campaign only ever reaches "Ready to send" — same honest-placeholder
-// split already used for Mailchimp on /staff/integrations. Taking a
-// ready campaign out to Mailchimp is a manual step for now.
+// No "Send" action on this page: a "Ready to send" campaign is created as a
+// draft in Mailchimp (2026-10-24) and sent from Mailchimp, which handles
+// unsubscribes, consent and statistics.
 export default function CommunicationAdminPage() {
   const staff = useStaff();
   const router = useRouter();
@@ -50,6 +49,25 @@ export default function CommunicationAdminPage() {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [mailchimpBusyId, setMailchimpBusyId] = useState<string | null>(null);
+  const [mailchimpError, setMailchimpError] = useState<string | null>(null);
+
+  async function handleMailchimp(id: string) {
+    setMailchimpBusyId(id);
+    setMailchimpError(null);
+    try {
+      const saved = await saveNewsletterCampaignToMailchimp(id);
+      setState((prev) =>
+        prev.status === "loaded"
+          ? { ...prev, rows: prev.rows.map((r) => (r.id === id ? { ...r, ...saved } : r)) }
+          : prev,
+      );
+    } catch (err) {
+      setMailchimpError((err as Error).message);
+    } finally {
+      setMailchimpBusyId(null);
+    }
+  }
 
   function load() {
     fetchNewsletterCampaigns()
@@ -132,11 +150,16 @@ export default function CommunicationAdminPage() {
         </p>
       </div>
 
-      <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-        Mailchimp isn&apos;t connected yet (see Integrations &amp; Settings), so campaigns drafted here can&apos;t be
-        sent from this page — mark a campaign &quot;Ready to send&quot;, then export the subject/body/audience and
-        send it via Mailchimp directly.
+      <section className="rounded-2xl border border-cashmere-border bg-cashmere-sidebar/50 p-4 text-sm text-cashmere-text">
+        Newsletters are sent from Mailchimp. Mark a campaign &quot;Ready to send&quot; and click &quot;Create in
+        Mailchimp&quot;: it appears there as a draft for your whole newsletter audience. Check it in Mailchimp —
+        choose a segment there if it should only go to some members — and send it from Mailchimp.
       </section>
+      {mailchimpError && (
+        <p role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+          {mailchimpError}
+        </p>
+      )}
 
       <section className="rounded-2xl border border-cashmere-border bg-white p-6">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-cashmere-text-muted">
@@ -259,6 +282,18 @@ export default function CommunicationAdminPage() {
                     {row.status === "READY_TO_SEND" ? "Ready to send" : "Draft"}
                   </span>
                 </div>
+                {row.mailchimpSyncedAt && (
+                  <p className="mt-1 text-xs text-cashmere-text-muted">
+                    Draft in Mailchimp, last updated{" "}
+                    {new Date(row.mailchimpSyncedAt).toLocaleString("en-GB", {
+                      day: "numeric",
+                      month: "short",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                    {new Date(row.updatedAt) > new Date(row.mailchimpSyncedAt) && " — edited since, click Update"}
+                  </p>
+                )}
                 {row.scheduledFor && (
                   <p className="mt-1 text-sm text-cashmere-text-muted">
                     Intended for {new Date(row.scheduledFor).toLocaleDateString()}
@@ -278,7 +313,32 @@ export default function CommunicationAdminPage() {
                   ))}
                 </div>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                {row.status === "READY_TO_SEND" && (
+                  <button
+                    onClick={() => handleMailchimp(row.id)}
+                    disabled={mailchimpBusyId === row.id}
+                    className="flex items-center gap-1.5 rounded-full bg-cashmere-accent-dark px-3.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-cashmere-accent disabled:opacity-60"
+                  >
+                    <Send size={13} strokeWidth={1.75} />
+                    {mailchimpBusyId === row.id
+                      ? "Saving…"
+                      : row.mailchimpCampaignId
+                        ? "Update in Mailchimp"
+                        : "Create in Mailchimp"}
+                  </button>
+                )}
+                {row.mailchimpEditUrl && (
+                  <a
+                    href={row.mailchimpEditUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 rounded-full border border-cashmere-border px-3.5 py-1.5 text-xs font-medium text-cashmere-text transition-colors hover:border-cashmere-accent"
+                  >
+                    <ExternalLink size={13} strokeWidth={1.75} />
+                    Open in Mailchimp
+                  </a>
+                )}
                 <button
                   onClick={() => startEdit(row)}
                   aria-label={`Edit ${row.subject}`}
