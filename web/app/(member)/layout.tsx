@@ -71,7 +71,7 @@ export default function MemberLayout({
   }
 
   return (
-    <MemberProvider member={status.member}>
+    <MemberProvider member={status.member} onMemberChange={(member) => setStatus({ state: "ready", member })}>
       <div className="flex min-h-screen bg-cashmere-bg">
         <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <div className="flex min-w-0 flex-1 flex-col">

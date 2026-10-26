@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ShieldCheck, FileText, Cookie, Trash2 } from "lucide-react";
-import { useMember } from "@/contexts/member-context";
+import { useMember, useSetMember } from "@/contexts/member-context";
 import {
   formatMemberId,
   formatMonthYear,
@@ -139,15 +139,19 @@ function PersonalDetailsForm({
   const [countryOfResidence, setCountryOfResidence] = useState(initialCountryOfResidence ?? "");
   const [gender, setGender] = useState<Gender | "">(initialGender ?? "");
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const setMember = useSetMember();
 
   async function handleSave() {
     setStatus("saving");
     try {
-      await updateMemberProfile({
+      const updated = await updateMemberProfile({
         phoneNumber,
         countryOfResidence,
         gender: gender === "" ? undefined : gender,
       });
+      // Keep the loaded member in step, or the old values come back when
+      // the member opens Profile again without reloading the page.
+      setMember(updated);
       setStatus("saved");
     } catch {
       setStatus("error");
