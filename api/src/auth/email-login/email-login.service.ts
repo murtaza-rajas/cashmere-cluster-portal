@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Member, MembershipTier } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -9,6 +14,8 @@ import {
   loginCodeEmailHtml,
 } from '../../email/login-code.service';
 import { DEMO_ID_PREFIX } from '../../common/membership-access';
+import { MailchimpService } from '../../mailchimp/mailchimp.service';
+import { ShopifyAdminApiService } from '../../shopify-admin/shopify-admin-api.service';
 
 // If one email address belongs to several members (rare), sign into the one
 // with the highest level.
@@ -22,26 +29,112 @@ const TIER_RANK: Record<MembershipTier, number> = {
 
 const CLUB_NAME = "Cashmere Lovers' Club";
 
+// Shown next to the checkbox on the join form, and stored with each join as
+// the record of what the person agreed to.
+export const NEWSLETTER_CONSENT_TEXT =
+  "Yes, I'd like to receive the Cashmere House newsletter. I can unsubscribe at any time.";
+
 // Email sign-in: a 6-digit code sent to the member's email address. Works for
 // every member level, without Shopify or a phone. Codes, limits and sending
 // live in LoginCodeService (shared with staff sign-in).
 @Injectable()
 export class EmailLoginService {
+  private readonly logger = new Logger(EmailLoginService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditLog: AuditLogService,
     private readonly codes: LoginCodeService,
     private readonly jwt: JwtService,
+    private readonly mailchimp: MailchimpService,
+    private readonly shopifyApi: ShopifyAdminApiService,
   ) {}
+
+  // "Join for free" (client request 2026-10-29): someone who isn't a member
+  // yet becomes a Newsletter member and gets a sign-in code straight away.
+  // They're added to Mailchimp as pending (Mailchimp's confirmation email).
+  // If the email already belongs to a member, this just sends a code — same
+  // response either way, so the form doesn't reveal who is a member.
+  async join(
+    dto: { email: string; firstName: string },
+    ipAddress: string | null,
+  ): Promise<void> {
+    const email = this.codes.normalize(dto.email);
+    const firstName = dto.firstName.trim();
+    // Limits first, so the form can't be used to mass-create accounts.
+    await this.codes.assertWithinLimits('member', email, ipAddress);
+
+    const mailchimp = await this.mailchimp
+      .addPendingSubscriber({ email: dto.email, firstName })
+      .then(() => 'pending' as const)
+      .catch((err: Error) => {
+        // Joining still works; the consent is recorded below and the
+        // Mailchimp sync or staff can follow up.
+        this.logger.warn(`Mailchimp add on join failed: ${err.message}`);
+        return 'failed' as const;
+      });
+
+    let member = await this.findMember(email);
+    const created = !member;
+    if (!member) {
+      let customerId: string;
+      try {
+        ({ customerId } = await this.shopifyApi.findOrCreateCustomer({
+          email: dto.email.trim(),
+          firstName,
+        }));
+      } catch (err) {
+        this.logger.error('Shopify customer on join failed', err as Error);
+        throw new ServiceUnavailableException(
+          "We couldn't create your membership right now — please try again shortly.",
+        );
+      }
+      member =
+        (await this.prisma.member.findUnique({
+          where: { shopifyCustomerId: customerId },
+        })) ??
+        (await this.prisma.member.create({
+          data: {
+            shopifyCustomerId: customerId,
+            email: dto.email.trim(),
+            firstName,
+            membershipTier: MembershipTier.NEWSLETTER,
+          },
+        }));
+    }
+
+    await this.auditLog.log({
+      action: 'member.joined',
+      targetType: 'Member',
+      targetId: member.id,
+      targetMemberId: member.id,
+      metadata: {
+        memberCreated: created,
+        newsletterConsent: NEWSLETTER_CONSENT_TEXT,
+        mailchimp,
+        ipAddress,
+      },
+    });
+
+    await this.sendCode(email, ipAddress, member.email);
+  }
 
   async requestCode(rawEmail: string, ipAddress: string | null): Promise<void> {
     const email = this.codes.normalize(rawEmail);
     const member = await this.findMember(email);
+    await this.sendCode(email, ipAddress, member?.email ?? null);
+  }
+
+  private async sendCode(
+    email: string,
+    ipAddress: string | null,
+    sendTo: string | null,
+  ): Promise<void> {
     await this.codes.issue({
       purpose: 'member',
       email,
       ipAddress,
-      sendTo: member?.email ?? null,
+      sendTo,
       message: {
         subject: `Your ${CLUB_NAME} sign-in code`,
         text: (code) =>

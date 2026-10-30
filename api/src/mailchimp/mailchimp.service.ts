@@ -7,6 +7,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { MembershipTier } from '@prisma/client';
 import axios from 'axios';
+import { createHash } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { ShopifyAdminApiService } from '../shopify-admin/shopify-admin-api.service';
@@ -149,6 +150,40 @@ export class MailchimpService {
       );
     }
     return match[1];
+  }
+
+  // Someone joining the Club with newsletter consent (sign-in panel,
+  // 2026-10-30). New contacts are added as "pending", so Mailchimp sends its
+  // own confirmation email (double opt-in); an existing contact keeps their
+  // status — someone who unsubscribed is never re-subscribed here. The first
+  // name is stored either way.
+  async addPendingSubscriber(person: {
+    email: string;
+    firstName?: string | null;
+  }): Promise<void> {
+    const hash = createHash('md5')
+      .update(person.email.trim().toLowerCase())
+      .digest('hex');
+    try {
+      await axios.put(
+        `https://${this.dataCenter}.api.mailchimp.com/3.0/lists/${this.audienceId}/members/${hash}`,
+        {
+          email_address: person.email.trim(),
+          status_if_new: 'pending',
+          ...(person.firstName
+            ? { merge_fields: { FNAME: person.firstName } }
+            : {}),
+        },
+        { headers: { Authorization: `Bearer ${this.apiKey}` } },
+      );
+    } catch (err) {
+      const detail = axios.isAxiosError(err)
+        ? (err.response?.data as { detail?: string } | undefined)?.detail
+        : undefined;
+      throw new BadGatewayException(
+        detail ? `Mailchimp: ${detail}` : 'Could not reach Mailchimp',
+      );
+    }
   }
 
   // Link to a campaign in the Mailchimp app, or null if Mailchimp isn't

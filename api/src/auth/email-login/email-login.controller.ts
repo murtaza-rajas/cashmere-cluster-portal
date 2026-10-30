@@ -11,7 +11,11 @@ import type { Request, Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { EmailLoginService } from './email-login.service';
 import { TransactionalEmailService } from '../../email/transactional-email.service';
-import { RequestEmailCodeDto, VerifyEmailCodeDto } from './email-login.dto';
+import {
+  JoinDto,
+  RequestEmailCodeDto,
+  VerifyEmailCodeDto,
+} from './email-login.dto';
 import {
   SESSION_COOKIE,
   sessionCookieSetOptions,
@@ -38,6 +42,16 @@ export class EmailLoginController {
     return {
       message:
         'If this email belongs to a member, a sign-in code is on its way.',
+    };
+  }
+
+  // "Join for free": becomes a Newsletter member and gets a sign-in code.
+  @Post('join')
+  @HttpCode(202)
+  async join(@Body() dto: JoinDto, @Req() req: Request) {
+    await this.emailLogin.join(dto, clientIp(req));
+    return {
+      message: "Welcome! We've sent a 6-digit sign-in code to your email.",
     };
   }
 

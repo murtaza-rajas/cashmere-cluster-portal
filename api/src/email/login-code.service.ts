@@ -53,6 +53,41 @@ export class LoginCodeService {
     message: LoginCodeEmail;
   }): Promise<void> {
     const { purpose, email, ipAddress, sendTo, message } = params;
+    await this.assertWithinLimits(purpose, email, ipAddress);
+    const now = Date.now();
+
+    const code = sendTo
+      ? String(randomInt(0, 1_000_000)).padStart(6, '0')
+      : null;
+
+    await this.prisma.emailLoginCode.create({
+      data: {
+        purpose,
+        email,
+        codeHash: code ? this.hash(email, code) : '',
+        expiresAt: new Date(now + CODE_TTL_MS),
+        ipAddress,
+      },
+    });
+
+    if (sendTo && code) {
+      await this.email.send({
+        to: sendTo,
+        subject: message.subject,
+        text: message.text(code),
+        html: message.html(code),
+      });
+    }
+  }
+
+  // Throws 429 when this email or IP has asked for too many codes, or asked
+  // within the last minute. Also used before creating an account on join, so
+  // the join form can't be used to mass-create accounts.
+  async assertWithinLimits(
+    purpose: LoginCodePurpose,
+    email: string,
+    ipAddress: string | null,
+  ): Promise<void> {
     const now = Date.now();
     const hourAgo = new Date(now - HOUR_MS);
 
@@ -84,29 +119,6 @@ export class LoginCodeService {
         'A code was just sent. Please wait a minute before requesting another.',
         HttpStatus.TOO_MANY_REQUESTS,
       );
-    }
-
-    const code = sendTo
-      ? String(randomInt(0, 1_000_000)).padStart(6, '0')
-      : null;
-
-    await this.prisma.emailLoginCode.create({
-      data: {
-        purpose,
-        email,
-        codeHash: code ? this.hash(email, code) : '',
-        expiresAt: new Date(now + CODE_TTL_MS),
-        ipAddress,
-      },
-    });
-
-    if (sendTo && code) {
-      await this.email.send({
-        to: sendTo,
-        subject: message.subject,
-        text: message.text(code),
-        html: message.html(code),
-      });
     }
   }
 

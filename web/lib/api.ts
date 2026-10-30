@@ -262,6 +262,9 @@ export async function fetchEmailSignInAvailable(): Promise<boolean> {
 
 export const requestEmailCode = (email: string) => emailSignIn("/auth/email/request", { email });
 export const verifyEmailCode = (email: string, code: string) => emailSignIn("/auth/email/verify", { email, code });
+// "Join for free": become a Newsletter member and get a sign-in code.
+export const joinClub = (email: string, firstName: string) =>
+  emailSignIn("/auth/email/join", { email, firstName, newsletterConsent: true });
 
 // Story cards including member-only stories this member can't open yet
 // (locked: true — title, photo and teaser only; the body is never sent).

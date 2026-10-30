@@ -11,11 +11,15 @@ import { MembersModule } from '../members/members.module';
 import { EmailModule } from '../email/email.module';
 import { EmailLoginController } from './email-login/email-login.controller';
 import { EmailLoginService } from './email-login/email-login.service';
+import { MailchimpModule } from '../mailchimp/mailchimp.module';
+import { ShopifyAdminModule } from '../shopify-admin/shopify-admin.module';
 
 @Module({
   imports: [
     MembersModule,
     EmailModule,
+    MailchimpModule,
+    ShopifyAdminModule,
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
